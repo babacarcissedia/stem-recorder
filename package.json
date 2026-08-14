@@ -1,14 +1,32 @@
 {
-  "name": "batch-recorder",
-  "version": "0.1.0",
+  "name": "stem-recorder",
+  "productName": "Stem Recorder",
+  "version": "0.1.1",
   "private": false,
-  "description": "Cross-platform desktop app: record screen, camera, and microphone as separate files in one take folder.",
+  "description": "Record screen, camera, and mic as separate stems (mp4 + mp3) in one take folder.",
   "license": "MIT",
-  "author": "Babacar Cisse Dia",
+  "author": {
+    "name": "Babacar Cisse Dia",
+    "url": "https://bcd.dev"
+  },
+  "homepage": "https://github.com/babacarcissedia/stem-recorder",
+  "bugs": {
+    "url": "https://github.com/babacarcissedia/stem-recorder/issues"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/babacarcissedia/batch-recorder.git"
+    "url": "https://github.com/babacarcissedia/stem-recorder.git"
   },
+  "keywords": [
+    "screen-recorder",
+    "webcam",
+    "multitrack",
+    "stems",
+    "electron",
+    "ffmpeg",
+    "mp4",
+    "mp3"
+  ],
   "main": "main.js",
   "scripts": {
     "start": "electron .",

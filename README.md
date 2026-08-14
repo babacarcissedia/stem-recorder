@@ -1,58 +1,53 @@
-# batch-recorder
+# Stem Recorder
 
-Cross-platform desktop app that records **screen**, **camera**, and **microphone** as **separate files in one take folder**.
+Cross-platform desktop app that records **screen**, **camera**, and **microphone** as **separate stems** in one take folder.
+
+![Stem Recorder icon](build/icon.png)
 
 ```
-Movies/batch-recorder/
+Movies/stem-recorder/
   take-2026-08-14T20-03-09/
-    screen.webm    # display
-    cam.webm       # webcam / Continuity
-    audio.webm     # mic
+    screen.mp4
+    cam.mp4
+    audio.mp3
     manifest.txt
 ```
 
-MIT licensed. Built for founder / creator batch recording (talk over slides, overlay later).
+Capture uses the browser MediaRecorder (usually WebM), then **ffmpeg** transcodes to **mp4** (H.264) and **mp3** (LAME). Requires `ffmpeg` on your PATH (Homebrew: `brew install ffmpeg`).
 
-## Why a desktop app?
-
-Browsers (and Cursor’s embedded preview) often:
-
-1. Block `getDisplayMedia` (“Not supported”)
-2. Allow **only one** automatic download — so a “triple record” silently drops cam + audio
-
-This Electron shell loads the same UI, enables display capture, and **writes all tracks to disk** via IPC.
+MIT licensed.
 
 ## Quick start
 
 ```bash
-git clone https://github.com/babacarcissedia/batch-recorder.git
-cd batch-recorder
+git clone https://github.com/babacarcissedia/stem-recorder.git
+cd stem-recorder
 npm install
 npm start
 ```
 
 1. Pick camera + mic  
-2. Pick screen / window (OS picker)  
-3. Hit **Record** → **Stop**  
-4. Finder opens the take folder with `screen` · `cam` · `audio`
+2. Pick screen / window  
+3. **Record** → **Stop**  
+4. Folder opens with `screen.mp4` · `cam.mp4` · `audio.mp3`
+
+## Formats
+
+| Stem | Output | Notes |
+|---|---|---|
+| Screen | `screen.mp4` | H.264, no audio |
+| Camera | `cam.mp4` | H.264, no audio |
+| Mic | `audio.mp3` | 192 kbps MP3 |
+
+If ffmpeg is missing, raw `.webm` files are kept so the take is not lost.
 
 ## ffmpeg CLI fallback
 
-Same machine, no GUI:
-
 ```bash
 ./dual-record.sh list
-./dual-record.sh start   # full screen + cam + mic → take folder
+./dual-record.sh start
 ./dual-record.sh stop
 ```
-
-## Stack
-
-| Piece | Role |
-|---|---|
-| `renderer/index.html` | UI + MediaRecorder |
-| `main.js` / `preload.js` | Permissions + write take folder |
-| `dual-record.sh` | Optional ffmpeg path |
 
 ## License
 

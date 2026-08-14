@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Triple recorder · screen + cam + audio</title>
+  <title>Stem Recorder</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
@@ -133,11 +133,11 @@
   </style>
 </head>
 <body>
-  <div class="kicker">Batch recorder</div>
+  <div class="kicker">Stem Recorder</div>
   <h1>Record screen + cam + audio</h1>
   <p class="lead">
-    One take folder with separate tracks: <code>screen</code> · <code>cam</code> · <code>audio</code>.
-    Desktop app writes to <code>Movies/batch-recorder/take-…/</code> (no multi-download block).
+    One take folder with separate stems: <code>screen.mp4</code> · <code>cam.mp4</code> · <code>audio.mp3</code>.
+    Desktop app writes to <code>Movies/stem-recorder/take-…/</code> (ffmpeg transcode after capture).
   </p>
   <div id="secureWarn" class="secure-warn">
     Needs localhost or https. Serve this folder:
@@ -524,9 +524,10 @@
           ext,
           data: buf,
         });
+        const base = file.split(/[/\\]/).pop();
         const a = document.createElement('a');
         a.href = '#';
-        a.textContent = `✓ ${kind}.${ext} · ${(blob.size / 1e6).toFixed(2)} MB → folder`;
+        a.textContent = `✓ ${base} · ${(blob.size / 1e6).toFixed(2)} MB raw → folder`;
         a.onclick = (e) => { e.preventDefault(); window.batchRecorder.openTake(takeDir); };
         takesEl.prepend(a);
         log(`Saved ${file}`);

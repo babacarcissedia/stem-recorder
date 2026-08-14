@@ -101,11 +101,20 @@ start() {
     "$take_dir/cam.mp4" >"$take_dir/cam.ffmpeg.log" 2>&1 &
   echo $! >"$PID_DIR/cam.pid"
 
-  # Mic — audio only
-  ffmpeg -hide_banner -y -f avfoundation \
-    -i ":${MIC_DEV}" \
-    -c:a aac -b:a 192k \
-    "$take_dir/audio.m4a" >"$take_dir/audio.ffmpeg.log" 2>&1 &
+  # Mic — audio only → mp3 when ffmpeg available; else m4a
+  local audio_out="$take_dir/audio.mp3"
+  if command -v ffmpeg >/dev/null 2>&1; then
+    ffmpeg -hide_banner -y -f avfoundation \
+      -i ":${MIC_DEV}" \
+      -c:a libmp3lame -b:a 192k \
+      "$audio_out" >"$take_dir/audio.ffmpeg.log" 2>&1 &
+  else
+    audio_out="$take_dir/audio.m4a"
+    ffmpeg -hide_banner -y -f avfoundation \
+      -i ":${MIC_DEV}" \
+      -c:a aac -b:a 192k \
+      "$audio_out" >"$take_dir/audio.ffmpeg.log" 2>&1 &
+  fi
   echo $! >"$PID_DIR/audio.pid"
 
   sleep 1.5
