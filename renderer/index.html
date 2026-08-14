@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Triple recorder · screen + cam + audio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f6f4ef;
+      --fg: #1a1f2a;
+      --muted: #5a6578;
+      --accent: #9a7b1a;
+      --accent-soft: #f0e4b8;
+      --card: #fff;
+      --line: #d9d2c3;
+      --ok: #2f6b4f;
+      --warn: #a65a2a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; background: var(--bg); color: var(--fg);
+      font-family: "IBM Plex Sans", system-ui, sans-serif;
+      padding: 1.25rem clamp(1rem, 3vw, 2rem) 2.5rem;
+    }
+    h1 { font-size: 1.5rem; letter-spacing: -0.03em; margin: 0 0 0.35rem; }
+    .kicker {
+      font-size: 0.72rem; font-weight: 650; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 0.35rem;
+    }
+    p.lead { color: var(--muted); margin: 0 0 1rem; max-width: 56rem; line-height: 1.45; }
+    .layout {
+      display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.7fr);
+      gap: 1.1rem; align-items: start;
+    }
+    @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
+    .previews {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+    }
+    @media (max-width: 720px) { .previews { grid-template-columns: 1fr; } }
+    .stage-wrap {
+      background: #ebe6dc; border: 1px solid var(--line); border-radius: 16px; padding: 0.55rem;
+    }
+    .stage-wrap .cap {
+      font-size: 0.72rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--muted); margin: 0 0 0.4rem 0.15rem;
+    }
+    .stage {
+      background: #111; border-radius: 12px; overflow: hidden; position: relative;
+      width: 100%; aspect-ratio: 16 / 9; border: 1px solid #2a2a2a;
+    }
+    .stage.portrait { aspect-ratio: 9 / 16; max-width: 280px; margin-inline: auto; }
+    .stage video {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: contain; background: #000; display: block;
+    }
+    .stage.fit-cover video { object-fit: cover; }
+    .stage video.mirror { transform: scaleX(-1); }
+    .hud {
+      position: absolute; left: 0.5rem; bottom: 0.5rem; right: 0.5rem;
+      display: flex; flex-wrap: wrap; gap: 0.35rem; pointer-events: none;
+    }
+    .pill {
+      background: rgba(0,0,0,0.55); color: #fff; border-radius: 999px;
+      padding: 0.22rem 0.55rem; font-size: 0.72rem; font-family: "IBM Plex Mono", monospace;
+    }
+    .pill.live { background: rgba(47,107,79,0.9); }
+    .pill.warn { background: rgba(166,90,42,0.9); }
+    .pill.off { background: rgba(80,80,80,0.75); }
+    .panel {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      padding: 1rem 1.05rem; box-shadow: 0 8px 24px rgba(26,31,42,0.04);
+    }
+    .panel h2 { font-size: 0.92rem; margin: 0 0 0.35rem; }
+    .panel h3 {
+      font-size: 0.72rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--muted); margin: 0.95rem 0 0.35rem;
+    }
+    label { display: block; font-size: 0.78rem; color: var(--muted); margin: 0.55rem 0 0.25rem; }
+    select, button {
+      width: 100%; font: inherit; border-radius: 10px; border: 1px solid var(--line);
+      padding: 0.52rem 0.65rem; background: #fff; color: var(--fg);
+    }
+    button {
+      cursor: pointer; font-weight: 650; margin-top: 0.45rem;
+      background: var(--accent-soft); border-color: #e2d4a0; color: #6b5410;
+    }
+    button.secondary { background: #fff; color: var(--fg); }
+    button.danger { background: #f8e8dc; border-color: #efd2bc; color: var(--warn); }
+    button.rec {
+      background: #c44; border-color: #a33; color: #fff; font-size: 1.02rem;
+      padding: 0.75rem 0.85rem; margin-top: 0.7rem;
+    }
+    button.rec:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.rec.active { animation: pulse 1.2s ease infinite; }
+    @keyframes pulse { 50% { filter: brightness(1.08); } }
+    .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
+    .toggles { display: grid; gap: 0.4rem; margin-top: 0.35rem; }
+    .toggle {
+      display: flex; align-items: center; gap: 0.55rem;
+      border: 1px solid var(--line); border-radius: 10px; padding: 0.45rem 0.6rem; background: #fafafa;
+    }
+    .toggle input { width: auto; margin: 0; accent-color: var(--accent); }
+    .toggle span { font-size: 0.9rem; font-weight: 600; }
+    .toggle small { margin-left: auto; color: var(--muted); font-size: 0.75rem; }
+    .screen-picked {
+      font-size: 0.8rem; color: var(--muted); margin-top: 0.35rem; min-height: 1.2em;
+    }
+    .screen-picked.on { color: var(--ok); font-weight: 600; }
+    .orient { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; margin-top: 0.35rem; }
+    .orient button { margin-top: 0; background: #fff; color: var(--fg); }
+    .orient button.active { background: var(--accent-soft); border-color: #e2d4a0; color: #6b5410; }
+    .takes { margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; max-height: 14rem; overflow: auto; }
+    .takes a {
+      font-size: 0.8rem; color: var(--ok); text-decoration: none;
+      padding: 0.4rem 0.5rem; border: 1px solid var(--line); border-radius: 10px; background: #fafafa;
+    }
+    .takes:empty::after { content: "No takes yet."; color: var(--muted); font-size: 0.82rem; }
+    .meter { height: 8px; background: #efeae0; border-radius: 999px; overflow: hidden; margin-top: 0.65rem; }
+    .meter > i { display: block; height: 100%; width: 0%; background: var(--ok); }
+    #log {
+      margin-top: 0.75rem; font-family: "IBM Plex Mono", monospace; font-size: 0.72rem;
+      color: var(--muted); white-space: pre-wrap; max-height: 9rem; overflow: auto;
+    }
+    .secure-warn {
+      display: none; margin-bottom: 0.9rem; padding: 0.7rem 0.85rem; border-radius: 12px;
+      background: #f8e8dc; color: var(--warn); border: 1px solid #efd2bc; font-size: 0.9rem;
+    }
+    .checks { margin-top: 0.85rem; font-size: 0.84rem; color: var(--muted); line-height: 1.45; }
+    .checks strong { color: var(--fg); }
+  </style>
+</head>
+<body>
+  <div class="kicker">Batch recorder</div>
+  <h1>Record screen + cam + audio</h1>
+  <p class="lead">
+    One take folder with separate tracks: <code>screen</code> · <code>cam</code> · <code>audio</code>.
+    Desktop app writes to <code>Movies/batch-recorder/take-…/</code> (no multi-download block).
+  </p>
+  <div id="secureWarn" class="secure-warn">
+    Needs localhost or https. Serve this folder:
+    <code>python3 -m http.server 8765</code> →
+    <code>http://127.0.0.1:8765/cam-preview.html</code>
+  </div>
+
+  <div class="layout">
+    <div>
+      <div class="previews">
+        <div class="stage-wrap">
+          <div class="cap">Camera</div>
+          <div class="stage" id="camStage">
+            <video id="camPreview" class="mirror" playsinline autoplay muted></video>
+            <div class="hud">
+              <span class="pill off" id="camStatus">off</span>
+              <span class="pill" id="camRes">—</span>
+            </div>
+          </div>
+        </div>
+        <div class="stage-wrap">
+          <div class="cap">Screen / window / tab</div>
+          <div class="stage" id="screenStage">
+            <video id="screenPreview" playsinline autoplay muted></video>
+            <div class="hud">
+              <span class="pill off" id="screenStatus">off</span>
+              <span class="pill" id="screenRes">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="meter" title="Mic level"><i id="level"></i></div>
+      <div id="log"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Sources</h2>
+
+      <label for="videoIn">Camera</label>
+      <select id="videoIn"></select>
+
+      <label for="audioIn">Microphone</label>
+      <select id="audioIn"></select>
+
+      <label>Screen / window / selection</label>
+      <button type="button" class="secondary" id="pickScreenBtn">Pick screen / window / tab…</button>
+      <button type="button" class="secondary" id="openChromeBtn">Open in Chrome (needed for screen)</button>
+      <div class="screen-picked" id="screenPicked">Nothing picked yet</div>
+      <div class="checks" style="margin-top:0.35rem">
+        Screen preview turns on after you pick a display. In Cursor’s built-in browser it is often blocked —
+        use the desktop app (<code>recorder-app</code>) or Chrome on localhost.
+      </div>
+      <button type="button" class="secondary" id="clearScreenBtn">Clear screen</button>
+
+      <h3>Include in take</h3>
+      <div class="toggles">
+        <label class="toggle"><input type="checkbox" id="incScreen" checked /><span>Screen</span><small>video</small></label>
+        <label class="toggle"><input type="checkbox" id="incCam" checked /><span>Camera</span><small>video</small></label>
+        <label class="toggle"><input type="checkbox" id="incAudio" checked /><span>Audio</span><small>mic</small></label>
+      </div>
+
+      <h3>Cam frame</h3>
+      <div class="orient" role="group" aria-label="Camera orientation">
+        <button type="button" class="active" id="orientLandscape">Horizontal 16:9</button>
+        <button type="button" id="orientPortrait">Vertical 9:16</button>
+      </div>
+      <div class="orient" role="group" aria-label="Fit">
+        <button type="button" class="active" id="fitContain">Contain</button>
+        <button type="button" id="fitCover">Cover</button>
+      </div>
+
+      <div class="row-btns">
+        <button type="button" id="previewBtn">Preview all</button>
+        <button type="button" class="secondary" id="refreshBtn">Refresh devices</button>
+      </div>
+      <div class="row-btns">
+        <button type="button" class="secondary" id="mirrorBtn">Toggle mirror</button>
+        <button type="button" class="danger" id="stopPreviewBtn">Stop previews</button>
+      </div>
+
+      <button type="button" class="rec" id="recAllBtn">Record</button>
+      <button type="button" class="secondary" id="recStopBtn" disabled>Stop recording</button>
+      <div class="takes" id="takes" aria-live="polite"></div>
+
+      <div class="checks">
+        <strong>Flow</strong><br />
+        1. Pick Continuity cam + mic<br />
+        2. Pick screen → choose Entire Screen / Window / Chrome Tab (slides)<br />
+        3. Toggle which tracks to keep<br />
+        4. Record all → Stop → download <code>screen</code> · <code>cam</code> · <code>audio</code><br />
+        Fallback: <code>./dual-record.sh</code> (ffmpeg) if the browser picker blocks.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const camEl = document.getElementById('camPreview');
+    const screenEl = document.getElementById('screenPreview');
+    const camStage = document.getElementById('camStage');
+    const videoSel = document.getElementById('videoIn');
+    const audioSel = document.getElementById('audioIn');
+    const camStatus = document.getElementById('camStatus');
+    const screenStatus = document.getElementById('screenStatus');
+    const camRes = document.getElementById('camRes');
+    const screenRes = document.getElementById('screenRes');
+    const screenPicked = document.getElementById('screenPicked');
+    const levelEl = document.getElementById('level');
+    const logEl = document.getElementById('log');
+    const secureWarn = document.getElementById('secureWarn');
+    const takesEl = document.getElementById('takes');
+    const recAllBtn = document.getElementById('recAllBtn');
+    const recStopBtn = document.getElementById('recStopBtn');
+    const incScreen = document.getElementById('incScreen');
+    const incCam = document.getElementById('incCam');
+    const incAudio = document.getElementById('incAudio');
+
+    let camStream = null;
+    let screenStream = null;
+    let audioStream = null;
+    let audioCtx = null;
+    let meterRaf = 0;
+    /** @type {'landscape'|'portrait'} */
+    let orient = 'landscape';
+    /** @type {'contain'|'cover'} */
+    let fit = 'contain';
+    let takeN = 0;
+    let recStamp = '';
+    let takeDir = '';
+    let recTimer = 0;
+    let recStartedAt = 0;
+    /** @type {Record<string, {recorder: MediaRecorder, chunks: Blob[], mime: string}>} */
+    let tracks = {};
+    let stopping = false;
+    const desktop = window.batchRecorder?.isDesktop === true;
+
+    function log(msg) {
+      const line = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logEl.textContent = `${line}\n${logEl.textContent}`.trim();
+      console.log(line);
+    }
+
+    if (!window.isSecureContext) {
+      secureWarn.style.display = 'block';
+      log('Not a secure context — serve over localhost.');
+    }
+
+    function pickVideoMime() {
+      return [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+        'video/mp4',
+      ].find((t) => MediaRecorder.isTypeSupported?.(t)) || '';
+    }
+
+    function pickAudioMime() {
+      return [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+      ].find((t) => MediaRecorder.isTypeSupported?.(t)) || '';
+    }
+
+    function fmtDur(ms) {
+      const s = Math.floor(ms / 1000);
+      return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    }
+
+    function setPill(el, text, cls) {
+      el.textContent = text;
+      el.className = 'pill' + (cls ? ` ${cls}` : '');
+    }
+
+    function videoConstraints(deviceId) {
+      return orient === 'portrait'
+        ? { deviceId: { exact: deviceId }, width: { ideal: 1080 }, height: { ideal: 1920 }, frameRate: { ideal: 30 } }
+        : { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } };
+    }
+
+    function applyOrientUI() {
+      const portrait = orient === 'portrait';
+      camStage.classList.toggle('portrait', portrait);
+      document.getElementById('orientLandscape').classList.toggle('active', !portrait);
+      document.getElementById('orientPortrait').classList.toggle('active', portrait);
+    }
+
+    function applyFitUI() {
+      camStage.classList.toggle('fit-cover', fit === 'cover');
+      document.getElementById('fitContain').classList.toggle('active', fit === 'contain');
+      document.getElementById('fitCover').classList.toggle('active', fit === 'cover');
+    }
+
+    function stopMeter() {
+      cancelAnimationFrame(meterRaf);
+      if (audioCtx) { audioCtx.close().catch(() => {}); audioCtx = null; }
+      levelEl.style.width = '0%';
+    }
+
+    function startMeter(track) {
+      stopMeter();
+      if (!track) return;
+      audioCtx = new AudioContext();
+      const src = audioCtx.createMediaStreamSource(new MediaStream([track]));
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      src.connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        analyser.getByteFrequencyData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) sum += data[i];
+        levelEl.style.width = `${Math.min(100, Math.round((sum / data.length / 255) * 140))}%`;
+        meterRaf = requestAnimationFrame(tick);
+      };
+      tick();
+    }
+
+    function updateRes(el, stream) {
+      const s = stream?.getVideoTracks?.()[0]?.getSettings?.() || {};
+      el.textContent = s.width && s.height ? `${s.width}×${s.height}` : '—';
+    }
+
+    async function listDevices() {
+      try {
+        const tmp = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        tmp.getTracks().forEach((t) => t.stop());
+      } catch (e) {
+        log(`Permission probe: ${e.name || e}`);
+      }
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cams = devices.filter((d) => d.kind === 'videoinput');
+      const mics = devices.filter((d) => d.kind === 'audioinput');
+      const keepCam = videoSel.value;
+      const keepMic = audioSel.value;
+      videoSel.innerHTML = cams.map((d, i) =>
+        `<option value="${d.deviceId}">${d.label || `Camera ${i + 1}`}</option>`
+      ).join('') || '<option value="">No cameras</option>';
+      audioSel.innerHTML = '<option value="">(none)</option>' + mics.map((d, i) =>
+        `<option value="${d.deviceId}">${d.label || `Mic ${i + 1}`}</option>`
+      ).join('');
+      if ([...videoSel.options].some((o) => o.value === keepCam)) videoSel.value = keepCam;
+      else {
+        const prefer = [...videoSel.options].find((o) =>
+          /continuity|iphone|ipad|camo|iriun|bro camera/i.test(o.textContent) && !/desk view/i.test(o.textContent)
+        );
+        if (prefer) videoSel.value = prefer.value;
+      }
+      if ([...audioSel.options].some((o) => o.value === keepMic)) audioSel.value = keepMic;
+      else {
+        const preferMic = [...audioSel.options].find((o) =>
+          /dji|bro microphone|continuity/i.test(o.textContent)
+        );
+        if (preferMic) audioSel.value = preferMic.value;
+      }
+      log(`Devices: ${cams.length} cam · ${mics.length} mic`);
+    }
+
+    async function startCamPreview() {
+      if (Object.keys(tracks).length) throw new Error('Stop recording first');
+      stopCamPreview();
+      const videoId = videoSel.value;
+      if (!videoId) throw new Error('Pick a camera');
+      const audioId = audioSel.value;
+      camStream = await navigator.mediaDevices.getUserMedia({
+        video: videoConstraints(videoId),
+        audio: false,
+      });
+      camEl.srcObject = camStream;
+      setPill(camStatus, 'live', 'live');
+      updateRes(camRes, camStream);
+      log(`Cam: ${camStream.getVideoTracks()[0]?.label || 'camera'}`);
+
+      if (audioId) {
+        audioStream = await navigator.mediaDevices.getUserMedia({
+          audio: { deviceId: { exact: audioId } },
+          video: false,
+        });
+        startMeter(audioStream.getAudioTracks()[0]);
+        log(`Mic: ${audioStream.getAudioTracks()[0]?.label || 'mic'}`);
+      }
+    }
+
+    function stopCamPreview() {
+      if (camStream) { camStream.getTracks().forEach((t) => t.stop()); camStream = null; }
+      if (audioStream && !tracks.audio) {
+        audioStream.getTracks().forEach((t) => t.stop());
+        audioStream = null;
+      }
+      camEl.srcObject = null;
+      stopMeter();
+      setPill(camStatus, 'off', 'off');
+      camRes.textContent = '—';
+    }
+
+    async function pickScreen() {
+      if (Object.keys(tracks).length) throw new Error('Stop recording first');
+      if (!navigator.mediaDevices?.getDisplayMedia) {
+        throw new Error(
+          'Screen capture not available in this browser surface. Open this page in Chrome/Safari, or use ./dual-record.sh for screen.'
+        );
+      }
+      clearScreen(false);
+
+      // Minimal constraints first — Cursor Glass / some Chromium embeds throw
+      // "Not supported" if we pass displaySurface / preferCurrentTab / etc.
+      const attempts = [
+        { video: true, audio: false },
+        { video: { frameRate: 30 }, audio: false },
+        {
+          video: {
+            frameRate: { ideal: 30 },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+          audio: false,
+        },
+      ];
+
+      let lastErr = null;
+      for (const constraints of attempts) {
+        try {
+          screenStream = await navigator.mediaDevices.getDisplayMedia(constraints);
+          lastErr = null;
+          break;
+        } catch (e) {
+          lastErr = e;
+          const msg = e?.message || e?.name || String(e);
+          log(`getDisplayMedia attempt failed: ${msg}`);
+          // User cancelled — don't retry
+          if (e?.name === 'NotAllowedError' || /denied|cancel/i.test(msg)) throw e;
+        }
+      }
+      if (!screenStream) {
+        throw lastErr || new Error(
+          'Screen picker failed. Open http://127.0.0.1:8765/cam-preview.html in Chrome (not Cursor preview), or use ./dual-record.sh'
+        );
+      }
+
+      const track = screenStream.getVideoTracks()[0];
+      const settings = track.getSettings?.() || {};
+      const surface = settings.displaySurface || 'unknown';
+      screenEl.srcObject = screenStream;
+      setPill(screenStatus, surface, 'live');
+      updateRes(screenRes, screenStream);
+      screenPicked.textContent = `Picked: ${track.label || surface} (${surface})`;
+      screenPicked.classList.add('on');
+      log(`Screen: ${track.label || surface} · ${surface}`);
+      track.addEventListener('ended', () => {
+        log('Screen share ended by user');
+        if (Object.keys(tracks).length) stopRecording();
+        else clearScreen(true);
+      });
+    }
+
+    function clearScreen(silent) {
+      if (screenStream) {
+        screenStream.getTracks().forEach((t) => t.stop());
+        screenStream = null;
+      }
+      screenEl.srcObject = null;
+      setPill(screenStatus, 'off', 'off');
+      screenRes.textContent = '—';
+      screenPicked.textContent = 'Nothing picked yet';
+      screenPicked.classList.remove('on');
+      if (!silent) log('Screen cleared');
+    }
+
+    function trackExt(blob, kind) {
+      if (kind === 'audio') {
+        if ((blob.type || '').includes('mp4')) return 'm4a';
+        return 'webm';
+      }
+      if ((blob.type || '').includes('mp4')) return 'mp4';
+      return 'webm';
+    }
+
+    async function saveTrack(blob, kind) {
+      const ext = trackExt(blob, kind);
+      if (desktop && takeDir) {
+        const buf = await blob.arrayBuffer();
+        const file = await window.batchRecorder.saveTrack({
+          takeDir,
+          kind,
+          ext,
+          data: buf,
+        });
+        const a = document.createElement('a');
+        a.href = '#';
+        a.textContent = `✓ ${kind}.${ext} · ${(blob.size / 1e6).toFixed(2)} MB → folder`;
+        a.onclick = (e) => { e.preventDefault(); window.batchRecorder.openTake(takeDir); };
+        takesEl.prepend(a);
+        log(`Saved ${file}`);
+        return;
+      }
+      // Browser fallback — browsers often allow only ONE auto-download
+      const name = `${kind}.${ext}`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `take-${recStamp}-${name}`;
+      a.textContent = `↓ take-${recStamp}-${name} · ${(blob.size / 1e6).toFixed(2)} MB`;
+      takesEl.prepend(a);
+      a.click();
+      log(`Browser download ${name} (use desktop app for a take folder)`);
+    }
+
+    function makeRecorder(stream, kind, mime) {
+      // Clone so preview + recorder do not fight over the same track
+      const recStream = new MediaStream(stream.getTracks().map((t) => t.clone()));
+      const chunks = [];
+      const opts = { mimeType: mime || undefined };
+      if (kind === 'audio') opts.audioBitsPerSecond = 192_000;
+      else opts.videoBitsPerSecond = 8_000_000;
+      let recorder;
+      try {
+        recorder = mime ? new MediaRecorder(recStream, opts) : new MediaRecorder(recStream);
+      } catch (e) {
+        recorder = new MediaRecorder(recStream);
+      }
+      recorder.ondataavailable = (e) => { if (e.data?.size) chunks.push(e.data); };
+      recorder.onerror = (e) => log(`${kind} recorder error: ${e.error?.name || e}`);
+      tracks[kind] = { recorder, chunks, mime: mime || recorder.mimeType || '', recStream };
+      recorder.start(1000);
+      log(`Recording ${kind} (${recorder.mimeType || 'default'})`);
+    }
+
+    async function ensureCam() {
+      if (!camStream) await startCamPreview();
+      if (!camStream?.getVideoTracks().length) throw new Error('Camera not available');
+      return camStream;
+    }
+
+    async function ensureAudio() {
+      const audioId = audioSel.value;
+      if (!audioId) throw new Error('Pick a microphone for audio track');
+      if (!audioStream || audioStream.getAudioTracks().length === 0) {
+        audioStream = await navigator.mediaDevices.getUserMedia({
+          audio: { deviceId: { exact: audioId } },
+          video: false,
+        });
+        startMeter(audioStream.getAudioTracks()[0]);
+      }
+      if (!audioStream.getAudioTracks().length) throw new Error('Mic track missing');
+      return audioStream;
+    }
+
+    async function ensureScreen() {
+      if (!screenStream) await pickScreen();
+      if (!screenStream?.getVideoTracks().length) throw new Error('Screen not picked');
+      return screenStream;
+    }
+
+    async function startRecordingAll() {
+      if (Object.keys(tracks).length) throw new Error('Already recording');
+      const wantScreen = incScreen.checked;
+      const wantCam = incCam.checked;
+      const wantAudio = incAudio.checked;
+      if (!wantScreen && !wantCam && !wantAudio) throw new Error('Enable at least one track');
+
+      // Screen picker first (requires user gesture chain)
+      if (wantScreen && !screenStream) await ensureScreen();
+      if (wantCam) await ensureCam();
+      if (wantAudio) await ensureAudio();
+
+      takeN += 1;
+      recStamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      tracks = {};
+      stopping = false;
+      takeDir = '';
+      if (desktop) {
+        takeDir = await window.batchRecorder.beginTake(recStamp);
+        log(`Take folder: ${takeDir}`);
+      }
+
+      const videoMime = pickVideoMime();
+      const audioMime = pickAudioMime();
+
+      // Start all requested tracks; fail loudly per track
+      const started = [];
+      if (wantScreen) {
+        makeRecorder(await ensureScreen(), 'screen', videoMime);
+        started.push('screen');
+      }
+      if (wantCam) {
+        makeRecorder(await ensureCam(), 'cam', videoMime);
+        started.push('cam');
+      }
+      if (wantAudio) {
+        makeRecorder(await ensureAudio(), 'audio', audioMime);
+        started.push('audio');
+      }
+      if (!started.length) throw new Error('No tracks started');
+
+      recAllBtn.disabled = true;
+      recAllBtn.classList.add('active');
+      recAllBtn.textContent = 'Recording';
+      recStopBtn.disabled = false;
+      recStartedAt = Date.now();
+      clearInterval(recTimer);
+      recTimer = setInterval(() => {
+        recAllBtn.textContent = `Recording ${fmtDur(Date.now() - recStartedAt)}`;
+      }, 250);
+      log(`Take ${recStamp} started · ${[
+        wantScreen && 'screen',
+        wantCam && 'cam',
+        wantAudio && 'audio',
+      ].filter(Boolean).join(' + ')}`);
+    }
+
+    function stopRecording() {
+      if (stopping) return;
+      stopping = true;
+      clearInterval(recTimer);
+      const kinds = Object.keys(tracks);
+      if (!kinds.length) {
+        finishingUI();
+        return;
+      }
+      let left = kinds.length;
+      kinds.forEach((kind) => {
+        const entry = tracks[kind];
+        entry.recorder.onstop = async () => {
+          try {
+            entry.recStream?.getTracks?.().forEach((t) => t.stop());
+            const type = entry.recorder.mimeType || entry.mime
+              || (kind === 'audio' ? 'audio/webm' : 'video/webm');
+            await saveTrack(new Blob(entry.chunks, { type }), kind);
+          } catch (e) {
+            log(`Save ${kind} failed: ${e.message || e}`);
+          }
+          left -= 1;
+          if (left <= 0) {
+            tracks = {};
+            finishingUI();
+            log(`Take complete${takeDir ? `: ${takeDir}` : ''}`);
+            if (desktop && takeDir) window.batchRecorder.openTake(takeDir);
+          }
+        };
+        if (entry.recorder.state !== 'inactive') entry.recorder.stop();
+        else entry.recorder.onstop();
+      });
+    }
+
+    function finishingUI() {
+      stopping = false;
+      recAllBtn.disabled = false;
+      recAllBtn.classList.remove('active');
+      recAllBtn.textContent = 'Record';
+      recStopBtn.disabled = true;
+    }
+
+    async function previewAll() {
+      if (incCam.checked || true) {
+        try { await startCamPreview(); } catch (e) { log(`Cam preview: ${e.message || e}`); }
+      }
+      if (incScreen.checked && !screenStream) {
+        try { await pickScreen(); } catch (e) { log(`Screen preview: ${e.message || e.name || e}`); }
+      } else if (screenStream) {
+        setPill(screenStatus, screenStream.getVideoTracks()[0]?.getSettings?.()?.displaySurface || 'live', 'live');
+        updateRes(screenRes, screenStream);
+      }
+    }
+
+    function debouncePreview(fn, ms = 200) {
+      let t = 0;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), ms);
+      };
+    }
+
+    const onSourceChange = debouncePreview(() => {
+      if (Object.keys(tracks).length) return;
+      previewAll();
+    });
+
+    document.getElementById('previewBtn').onclick = () => previewAll();
+    document.getElementById('stopPreviewBtn').onclick = () => {
+      stopCamPreview();
+      clearScreen(true);
+      log('Previews stopped');
+    };
+    document.getElementById('refreshBtn').onclick = () => listDevices()
+      .then(() => onSourceChange())
+      .catch((e) => log(String(e)));
+    document.getElementById('mirrorBtn').onclick = () => camEl.classList.toggle('mirror');
+    document.getElementById('pickScreenBtn').onclick = () => pickScreen().catch((e) => log(String(e.message || e.name || e)));
+    document.getElementById('clearScreenBtn').onclick = () => clearScreen(false);
+    document.getElementById('openChromeBtn').onclick = () => {
+      const url = location.href;
+      log(`Open this URL in Chrome: ${url}`);
+      window.open(url, '_blank', 'noopener');
+    };
+    videoSel.onchange = onSourceChange;
+    audioSel.onchange = onSourceChange;
+    incScreen.onchange = () => {
+      if (!incScreen.checked) clearScreen(true);
+      else onSourceChange();
+    };
+    incCam.onchange = () => {
+      if (!incCam.checked) stopCamPreview();
+      else onSourceChange();
+    };
+    document.getElementById('orientLandscape').onclick = async () => {
+      orient = 'landscape'; applyOrientUI();
+      onSourceChange();
+    };
+    document.getElementById('orientPortrait').onclick = async () => {
+      orient = 'portrait'; applyOrientUI();
+      onSourceChange();
+    };
+    document.getElementById('fitContain').onclick = () => { fit = 'contain'; applyFitUI(); };
+    document.getElementById('fitCover').onclick = () => { fit = 'cover'; applyFitUI(); };
+    recAllBtn.onclick = () => startRecordingAll().catch((e) => log(String(e.message || e)));
+    recStopBtn.onclick = () => stopRecording();
+
+    applyOrientUI();
+    applyFitUI();
+    listDevices()
+      .then(() => onSourceChange())
+      .catch((e) => log(String(e.message || e)));
+  </script>
+</body>
+</html>

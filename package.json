@@ -1,0 +1,20 @@
+{
+  "name": "batch-recorder",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Cross-platform desktop app: record screen, camera, and microphone as separate files in one take folder.",
+  "license": "MIT",
+  "author": "Babacar Cisse Dia",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/babacarcissedia/batch-recorder.git"
+  },
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^37.2.0"
+  }
+}
