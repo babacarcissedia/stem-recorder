@@ -203,7 +203,7 @@ ipcMain.handle('recorder:openTake', (_evt, takeDir) => {
 });
 
 app.whenReady().then(() => {
-  if (process.platform === 'darwin') {
+  if (process.platform === 'darwin' && typeof app.setAboutPanelParameters === 'function') {
     app.setAboutPanelParameters({
       applicationName: APP_NAME,
       applicationVersion: app.getVersion(),
