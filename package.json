@@ -33,6 +33,7 @@
     "dev": "electron .",
     "smoke:apply": "node scripts/smoke-apply.js",
     "smoke:clips": "node scripts/smoke-clip-ops.js",
+    "smoke:thumbs": "node scripts/smoke-thumbs.js",
     "smoke:transcribe": "node scripts/smoke-transcribe.js"
   },
   "devDependencies": {

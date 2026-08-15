@@ -79,6 +79,11 @@
   /** Source-time marks for Cut range (null until set). */
   let markIn = null;
   let markOut = null;
+  /** Real filmstrip frames + waveform peaks (disk-cached by the main process). */
+  let filmstrips = { cam: null, screen: null };
+  let waveform = null;
+  /** Selection index the timeline DOM was last built for — scrub repaints skip rebuilds. */
+  let renderedSelectedIdx = -1;
   /** In-session undo/redo over clip-list snapshots (not persisted to disk). */
   const undoStack = window.StemUndoStack ? window.StemUndoStack.createUndoStack(100) : null;
 
@@ -229,8 +234,10 @@
     selectedIdx = mapped.index;
     syncingFromTimeline = true;
     if (Number.isFinite(mapped.sourceTime)) editVideo.currentTime = mapped.sourceTime;
-    renderSelectionPanel();
-    renderTimeline();
+    if (selectedIdx !== renderedSelectedIdx) {
+      renderSelectionPanel();
+      renderTimeline();
+    }
     syncFieldsFromClip();
     editTimeLabel.textContent = `out ${fmt(outputTime)} · src ${fmt(mapped.sourceTime)}`;
     if (tlOutTime) tlOutTime.textContent = `${fmtClock(outputTime)} / ${fmtClock(total)}`;
@@ -280,6 +287,59 @@
     return wrap;
   }
 
+  function filmStripEl(laneId, clip, widthPx) {
+    const strip = filmstrips[laneId];
+    const dur = ops.clipDuration(clip, duration);
+    if (!strip?.frames?.length || !(dur > 0)) return filmStrip(Math.max(3, Math.floor(dur * 2)));
+    const wrap = document.createElement('div');
+    wrap.className = 'film';
+    const count = Math.max(1, Math.round(widthPx / 72));
+    const start = Number(clip.in) || 0;
+    for (let i = 0; i < count; i += 1) {
+      const srcT = start + ((i + 0.5) / count) * dur;
+      const idx = Math.max(0, Math.min(strip.frames.length - 1, Math.floor(srcT / strip.intervalSec)));
+      const tile = document.createElement('i');
+      tile.className = 'thumb';
+      tile.style.backgroundImage = `url("${strip.frames[idx]}")`;
+      wrap.appendChild(tile);
+    }
+    return wrap;
+  }
+
+  function waveBarsEl(clip, widthPx) {
+    const dur = ops.clipDuration(clip, duration);
+    if (!waveform?.peaks?.length || !(dur > 0)) return fakeWaveBars(Math.max(8, Math.floor(dur * 4)));
+    const wrap = document.createElement('div');
+    wrap.className = 'wave';
+    const bars = Math.max(8, Math.floor(widthPx / 3));
+    const start = Number(clip.in) || 0;
+    for (let i = 0; i < bars; i += 1) {
+      const srcT = start + ((i + 0.5) / bars) * dur;
+      const idx = Math.max(0, Math.min(waveform.peaks.length - 1, Math.floor(srcT * waveform.peaksPerSec)));
+      const b = document.createElement('b');
+      b.style.height = `${Math.round(8 + waveform.peaks[idx] * 92)}%`;
+      wrap.appendChild(b);
+    }
+    return wrap;
+  }
+
+  function loadTimelineMedia(takeId) {
+    filmstrips = { cam: null, screen: null };
+    waveform = null;
+    const applyIfCurrent = (assign) => (data) => {
+      if (currentTakeId !== takeId || !data) return;
+      assign(data);
+      renderTimeline();
+    };
+    studio.getFilmstrip(takeId, 'screen.mp4').then(applyIfCurrent((d) => { filmstrips.screen = d; })).catch(() => {});
+    if (urls['cam.mp4']) {
+      studio.getFilmstrip(takeId, 'cam.mp4').then(applyIfCurrent((d) => { filmstrips.cam = d; })).catch(() => {});
+    }
+    if (urls['audio.mp3']) {
+      studio.getWaveform(takeId).then(applyIfCurrent((d) => { waveform = d; })).catch(() => {});
+    }
+  }
+
   function renderTimeline() {
     if (!tlLanes || !manifest) return;
     const total = outDur() || 1;
@@ -301,12 +361,13 @@
 
       manifest.clips.forEach((clip, idx) => {
         const dur = ops.clipDuration(clip, duration);
+        const clipW = (dur / total) * width;
         const el = document.createElement('div');
         el.className = `tl-clip ${lane.id}${idx === selectedIdx ? ' selected' : ''}${has ? '' : ' missing'}`;
-        el.style.flex = `0 0 ${(dur / total) * width}px`;
+        el.style.flex = `0 0 ${clipW}px`;
         el.title = `${lane.label} · ${fmt(clip.in)} → ${fmt(clip.out)}`;
-        if (lane.kind === 'audio') el.appendChild(fakeWaveBars(Math.max(8, Math.floor(dur * 4))));
-        else el.appendChild(filmStrip(Math.max(3, Math.floor(dur * 2))));
+        if (lane.kind === 'audio') el.appendChild(waveBarsEl(clip, clipW));
+        else el.appendChild(filmStripEl(lane.id, clip, clipW));
         const label = document.createElement('span');
         label.className = 'label';
         label.textContent = `#${idx + 1}`;
@@ -354,6 +415,7 @@
 
     renderRuler();
     updatePlayheadUi();
+    renderedSelectedIdx = selectedIdx;
   }
 
   function renderSelectionPanel() {
@@ -437,6 +499,7 @@
     updateUndoUi();
     refreshAll();
     seekOutput(0);
+    loadTimelineMedia(takeId);
     loadTranscript(takeId);
     setStatus(urls['edit/final.mp4']
       ? `Loaded · final exists · ${CUT_PAUSE_HELP}`

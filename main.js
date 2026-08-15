@@ -22,6 +22,7 @@ const {
   takeDirFor,
   FINAL_NAME,
 } = require('./lib/edit-manifest');
+const { getFilmstrip, getWaveformPeaks } = require('./lib/media-cache');
 const {
   runLocal: runLocalAsr,
   runCloud: runCloudAsr,
@@ -227,6 +228,13 @@ ipcMain.handle('studio:openTakeFolder', (_evt, takeId) => {
 });
 
 ipcMain.handle('studio:ffmpegOk', () => Boolean(findFfmpeg()));
+
+ipcMain.handle('studio:getFilmstrip', (_evt, takeId, stemFile) => {
+  if (!['screen.mp4', 'cam.mp4'].includes(stemFile)) throw new Error(`invalid stem ${stemFile}`);
+  return getFilmstrip(takeDirFor(takeId), stemFile);
+});
+
+ipcMain.handle('studio:getWaveform', (_evt, takeId) => getWaveformPeaks(takeDirFor(takeId)));
 
 ipcMain.handle('studio:transcribe', async (_evt, { takeId, provider } = {}) => {
   const takeDir = takeDirFor(takeId);
