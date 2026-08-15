@@ -74,6 +74,7 @@
   const cropDoneBtn = document.getElementById('cropDoneBtn');
   const cropClearBtn = document.getElementById('cropClearBtn');
   const cropCancelBtn = document.getElementById('cropCancelBtn');
+  const camMirrorBtn = document.getElementById('camMirrorBtn');
 
   let currentTakeId = null;
   let manifest = null;
@@ -640,6 +641,7 @@
     syncFieldsFromClip();
     applyPlaybackRate();
     updatePreviewCrop();
+    updatePreviewMirror();
     const total = outDur();
     if (tlOutTime) tlOutTime.textContent = `${fmtClock(outputTime)} / ${fmtClock(total)}`;
   }
@@ -648,6 +650,7 @@
     const file = previewStem === 'cam' ? 'cam.mp4' : 'screen.mp4';
     const url = urls[file] || urls['screen.mp4'];
     if (!url) return;
+    updatePreviewMirror();
     const keep = editVideo.currentTime || 0;
     const wasPlaying = playing;
     editVideo.src = url;
@@ -911,8 +914,50 @@
   cropCancelBtn?.addEventListener('click', cancelCrop);
   window.addEventListener('resize', layoutCropOverlay);
 
+  /* —— I.4 cam mirror (horizontal flip, cam stem only) —— */
+
+  function camMirrored() {
+    return Boolean(manifest?.cam?.mirror);
+  }
+
+  /** Flip only the cam preview; screen (and crop mode) stay unmirrored. */
+  function updatePreviewMirror() {
+    const flip = camMirrored() && previewStem === 'cam' && Boolean(urls['cam.mp4']);
+    editVideo?.classList.toggle('mirror', flip);
+    if (camMirrorBtn) {
+      camMirrorBtn.disabled = !urls['cam.mp4'];
+      camMirrorBtn.classList.toggle('on', camMirrored());
+    }
+  }
+
+  function doToggleCamMirror() {
+    if (!manifest || !urls['cam.mp4']) return;
+    const prev = snapshot();
+    const next = !camMirrored();
+    if (next) manifest.cam = { mirror: true };
+    else delete manifest.cam;
+    pushUndo(prev);
+    if (next && previewStem !== 'cam') {
+      previewStem = 'cam';
+      document.querySelectorAll('[data-preview]').forEach((b) => {
+        b.classList.toggle('active', b.getAttribute('data-preview') === 'cam');
+      });
+      loadPreviewStem();
+    }
+    updatePreviewMirror();
+    setStatus(next
+      ? 'Cam mirrored (selfie flip) — saved on the take · Apply keeps screen as-is until cam joins the export (Edit-T2 PiP)'
+      : 'Cam mirror off', next ? 'ok' : '');
+  }
+
+  camMirrorBtn?.addEventListener('click', doToggleCamMirror);
+
   function snapshot() {
-    return { clips: manifest.clips.map((c) => ({ ...c })), selectedIdx };
+    return {
+      clips: manifest.clips.map((c) => ({ ...c })),
+      selectedIdx,
+      cam: manifest.cam ? { ...manifest.cam } : null,
+    };
   }
 
   function updateUndoUi() {
@@ -928,6 +973,8 @@
 
   function restoreSnapshot(snap) {
     manifest.clips = snap.clips.map((c) => ({ ...c }));
+    if (snap.cam) manifest.cam = { ...snap.cam };
+    else delete manifest.cam;
     selectedIdx = Math.max(0, Math.min(snap.selectedIdx ?? 0, manifest.clips.length - 1));
     refreshAll();
     seekOutput(Math.min(outputTime, Math.max(0, outDur() - 0.01)));

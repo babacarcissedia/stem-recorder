@@ -9,6 +9,7 @@ const {
   cutRange,
   trimClip,
   normalizeCrop,
+  normalizeCam,
   cropsEqual,
   setCrop,
 } = require('../lib/clip-ops');
@@ -160,4 +161,14 @@ const base = [
   assert.strictEqual(cleared.every((c) => c.crop === undefined), true);
 }
 
-console.log(JSON.stringify({ ok: true, cases: 11 }));
+{
+  // Cam mirror: only { mirror: true } persists; anything else is "no settings".
+  assert.deepStrictEqual(normalizeCam({ mirror: true }), { mirror: true });
+  assert.strictEqual(normalizeCam({ mirror: false }), null);
+  assert.strictEqual(normalizeCam({ mirror: 'yes' }), null);
+  assert.strictEqual(normalizeCam({}), null);
+  assert.strictEqual(normalizeCam(null), null);
+  assert.strictEqual(normalizeCam('mirror'), null);
+}
+
+console.log(JSON.stringify({ ok: true, cases: 12 }));
