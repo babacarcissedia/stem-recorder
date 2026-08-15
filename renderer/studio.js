@@ -80,6 +80,8 @@
   const camPipBtn = document.getElementById('camPipBtn');
   const pipVideo = document.getElementById('pipVideo');
   const pipHandle = document.getElementById('pipHandle');
+  const captionsBtn = document.getElementById('captionsBtn');
+  const captionOverlay = document.getElementById('captionOverlay');
 
   let currentTakeId = null;
   let manifest = null;
@@ -663,6 +665,7 @@
     applyPlaybackRate();
     updatePreviewCrop();
     updatePreviewCamTransform();
+    updateCaptionsUi();
     const total = outDur();
     if (tlOutTime) tlOutTime.textContent = `${fmtClock(outputTime)} / ${fmtClock(total)}`;
   }
@@ -672,6 +675,7 @@
     const url = urls[file] || urls['screen.mp4'];
     if (!url) return;
     updatePreviewCamTransform();
+    updateCaptionOverlay();
     const keep = editVideo.currentTime || 0;
     const wasPlaying = playing;
     editVideo.src = url;
@@ -746,16 +750,18 @@
     transcriptCues = data?.cues || [];
     recomputeChips();
     renderChipsRow();
+    updateCaptionOverlay();
     if (!transcriptPanel) return;
     transcriptPanel.innerHTML = '';
     if (!data || !data.cues?.length) {
       transcriptPanel.innerHTML = '<p class="empty">No transcript yet.</p>';
       return;
     }
-    data.cues.forEach((cue) => {
+    data.cues.forEach((cue, index) => {
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'cue-row';
+      row.title = 'Click to seek · double-click to edit the cue text';
       const time = document.createElement('span');
       time.className = 'cue-time';
       time.textContent = fmt(cue.start);
@@ -765,9 +771,94 @@
       row.appendChild(time);
       row.appendChild(text);
       row.addEventListener('click', () => seekToCue(cue));
+      row.addEventListener('dblclick', () => startCueEdit(row, cue, index));
       transcriptPanel.appendChild(row);
     });
   }
+
+  /**
+   * Edit-T2d light caption edit: double-click a cue → inline input;
+   * Enter rewrites edit/captions.vtt (+ transcript.txt) via main, Escape or
+   * blur cancels. Timing stays untouched.
+   */
+  function startCueEdit(row, cue, index) {
+    const editor = document.createElement('div');
+    editor.className = 'cue-edit';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = cue.text.replace(/\n/g, ' ');
+    editor.appendChild(input);
+    row.replaceWith(editor);
+    input.focus();
+    input.select();
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      loadTranscript(currentTakeId);
+    };
+    input.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (done) return;
+        done = true;
+        try {
+          const res = await studio.setCueText(currentTakeId, index, input.value);
+          setStatus(`Cue @ ${fmt(cue.start)} updated → captions.vtt (${res.segments} cue${res.segments === 1 ? '' : 's'})`, 'ok');
+        } catch (err) {
+          setStatus(String(err.message || err), 'warn');
+        }
+        await loadTranscript(currentTakeId);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        finish();
+      }
+    });
+    input.addEventListener('blur', finish);
+  }
+
+  /* —— Edit-T2d: caption burn toggle + preview cue overlay —— */
+
+  function captionsBurnEnabled() {
+    return manifest?.captions?.burn === true;
+  }
+
+  function updateCaptionsUi() {
+    captionsBtn?.classList.toggle('on', captionsBurnEnabled());
+    updateCaptionOverlay();
+  }
+
+  /**
+   * Cheap preview stand-in for the Apply-time burn: the preview <video>
+   * plays the source stem (seeks skip cut ranges), so the cue at
+   * editVideo.currentTime is the cue Apply burns at that frame.
+   */
+  function updateCaptionOverlay() {
+    if (!captionOverlay) return;
+    const t = editVideo?.currentTime || 0;
+    const cue = previewStem === 'screen' && captionsBurnEnabled()
+      ? transcriptCues.find((c) => t >= c.start && t <= c.end)
+      : null;
+    captionOverlay.hidden = !cue;
+    captionOverlay.textContent = cue ? cue.text : '';
+  }
+
+  function doToggleCaptions() {
+    if (!manifest) return;
+    const next = !captionsBurnEnabled();
+    if (next) manifest.captions = { burn: true };
+    else delete manifest.captions;
+    updateCaptionsUi();
+    setStatus(next
+      ? (transcriptCues.length
+        ? 'Captions on — Apply burns edit/captions.vtt into final.mp4'
+        : 'Captions on — run Transcribe first, or Apply skips the burn')
+      : 'Captions off — Apply renders without subtitles', next ? 'ok' : '');
+  }
+
+  captionsBtn?.addEventListener('click', doToggleCaptions);
+  editVideo?.addEventListener('timeupdate', updateCaptionOverlay);
+  editVideo?.addEventListener('seeked', updateCaptionOverlay);
 
   async function loadTranscript(takeId) {
     try {
@@ -1770,7 +1861,10 @@
       applyBtn.disabled = true;
       await studio.saveManifest(currentTakeId, manifest);
       const res = await studio.apply(currentTakeId);
-      setStatus(`Applied → edit/final.mp4 (${res.clips} clip${res.clips === 1 ? '' : 's'}${res.freeze ? ` · ${res.freeze} freeze` : ''}${res.pip ? ' · cam PiP' : ''})`, 'ok');
+      const captionNote = res.captions
+        ? ' · captions burned'
+        : (res.captionsSkipped ? ` · captions skipped: ${res.captionsSkipped}` : '');
+      setStatus(`Applied → edit/final.mp4 (${res.clips} clip${res.clips === 1 ? '' : 's'}${res.freeze ? ` · ${res.freeze} freeze` : ''}${res.pip ? ' · cam PiP' : ''}${captionNote})`, res.captionsSkipped ? 'warn' : 'ok');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     } finally {

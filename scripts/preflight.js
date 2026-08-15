@@ -19,6 +19,7 @@ const steps = [
   { name: 'smoke:gaps', cmd: ['npm', 'run', 'smoke:gaps'] },
   { name: 'smoke:thumbs', cmd: ['npm', 'run', 'smoke:thumbs'] },
   { name: 'smoke:transcribe', cmd: ['npm', 'run', 'smoke:transcribe'] },
+  { name: 'smoke:captions', cmd: ['npm', 'run', 'smoke:captions'] },
   {
     name: 'smoke:apply',
     cmd: ['npm', 'run', 'smoke:apply'],

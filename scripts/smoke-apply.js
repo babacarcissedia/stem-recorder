@@ -11,7 +11,9 @@ const fs = require('fs');
 // Minimal electron app stub so lib/paths can load without Electron when testing apply only
 process.env.STEM_OUT_ROOT = process.env.STEM_OUT_ROOT || '/tmp/stem-test-takes';
 
-const { applyClips, probeDuration, probeDimensions, findFfmpeg, runFfmpeg } = require('../lib/ffmpeg-util');
+const {
+  applyClips, probeDuration, probeDimensions, findFfmpeg, runFfmpeg, hasSubtitlesFilter,
+} = require('../lib/ffmpeg-util');
 const { writeManifest, readManifest, FINAL_NAME } = require('../lib/edit-manifest');
 
 async function main() {
@@ -84,19 +86,40 @@ async function main() {
   });
   const frzPipDim = probeDimensions(freezePipOut);
   const frzPipDur = probeDuration(freezePipOut);
-  fs.rmSync(work, { recursive: true, force: true });
   const freezeOk = Boolean(srcDim && frzDim && frzPipDim)
     && frzDim.width === srcDim.width && frzDim.height === srcDim.height
     && frzDur != null && Math.abs(frzDur - 5.5) < 0.4
     && frzPipDim.width === srcDim.width && frzPipDim.height === srcDim.height
     && frzPipDur != null && Math.abs(frzPipDur - 5.5) < 0.4;
 
-  const ok = trimOk && cropKept && cropOk && pipOk && freezeOk;
+  // Edit-T2d: burning a VTT must keep duration + dimensions (cues render on
+  // the frame, not around it). Auto-skips on ffmpeg builds without libass.
+  let captionsOk = true;
+  let captionsSkipped = null;
+  if (hasSubtitlesFilter(findFfmpeg())) {
+    const vtt = path.join(takeDir, 'edit', 'captions.vtt');
+    if (!fs.existsSync(vtt)) {
+      fs.writeFileSync(vtt, 'WEBVTT\n\n00:00:03.000 --> 00:00:05.000\nSmoke cue.\n', 'utf8');
+    }
+    const burnOut = path.join(takeDir, 'edit', 'final-captions.mp4');
+    await applyClips(src, doc.clips, burnOut, work, { subtitles: vtt });
+    const burnDim = probeDimensions(burnOut);
+    const burnDur = probeDuration(burnOut);
+    captionsOk = Boolean(srcDim && burnDim)
+      && burnDim.width === srcDim.width && burnDim.height === srcDim.height
+      && burnDur != null && Math.abs(burnDur - 4) < 0.35;
+  } else {
+    captionsSkipped = 'ffmpeg build lacks the subtitles filter (libass)';
+  }
+  fs.rmSync(work, { recursive: true, force: true });
+
+  const ok = trimOk && cropKept && cropOk && pipOk && freezeOk && captionsOk;
   console.log(JSON.stringify({
     takeId, out, expected: 4, duration: dur, trimOk,
     crop, cropKept, srcDim, outDim, cropOk,
     pipDim, pipDur, pipOk,
-    frzDur, frzDim, frzPipDur, frzPipDim, freezeOk, ok,
+    frzDur, frzDim, frzPipDur, frzPipDim, freezeOk,
+    captionsOk, captionsSkipped, ok,
   }, null, 2));
   if (!ok) process.exit(1);
 }
