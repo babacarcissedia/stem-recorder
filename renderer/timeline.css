@@ -54,6 +54,7 @@
   width: auto;
   margin: 0;
   padding: 0.4rem 0.75rem;
+  min-height: 40px; /* a11y hit target (toward 44px without doubling toolbar height) */
   border-radius: 8px;
   background: #2a3140;
   border: 1px solid #3a4254;
@@ -79,8 +80,6 @@
   border-color: #3f6a50;
   color: #b8f0c8;
 }
-
-.tl-toolbar .spacer { flex: 1; }
 
 .tl-group {
   display: flex;
@@ -166,6 +165,7 @@
 .tl-rate select {
   width: auto;
   margin: 0;
+  min-height: 40px;
   padding: 0.35rem 0.5rem;
   border-radius: 8px;
   background: #2a3140;
@@ -453,11 +453,16 @@
 
 #editStatus[data-kind="ok"] { color: var(--ok); }
 #editStatus[data-kind="warn"] { color: var(--warn); }
+/* Lives in the timeline toolbar next to Save/Apply — flexes into the free
+   middle space (replaces the old .spacer) so Apply/skip results sit beside
+   the button that produced them. */
 #editStatus {
-  min-height: 1.3em;
+  flex: 1 1 10rem;
+  min-width: 8rem;
+  margin: 0;
   font-size: 0.85rem;
   color: var(--muted);
-  margin: 0.35rem 0 0;
+  text-align: right;
 }
 
 #editTimeLabel {
@@ -502,20 +507,20 @@
   top: 4px;
   right: 4px;
   display: flex;
-  gap: 2px;
+  gap: 4px;
 }
 
 .wave-panel-zoom button {
-  width: 22px;
+  width: 32px; /* a11y hit target — 44px would cover too much of the wave */
   margin: 0;
   padding: 0;
-  height: 22px;
+  height: 32px;
   line-height: 1;
   border-radius: 6px;
   background: rgba(42, 49, 64, 0.85);
   border: 1px solid #3a4254;
   color: #c8d4de;
-  font-size: 0.85rem;
+  font-size: 1rem;
   font-weight: 650;
 }
 
