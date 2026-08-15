@@ -70,6 +70,22 @@ Record (renderer MediaRecorder)
                           height from the cam aspect; absent = the T2a
                           bottom-right ~25% default. Drag the PiP preview to
                           move, corner handle to resize.
+      captions: { burn? }  take-level (Edit-T2d), opt-in — only burn: true is
+                          stored. Apply burns edit/captions.vtt into
+                          final.mp4 via the subtitles filter, appended last
+                          in the chain (after crop, PiP overlay and freeze)
+                          so cues draw on the composed frame. Clips seek
+                          output-side, so the filter sees source-timeline
+                          PTS and cues land at their recorded times without
+                          re-timing; freeze segments skip the burn (they
+                          input-seek and carry silence — no cue belongs
+                          there). Burn requested with no captions.vtt on
+                          disk, or an ffmpeg built without libass (no
+                          subtitles filter) → Apply proceeds without
+                          captions and reports the skip. Preview shows a cheap DOM cue overlay
+                          (same source-time lookup); the transcript panel's
+                          double-click cue edit rewrites captions.vtt +
+                          transcript.txt (text only, timing untouched).
   → preview (renderer reads media via file URLs from main; edits are
       model-only: clip-ops + undo-stack mutate clips[] in memory)
   → Apply (separate path: main → ffmpeg-util.applyClips → edit/final.mp4)

@@ -13,7 +13,7 @@ const {
 } = require('electron');
 
 const { outRoot } = require('./lib/paths');
-const { findFfmpeg, runFfmpeg, applyClips } = require('./lib/ffmpeg-util');
+const { findFfmpeg, runFfmpeg, applyClips, hasSubtitlesFilter } = require('./lib/ffmpeg-util');
 const {
   listTakes,
   readManifest,
@@ -28,6 +28,8 @@ const {
   runCloud: runCloudAsr,
   readTranscript,
   asrStatus,
+  resolveBurn,
+  updateCueText,
 } = require('./lib/transcribe');
 
 const APP_NAME = 'Stem Studio';
@@ -218,15 +220,33 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
     && fs.existsSync(camPath)
     && camSettings.pip !== false;
 
+  // Edit-T2d: burn captions.vtt when the take opted in; a missing VTT or an
+  // ffmpeg built without libass skips the burn (reported in the result)
+  // rather than failing Apply.
+  let burn = resolveBurn(takeDir, manifest);
+  if (burn.burn) {
+    const ffmpeg = findFfmpeg();
+    if (ffmpeg && !hasSubtitlesFilter(ffmpeg)) {
+      burn = {
+        burn: false,
+        requested: true,
+        skipped: 'this ffmpeg build lacks the subtitles filter (libass) — install a full ffmpeg or set FFMPEG_PATH',
+      };
+    }
+  }
+
   try {
-    await applyClips(src, manifest.clips, out, work, pip ? {
-      cam: {
-        path: camPath,
-        mirror: Boolean(camSettings.mirror),
-        rotate: camSettings.rotate || 0,
-        layout: camSettings.pipLayout || null,
-      },
-    } : {});
+    await applyClips(src, manifest.clips, out, work, {
+      ...(pip ? {
+        cam: {
+          path: camPath,
+          mirror: Boolean(camSettings.mirror),
+          rotate: camSettings.rotate || 0,
+          layout: camSettings.pipLayout || null,
+        },
+      } : {}),
+      ...(burn.burn ? { subtitles: burn.vtt } : {}),
+    });
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
   }
@@ -237,6 +257,8 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
     clips: manifest.clips.length,
     freeze: manifest.clips.filter((c) => c.freeze).length,
     pip,
+    captions: burn.burn,
+    captionsSkipped: burn.skipped || null,
   };
 });
 
@@ -269,6 +291,11 @@ ipcMain.handle('studio:transcribe', async (_evt, { takeId, provider } = {}) => {
 });
 
 ipcMain.handle('studio:getTranscript', (_evt, takeId) => readTranscript(takeDirFor(takeId)));
+
+ipcMain.handle('studio:setCueText', (_evt, takeId, index, text) => {
+  if (typeof text !== 'string') throw new Error('cue text must be a string');
+  return updateCueText(takeDirFor(takeId), index, text);
+});
 
 ipcMain.handle('studio:asrStatus', () => asrStatus());
 
