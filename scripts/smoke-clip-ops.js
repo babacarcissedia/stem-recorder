@@ -8,6 +8,9 @@ const {
   cutClip,
   cutRange,
   trimClip,
+  normalizeCrop,
+  cropsEqual,
+  setCrop,
 } = require('../lib/clip-ops');
 const { createUndoStack } = require('../lib/undo-stack');
 
@@ -129,4 +132,32 @@ const base = [
   assert.deepStrictEqual(popped, [9, 8, 7]);
 }
 
-console.log(JSON.stringify({ ok: true, cases: 9 }));
+{
+  // Crop: clamp to frame, reject junk, treat full frame as "no crop".
+  assert.deepStrictEqual(normalizeCrop({ x: 0.1, y: 0.2, w: 0.5, h: 0.6 }), { x: 0.1, y: 0.2, w: 0.5, h: 0.6 });
+  assert.deepStrictEqual(normalizeCrop({ x: -1, y: 0, w: 5, h: 0.5 }), { x: 0, y: 0, w: 1, h: 0.5 });
+  assert.strictEqual(normalizeCrop({ x: 0, y: 0, w: 1, h: 1 }), null);
+  assert.strictEqual(normalizeCrop(null), null);
+  assert.strictEqual(normalizeCrop({ x: 'a', y: 0, w: 1, h: 1 }), null);
+  assert.strictEqual(cropsEqual(null, null), true);
+  assert.strictEqual(cropsEqual({ x: 0, y: 0, w: 0.5, h: 0.5 }, null), false);
+  assert.strictEqual(cropsEqual({ x: 0, y: 0, w: 0.5, h: 0.5 }, { x: 0, y: 0, w: 0.5, h: 0.5 }), true);
+}
+
+{
+  // setCrop stamps every clip; null clears; crop survives split and cutRange.
+  const rect = { x: 0.25, y: 0.25, w: 0.5, h: 0.5 };
+  const clips = setCrop(splitAt(base, 0, 4, 10), rect);
+  assert.deepStrictEqual(clips.map((c) => c.crop), [rect, rect]);
+
+  const afterSplit = splitAt(clips, 1, 7, 10);
+  assert.deepStrictEqual(afterSplit.map((c) => c.crop), [rect, rect, rect]);
+
+  const afterCut = cutRange(afterSplit, 2, 5, 10);
+  assert.strictEqual(afterCut.every((c) => cropsEqual(c.crop, rect)), true);
+
+  const cleared = setCrop(afterCut, null);
+  assert.strictEqual(cleared.every((c) => c.crop === undefined), true);
+}
+
+console.log(JSON.stringify({ ok: true, cases: 11 }));
