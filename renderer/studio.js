@@ -27,11 +27,16 @@
   const applyBtn = document.getElementById('applyBtn');
   const openFolderBtn = document.getElementById('openFolderBtn');
   const backLibraryBtn = document.getElementById('backLibraryBtn');
+  const editScrub = document.getElementById('editScrub');
+  const clipInSec = document.getElementById('clipInSec');
+  const clipOutSec = document.getElementById('clipOutSec');
+  const setClipRangeBtn = document.getElementById('setClipRangeBtn');
 
   let currentTakeId = null;
   let manifest = null;
   let duration = null;
   let draftIn = null;
+  let scrubbing = false;
 
   function setStatus(msg, kind) {
     editStatus.textContent = msg || '';
@@ -86,6 +91,20 @@
     return `${m}:${r}`;
   }
 
+  function syncScrubFromVideo() {
+    if (!editScrub || scrubbing) return;
+    const total = duration || editVideo.duration || 0;
+    if (!total) return;
+    editScrub.value = String(Math.round((editVideo.currentTime / total) * 1000));
+  }
+
+  function syncFieldsFromClip() {
+    if (!manifest?.clips?.length || !clipInSec || !clipOutSec) return;
+    const c = manifest.clips[manifest.clips.length - 1];
+    clipInSec.value = String(c.in ?? 0);
+    clipOutSec.value = String(c.out ?? (duration ?? 0));
+  }
+
   function renderClips() {
     clipList.innerHTML = '';
     if (!manifest) return;
@@ -118,6 +137,7 @@
       };
       clipList.appendChild(row);
     });
+    syncFieldsFromClip();
   }
 
   function moveClip(idx, delta) {
@@ -132,6 +152,7 @@
   function refreshTimeLabel() {
     const total = duration ?? (Number.isFinite(editVideo.duration) ? editVideo.duration : null);
     timeLabel.textContent = `${fmt(editVideo.currentTime)} / ${fmt(total)}`;
+    syncScrubFromVideo();
   }
 
   async function openEdit(takeId) {
@@ -160,23 +181,33 @@
       duration = editVideo.duration;
     }
     refreshTimeLabel();
+    syncFieldsFromClip();
   });
 
   editVideo?.addEventListener('timeupdate', refreshTimeLabel);
 
+  editScrub?.addEventListener('input', () => {
+    scrubbing = true;
+    const total = duration || editVideo.duration || 0;
+    if (!total) return;
+    editVideo.currentTime = (Number(editScrub.value) / 1000) * total;
+    refreshTimeLabel();
+  });
+  editScrub?.addEventListener('change', () => { scrubbing = false; });
+
   markInBtn?.addEventListener('click', () => {
     draftIn = Number(editVideo.currentTime) || 0;
+    if (clipInSec) clipInSec.value = String(Math.round(draftIn * 100) / 100);
     setStatus(`In marked at ${fmt(draftIn)} — scrub forward, then Mark Out`);
   });
 
   markOutBtn?.addEventListener('click', () => {
     if (draftIn == null) {
-      setStatus('Mark In first', 'warn');
+      setStatus('Mark In first (or use Set clip from In/Out)', 'warn');
       return;
     }
     let out = Number(editVideo.currentTime) || 0;
     const inn = draftIn;
-    // Allow tiny float / scrub jitter
     if (out <= inn + 0.05) {
       setStatus(`Out (${fmt(out)}) must be after In (${fmt(inn)}) — scrub further`, 'warn');
       return;
@@ -187,6 +218,22 @@
     draftIn = null;
     renderClips();
     setStatus(`Clip set ${fmt(active.in)} → ${fmt(active.out)}`, 'ok');
+  });
+
+  setClipRangeBtn?.addEventListener('click', () => {
+    const inn = Number(clipInSec.value);
+    const out = Number(clipOutSec.value);
+    if (!Number.isFinite(inn) || !Number.isFinite(out) || out <= inn) {
+      setStatus('In/Out seconds invalid (Out must be > In)', 'warn');
+      return;
+    }
+    const active = manifest.clips[manifest.clips.length - 1];
+    active.in = inn;
+    active.out = out;
+    draftIn = null;
+    renderClips();
+    editVideo.currentTime = inn;
+    setStatus(`Clip set ${fmt(inn)} → ${fmt(out)}`, 'ok');
   });
 
   addClipBtn?.addEventListener('click', () => {
@@ -220,7 +267,6 @@
       await studio.saveManifest(currentTakeId, manifest);
       const res = await studio.apply(currentTakeId);
       setStatus(`Applied → edit/final.mp4 (${res.clips} clip${res.clips === 1 ? '' : 's'})`, 'ok');
-      // Keep source in the editor so marks stay meaningful; preview final via folder/open
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     } finally {

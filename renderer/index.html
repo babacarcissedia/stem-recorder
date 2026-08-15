@@ -210,6 +210,19 @@
           <button type="button" id="markInBtn">Mark In</button>
           <button type="button" id="markOutBtn">Mark Out</button>
         </div>
+        <label for="editScrub">Scrub</label>
+        <input id="editScrub" type="range" min="0" max="1000" value="0" step="1" style="width:100%" />
+        <div class="row-btns" style="margin-top:0.45rem">
+          <div>
+            <label for="clipInSec">In (s)</label>
+            <input id="clipInSec" type="number" min="0" step="0.1" value="0" />
+          </div>
+          <div>
+            <label for="clipOutSec">Out (s)</label>
+            <input id="clipOutSec" type="number" min="0" step="0.1" value="0" />
+          </div>
+        </div>
+        <button type="button" class="secondary" id="setClipRangeBtn">Set clip from In/Out</button>
         <button type="button" class="secondary" id="addClipBtn">Add clip</button>
         <div id="clipList" style="margin-top:0.75rem"></div>
         <button type="button" id="saveManifestBtn">Save manifest</button>
