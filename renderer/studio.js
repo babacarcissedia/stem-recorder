@@ -1,13 +1,19 @@
 'use strict';
 
 /**
- * Edit-T1 CapCut/TikTok-style timeline:
- * preview on top · horizontal V1 track · playhead · Split / Delete.
+ * CapCut-like Edit-T1: multi-stem tracks (cam/screen/audio), full-height playhead,
+ * split / delete (ripple), edge resize, preview rate. Linked stems share clips[].
  */
 (function studioUi() {
   const studio = window.stemStudio;
   const ops = window.StemClipOps;
   if (!studio || !ops) return;
+
+  const LANES = [
+    { id: 'cam', file: 'cam.mp4', kind: 'video', label: 'cam.mp4' },
+    { id: 'screen', file: 'screen.mp4', kind: 'video', label: 'screen.mp4' },
+    { id: 'audio', file: 'audio.mp3', kind: 'audio', label: 'audio.mp3' },
+  ];
 
   const views = {
     record: document.getElementById('view-record'),
@@ -30,21 +36,36 @@
   const setClipRangeBtn = document.getElementById('setClipRangeBtn');
   const splitBtn = document.getElementById('splitBtn');
   const cutBtn = document.getElementById('cutBtn');
-  const tlTrack = document.getElementById('tlTrack');
-  const tlClips = document.getElementById('tlClips');
+  const magnetBtn = document.getElementById('magnetBtn');
+  const snapBtn = document.getElementById('snapBtn');
+  const rateSelect = document.getElementById('rateSelect');
+  const tlLanes = document.getElementById('tlLanes');
   const tlPlayhead = document.getElementById('tlPlayhead');
+  const tlPlayheadCap = document.getElementById('tlPlayheadCap');
+  const tlPlayheadLayer = document.getElementById('tlPlayheadLayer');
   const tlRuler = document.getElementById('tlRuler');
+  const tlInner = document.getElementById('tlInner');
   const tlOutTime = document.getElementById('tlOutTime');
   const tlPlayBtn = document.getElementById('tlPlayBtn');
+  const zoomRange = document.getElementById('zoomRange');
+  const zoomInBtn = document.getElementById('zoomInBtn');
+  const zoomOutBtn = document.getElementById('zoomOutBtn');
 
   let currentTakeId = null;
   let manifest = null;
-  let duration = null; // source media duration
+  let duration = null;
+  let urls = {};
   let selectedIdx = 0;
   let outputTime = 0;
   let playing = false;
   let draggingPlayhead = false;
+  let resizing = null;
   let syncingFromTimeline = false;
+  let magnetOn = true;
+  let snapOn = true;
+  let pxPerSec = 100;
+  let previewStem = 'screen';
+  let playbackRate = 1;
 
   function setStatus(msg, kind) {
     editStatus.textContent = msg || '';
@@ -64,6 +85,16 @@
 
   navBtns.forEach((btn) => {
     btn.addEventListener('click', () => showView(btn.getAttribute('data-nav')));
+  });
+
+  document.querySelectorAll('[data-preview]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      previewStem = btn.getAttribute('data-preview');
+      document.querySelectorAll('[data-preview]').forEach((b) => {
+        b.classList.toggle('active', b === btn);
+      });
+      loadPreviewStem();
+    });
   });
 
   async function refreshLibrary() {
@@ -103,12 +134,15 @@
     if (t == null || Number.isNaN(t)) return '0:00';
     const s = Math.max(0, Math.floor(t));
     const m = Math.floor(s / 60);
-    const r = String(s % 60).padStart(2, '0');
-    return `${m}:${r}`;
+    return `${m}:${String(s % 60).padStart(2, '0')}`;
   }
 
   function outDur() {
     return ops.totalOutputDuration(manifest?.clips || [], duration);
+  }
+
+  function trackWidthPx() {
+    return Math.max(320, outDur() * pxPerSec);
   }
 
   function selectedClip() {
@@ -124,6 +158,32 @@
     clipOutSec.value = String(c.out ?? (duration ?? 0));
   }
 
+  function applyPlaybackRate() {
+    if (editVideo) editVideo.playbackRate = playbackRate;
+  }
+
+  function snapTime(t) {
+    if (!snapOn || !manifest?.clips?.length) return t;
+    const edges = [0, outDur()];
+    let acc = 0;
+    for (const c of manifest.clips) {
+      edges.push(acc);
+      acc += ops.clipDuration(c, duration);
+      edges.push(acc);
+    }
+    const thresh = 8 / pxPerSec;
+    let best = t;
+    let bestD = thresh;
+    for (const e of edges) {
+      const d = Math.abs(e - t);
+      if (d < bestD) {
+        bestD = d;
+        best = e;
+      }
+    }
+    return best;
+  }
+
   function seekOutput(t, { seekVideo = true } = {}) {
     const total = outDur();
     outputTime = Math.max(0, Math.min(Number(t) || 0, Math.max(0, total - 0.001)));
@@ -132,8 +192,8 @@
     const mapped = ops.outputToSource(manifest.clips, outputTime, duration);
     selectedIdx = mapped.index;
     syncingFromTimeline = true;
-    editVideo.currentTime = mapped.sourceTime;
-    renderClipsList();
+    if (Number.isFinite(mapped.sourceTime)) editVideo.currentTime = mapped.sourceTime;
+    renderSelectionPanel();
     renderTimeline();
     syncFieldsFromClip();
     editTimeLabel.textContent = `out ${fmt(outputTime)} · src ${fmt(mapped.sourceTime)}`;
@@ -143,50 +203,124 @@
 
   function updatePlayheadUi() {
     const total = outDur() || 1;
-    const pct = (outputTime / total) * 100;
-    if (tlPlayhead) tlPlayhead.style.left = `${pct}%`;
+    const x = (outputTime / total) * trackWidthPx();
+    if (tlPlayhead) tlPlayhead.style.left = `${x}px`;
   }
 
   function renderRuler() {
     if (!tlRuler) return;
     tlRuler.innerHTML = '';
     const total = outDur();
+    const width = trackWidthPx();
+    tlRuler.style.width = `${width}px`;
     if (total <= 0) return;
-    const step = total > 30 ? 5 : total > 12 ? 2 : 1;
+    const step = total > 60 ? 10 : total > 20 ? 5 : total > 8 ? 2 : 1;
     for (let t = 0; t <= total + 0.01; t += step) {
       const span = document.createElement('span');
       span.textContent = fmtClock(t);
-      span.style.left = `${(t / total) * 100}%`;
+      span.style.left = `${(t / total) * width}px`;
       tlRuler.appendChild(span);
     }
   }
 
+  function fakeWaveBars(n) {
+    const wrap = document.createElement('div');
+    wrap.className = 'wave';
+    for (let i = 0; i < n; i += 1) {
+      const b = document.createElement('b');
+      const h = 20 + Math.abs(Math.sin(i * 0.7)) * 70;
+      b.style.height = `${h}%`;
+      wrap.appendChild(b);
+    }
+    return wrap;
+  }
+
+  function filmStrip(n) {
+    const wrap = document.createElement('div');
+    wrap.className = 'film';
+    for (let i = 0; i < n; i += 1) {
+      wrap.appendChild(document.createElement('i'));
+    }
+    return wrap;
+  }
+
   function renderTimeline() {
-    if (!tlClips || !manifest) return;
-    tlClips.innerHTML = '';
+    if (!tlLanes || !manifest) return;
     const total = outDur() || 1;
-    manifest.clips.forEach((clip, idx) => {
-      const dur = ops.clipDuration(clip, duration);
-      const el = document.createElement('div');
-      el.className = 'tl-clip' + (idx === selectedIdx ? ' selected' : '');
-      el.style.flex = `0 0 ${(dur / total) * 100}%`;
-      el.textContent = `#${idx + 1}`;
-      el.title = `${fmt(clip.in)} → ${fmt(clip.out)} (${fmt(dur)})`;
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selectClip(idx);
-        // Jump playhead to start of this clip on output timeline
-        let acc = 0;
-        for (let i = 0; i < idx; i += 1) acc += ops.clipDuration(manifest.clips[i], duration);
-        seekOutput(acc + 0.01);
+    const width = trackWidthPx();
+    if (tlInner) tlInner.style.width = `${width + 88}px`;
+    tlLanes.innerHTML = '';
+
+    LANES.forEach((lane) => {
+      const has = Boolean(urls[lane.file]);
+      const row = document.createElement('div');
+      row.className = `tl-lane ${lane.kind}${has ? '' : ' missing'}`;
+      row.innerHTML = `<div class="tl-lane-meta"><strong>${lane.label}</strong><div class="icons">🔒 👁 ${lane.kind === 'audio' ? '🔊' : '🎞'}</div></div>`;
+      const track = document.createElement('div');
+      track.className = 'tl-track';
+      track.style.width = `${width}px`;
+      track.dataset.lane = lane.id;
+      const clipsEl = document.createElement('div');
+      clipsEl.className = 'tl-clips';
+
+      manifest.clips.forEach((clip, idx) => {
+        const dur = ops.clipDuration(clip, duration);
+        const el = document.createElement('div');
+        el.className = `tl-clip ${lane.id}${idx === selectedIdx ? ' selected' : ''}${has ? '' : ' missing'}`;
+        el.style.flex = `0 0 ${(dur / total) * width}px`;
+        el.title = `${lane.label} · ${fmt(clip.in)} → ${fmt(clip.out)}`;
+        if (lane.kind === 'audio') el.appendChild(fakeWaveBars(Math.max(8, Math.floor(dur * 4))));
+        else el.appendChild(filmStrip(Math.max(3, Math.floor(dur * 2))));
+        const label = document.createElement('span');
+        label.className = 'label';
+        label.textContent = `#${idx + 1}`;
+        el.appendChild(label);
+
+        if (idx === selectedIdx && lane.id === 'screen') {
+          const left = document.createElement('div');
+          left.className = 'tl-handle left';
+          const right = document.createElement('div');
+          right.className = 'tl-handle right';
+          left.addEventListener('pointerdown', (e) => startResize(e, idx, 'left'));
+          right.addEventListener('pointerdown', (e) => startResize(e, idx, 'right'));
+          el.appendChild(left);
+          el.appendChild(right);
+        }
+
+        el.addEventListener('click', (e) => {
+          if (e.target.classList.contains('tl-handle')) return;
+          e.stopPropagation();
+          selectClip(idx);
+          let acc = 0;
+          for (let i = 0; i < idx; i += 1) acc += ops.clipDuration(manifest.clips[i], duration);
+          seekOutput(acc + 0.01);
+        });
+        clipsEl.appendChild(el);
       });
-      tlClips.appendChild(el);
+
+      track.appendChild(clipsEl);
+      track.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.tl-clip') || e.target.closest('.tl-handle')) return;
+        draggingPlayhead = true;
+        track.setPointerCapture(e.pointerId);
+        seekOutput(snapTime(pointerToOutput(e.clientX, track)));
+      });
+      track.addEventListener('pointermove', (e) => {
+        if (!draggingPlayhead || resizing) return;
+        seekOutput(snapTime(pointerToOutput(e.clientX, track)));
+      });
+      track.addEventListener('pointerup', () => { draggingPlayhead = false; });
+      track.addEventListener('pointercancel', () => { draggingPlayhead = false; });
+
+      row.appendChild(track);
+      tlLanes.appendChild(row);
     });
+
     renderRuler();
     updatePlayheadUi();
   }
 
-  function renderClipsList() {
+  function renderSelectionPanel() {
     if (!clipList || !manifest) return;
     clipList.innerHTML = '';
     if (selectedIdx >= manifest.clips.length) selectedIdx = Math.max(0, manifest.clips.length - 1);
@@ -208,7 +342,7 @@
   function selectClip(idx) {
     if (!manifest?.clips?.length) return;
     selectedIdx = Math.max(0, Math.min(idx, manifest.clips.length - 1));
-    renderClipsList();
+    renderSelectionPanel();
     renderTimeline();
     syncFieldsFromClip();
     const c = selectedClip();
@@ -216,11 +350,26 @@
   }
 
   function refreshAll() {
-    renderClipsList();
+    renderSelectionPanel();
     renderTimeline();
     syncFieldsFromClip();
+    applyPlaybackRate();
     const total = outDur();
     if (tlOutTime) tlOutTime.textContent = `${fmtClock(outputTime)} / ${fmtClock(total)}`;
+  }
+
+  function loadPreviewStem() {
+    const file = previewStem === 'cam' ? 'cam.mp4' : 'screen.mp4';
+    const url = urls[file] || urls['screen.mp4'];
+    if (!url) return;
+    const keep = editVideo.currentTime || 0;
+    const wasPlaying = playing;
+    editVideo.src = url;
+    editVideo.addEventListener('loadedmetadata', () => {
+      applyPlaybackRate();
+      if (Number.isFinite(keep)) editVideo.currentTime = keep;
+      if (wasPlaying) editVideo.play().catch(() => {});
+    }, { once: true });
   }
 
   async function openEdit(takeId) {
@@ -230,21 +379,27 @@
     currentTakeId = takeId;
     manifest = data.manifest;
     duration = data.duration;
+    urls = data.urls || {};
     selectedIdx = 0;
     outputTime = 0;
     editTitle.textContent = takeId;
     const navEdit = document.getElementById('navEdit');
     if (navEdit) navEdit.hidden = false;
-    const url = data.urls['screen.mp4'];
-    if (!url) {
+    if (!urls['screen.mp4']) {
       setStatus('No screen.mp4 in this take', 'warn');
       return;
     }
-    editVideo.src = url;
+    previewStem = 'screen';
+    document.querySelectorAll('[data-preview]').forEach((b) => {
+      b.classList.toggle('active', b.getAttribute('data-preview') === 'screen');
+    });
+    loadPreviewStem();
     showView('edit');
     refreshAll();
     seekOutput(0);
-    setStatus(data.urls['edit/final.mp4'] ? 'Loaded · final exists' : 'Select a clip · Split / Delete · Apply');
+    setStatus(urls['edit/final.mp4']
+      ? 'Loaded · final exists'
+      : 'Drag playhead · Split / edge-trim · Delete ripples');
   }
 
   function doSplit() {
@@ -266,7 +421,7 @@
       if (selectedIdx >= manifest.clips.length) selectedIdx = manifest.clips.length - 1;
       refreshAll();
       seekOutput(Math.min(outputTime, Math.max(0, outDur() - 0.01)));
-      setStatus('Deleted selected clip', 'ok');
+      setStatus(magnetOn ? 'Deleted · ripple join' : 'Deleted selected clip', 'ok');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     }
@@ -285,20 +440,56 @@
     }
     playing = true;
     if (tlPlayBtn) tlPlayBtn.textContent = 'Pause';
+    applyPlaybackRate();
     const mapped = ops.outputToSource(manifest.clips, outputTime, duration);
     editVideo.currentTime = mapped.sourceTime;
     editVideo.play().catch(() => stopPlay());
   }
 
-  // Keep output playhead in sync while source video plays across a clip
+  function startResize(e, index, edge) {
+    e.preventDefault();
+    e.stopPropagation();
+    resizing = { index, edge, startX: e.clientX };
+    e.currentTarget.classList.add('active');
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const onMove = (ev) => {
+      if (!resizing) return;
+      const dx = ev.clientX - resizing.startX;
+      const dt = dx / pxPerSec;
+      const c = manifest.clips[resizing.index];
+      const start = Number(c.in) || 0;
+      const end = ops.clipEnd(c, duration);
+      try {
+        if (resizing.edge === 'left') {
+          manifest.clips = ops.trimClip(manifest.clips, index, start + dt, end, duration);
+        } else {
+          manifest.clips = ops.trimClip(manifest.clips, index, start, end + dt, duration);
+        }
+        resizing.startX = ev.clientX;
+        refreshAll();
+        const mapped = ops.outputToSource(manifest.clips, outputTime, duration);
+        syncingFromTimeline = true;
+        editVideo.currentTime = mapped.sourceTime;
+        requestAnimationFrame(() => { syncingFromTimeline = false; });
+      } catch (_) { /* too short */ }
+    };
+    const onUp = () => {
+      resizing = null;
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      setStatus(`Trimmed #${index + 1}`, 'ok');
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }
+
   editVideo?.addEventListener('timeupdate', () => {
-    if (syncingFromTimeline || draggingPlayhead || !manifest?.clips?.length) return;
+    if (syncingFromTimeline || draggingPlayhead || resizing || !manifest?.clips?.length) return;
     const src = editVideo.currentTime;
     const c = selectedClip();
     if (!c) return;
     const end = ops.clipEnd(c, duration);
     if (playing && end != null && src >= end - 0.04) {
-      // advance to next clip
       if (selectedIdx < manifest.clips.length - 1) {
         selectedIdx += 1;
         const next = manifest.clips[selectedIdx];
@@ -317,53 +508,83 @@
   });
 
   editVideo?.addEventListener('loadedmetadata', () => {
-    if (Number.isFinite(editVideo.duration) && editVideo.duration > 0) {
+    if (Number.isFinite(editVideo.duration) && editVideo.duration > 0 && previewStem === 'screen') {
       duration = editVideo.duration;
     }
+    applyPlaybackRate();
     refreshAll();
     seekOutput(outputTime);
   });
 
   editVideo?.addEventListener('ended', stopPlay);
 
-  function pointerToOutput(clientX) {
-    const rect = tlTrack.getBoundingClientRect();
+  function pointerToOutput(clientX, trackEl) {
+    const el = trackEl || tlPlayheadLayer;
+    const rect = el.getBoundingClientRect();
     const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
     const total = outDur() || 1;
-    return (x / rect.width) * total;
+    return (x / Math.max(1, trackWidthPx())) * total;
   }
 
-  tlTrack?.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('.tl-clip')) return; // clip handler selects
-    draggingPlayhead = true;
-    tlTrack.setPointerCapture(e.pointerId);
-    seekOutput(pointerToOutput(e.clientX));
-  });
-  tlTrack?.addEventListener('pointermove', (e) => {
-    if (!draggingPlayhead) return;
-    seekOutput(pointerToOutput(e.clientX));
-  });
-  tlTrack?.addEventListener('pointerup', () => { draggingPlayhead = false; });
-  tlTrack?.addEventListener('pointercancel', () => { draggingPlayhead = false; });
+  function bindPlayheadDrag(el) {
+    el?.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      draggingPlayhead = true;
+      el.setPointerCapture(e.pointerId);
+      seekOutput(snapTime(pointerToOutput(e.clientX, tlPlayheadLayer)));
+    });
+    el?.addEventListener('pointermove', (e) => {
+      if (!draggingPlayhead || resizing) return;
+      seekOutput(snapTime(pointerToOutput(e.clientX, tlPlayheadLayer)));
+    });
+    el?.addEventListener('pointerup', () => { draggingPlayhead = false; });
+    el?.addEventListener('pointercancel', () => { draggingPlayhead = false; });
+  }
+  bindPlayheadDrag(tlPlayheadCap);
+  bindPlayheadDrag(tlPlayheadLayer);
 
   tlPlayBtn?.addEventListener('click', togglePlay);
   splitBtn?.addEventListener('click', doSplit);
   cutBtn?.addEventListener('click', doCut);
 
+  magnetBtn?.addEventListener('click', () => {
+    magnetOn = !magnetOn;
+    magnetBtn.classList.toggle('on', magnetOn);
+    setStatus(magnetOn ? 'Magnet ON — delete ripples' : 'Magnet OFF (gaps still excluded for v1)');
+  });
+  snapBtn?.addEventListener('click', () => {
+    snapOn = !snapOn;
+    snapBtn.classList.toggle('on', snapOn);
+    setStatus(snapOn ? 'Snap ON' : 'Snap OFF');
+  });
+
+  rateSelect?.addEventListener('change', () => {
+    playbackRate = Number(rateSelect.value) || 1;
+    applyPlaybackRate();
+    setStatus(`Preview ${playbackRate}×`);
+  });
+
+  function setZoom(v) {
+    pxPerSec = Math.max(40, Math.min(240, Number(v) || 100));
+    if (zoomRange) zoomRange.value = String(pxPerSec);
+    refreshAll();
+  }
+  zoomRange?.addEventListener('input', () => setZoom(zoomRange.value));
+  zoomInBtn?.addEventListener('click', () => setZoom(pxPerSec + 20));
+  zoomOutBtn?.addEventListener('click', () => setZoom(pxPerSec - 20));
+
   setClipRangeBtn?.addEventListener('click', () => {
     const inn = Number(clipInSec.value);
     const out = Number(clipOutSec.value);
-    if (!Number.isFinite(inn) || !Number.isFinite(out) || out <= inn) {
-      setStatus('In/Out invalid', 'warn');
-      return;
+    try {
+      manifest.clips = ops.trimClip(manifest.clips, selectedIdx, inn, out, duration);
+      refreshAll();
+      seekOutput(ops.sourceToOutput(manifest.clips, selectedIdx, inn, duration));
+      setStatus(`Trimmed #${selectedIdx + 1} → ${fmt(inn)}–${fmt(out)}`, 'ok');
+    } catch (e) {
+      setStatus(String(e.message || e), 'warn');
     }
-    const active = selectedClip();
-    if (!active) return;
-    active.in = inn;
-    active.out = out;
-    refreshAll();
-    seekOutput(ops.sourceToOutput(manifest.clips, selectedIdx, inn, duration));
-    setStatus(`Trimmed #${selectedIdx + 1} → ${fmt(inn)}–${fmt(out)}`, 'ok');
   });
 
   saveManifestBtn?.addEventListener('click', async () => {
@@ -400,7 +621,7 @@
   document.addEventListener('keydown', (e) => {
     if (views.edit?.hidden) return;
     const tag = (e.target && e.target.tagName) || '';
-    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     if (e.key === ' ' || e.code === 'Space') {
       e.preventDefault();
       togglePlay();

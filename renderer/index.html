@@ -230,6 +230,7 @@
     .view-header { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; margin-bottom: 0.5rem; }
     .stage video { pointer-events: none; }
   </style>
+  <link rel="stylesheet" href="timeline.css" />
 </head>
 <body>
   <div class="kicker">Stem Studio</div>
@@ -252,20 +253,26 @@
     <div class="view-header">
       <div>
         <h1 id="editTitle">Edit</h1>
-        <p class="lead" style="margin:0">CapCut-style timeline · select clip · Split / Cut at playhead · Apply</p>
+        <p class="lead" style="margin:0">CapCut-like timeline · cam / screen / audio · playhead split &amp; edge trim</p>
       </div>
       <button type="button" class="secondary" id="backLibraryBtn" style="width:auto">← Library</button>
     </div>
     <div class="edit-layout">
       <div class="edit-preview-row">
-        <div class="stage-wrap">
-          <div class="cap">Preview</div>
-          <div class="stage">
-            <video id="editVideo" playsinline></video>
+        <div>
+          <div class="preview-switch" role="group" aria-label="Preview stem">
+            <button type="button" class="active" data-preview="screen">screen</button>
+            <button type="button" data-preview="cam">cam</button>
+          </div>
+          <div class="stage-wrap">
+            <div class="cap">Preview</div>
+            <div class="stage">
+              <video id="editVideo" playsinline></video>
+            </div>
           </div>
         </div>
         <div class="panel">
-          <h2>Clip</h2>
+          <h2>Selection</h2>
           <div id="editTimeLabel">—</div>
           <div id="editStatus"></div>
           <div class="row-btns" style="margin-top:0.55rem">
@@ -278,38 +285,54 @@
               <input id="clipOutSec" type="number" min="0" step="0.1" value="0" />
             </div>
           </div>
-          <button type="button" class="secondary" id="setClipRangeBtn">Trim selected to In/Out</button>
-          <div id="clipList" style="margin-top:0.65rem"></div>
+          <button type="button" class="secondary" id="setClipRangeBtn">Set In/Out</button>
+          <div id="clipList" style="margin-top:0.55rem"></div>
           <button type="button" class="secondary" id="openFolderBtn">Open take folder</button>
         </div>
       </div>
 
       <div class="tl-toolbar" role="toolbar" aria-label="Timeline tools">
         <button type="button" id="tlPlayBtn">Play</button>
-        <button type="button" id="splitBtn">Split</button>
-        <button type="button" class="danger" id="cutBtn">Delete</button>
+        <button type="button" id="splitBtn" title="Split at playhead (S)">Split</button>
+        <button type="button" class="danger" id="cutBtn" title="Delete selected (ripple)">Delete</button>
+        <button type="button" class="on" id="magnetBtn" title="Magnetic timeline — ripple on">Magnet</button>
+        <button type="button" id="snapBtn" class="on" title="Snap playhead to edges">Snap</button>
+        <div class="tl-rate" title="Preview playback speed">
+          <label for="rateSelect" style="color:#9aa3b5;font-size:0.72rem">Rate</label>
+          <select id="rateSelect" aria-label="Playback rate">
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+          </select>
+        </div>
         <span class="spacer"></span>
+        <div class="tl-zoom">
+          <button type="button" id="zoomOutBtn">−</button>
+          <input id="zoomRange" type="range" min="40" max="240" value="100" />
+          <button type="button" id="zoomInBtn">+</button>
+        </div>
         <span class="tl-time" id="tlOutTime">0:00 / 0:00</span>
         <button type="button" id="saveManifestBtn">Save</button>
         <button type="button" class="primary" id="applyBtn">Apply</button>
       </div>
 
-      <div class="timeline-shell">
-        <div class="tl-ruler" id="tlRuler" aria-hidden="true"></div>
-        <div class="tl-track-row">
-          <div class="tl-lane-label">V1</div>
-          <div class="tl-track" id="tlTrack" title="Drag playhead · click clip to select">
-            <div class="tl-clips" id="tlClips"></div>
-            <div class="tl-playhead" id="tlPlayhead"></div>
+      <div class="timeline-shell" id="timelineShell">
+        <div class="tl-inner" id="tlInner">
+          <div class="tl-ruler" id="tlRuler"></div>
+          <div class="tl-lanes" id="tlLanes"></div>
+          <div class="tl-playhead-layer" id="tlPlayheadLayer">
+            <div class="tl-playhead" id="tlPlayhead">
+              <div class="tl-playhead-cap" id="tlPlayheadCap" title="Drag playhead"></div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-    <!-- kept for keyboard/API compatibility; hidden -->
     <input id="editScrub" type="range" min="0" max="1000" value="0" hidden />
     <button type="button" id="markInBtn" hidden>Mark In</button>
     <button type="button" id="markOutBtn" hidden>Mark Out</button>
-    <button type="button" id="addClipBtn" hidden>Add clip</button>
+    <button type="button" id="addClipBtn" hidden>Add</button>
   </section>
 
   <section id="view-record">

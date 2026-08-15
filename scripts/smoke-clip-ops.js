@@ -7,6 +7,7 @@ const {
   splitAt,
   cutClip,
   cutRange,
+  trimClip,
 } = require('../lib/clip-ops');
 
 const base = [
@@ -53,4 +54,13 @@ const base = [
   );
 }
 
-console.log(JSON.stringify({ ok: true, cases: 4 }));
+{
+  const clips = [{ id: 'a', source: 'screen.mp4', in: 0, out: 10 }];
+  const trimmed = trimClip(clips, 0, 1, 8, 10);
+  assert.deepStrictEqual([trimmed[0].in, trimmed[0].out], [1, 8]);
+  let threw = false;
+  try { trimClip(clips, 0, 5, 5.05, 10); } catch (_) { threw = true; }
+  assert.strictEqual(threw, true);
+}
+
+console.log(JSON.stringify({ ok: true, cases: 5 }));
