@@ -527,6 +527,17 @@
       const row = document.createElement('div');
       row.className = `tl-lane ${lane.kind}${has ? '' : ' missing'}`;
       row.innerHTML = `<div class="tl-lane-meta"><strong>${lane.label}</strong><div class="icons">🔒 👁 ${lane.kind === 'audio' ? '🔊' : '🎞'}</div></div>`;
+      if (has) {
+        const revealBtn = document.createElement('button');
+        revealBtn.type = 'button';
+        revealBtn.className = 'tl-reveal';
+        revealBtn.title = `Open ${lane.file} location`;
+        revealBtn.textContent = '📂';
+        revealBtn.addEventListener('click', () => {
+          if (currentTakeId) studio.revealStem(currentTakeId, lane.file).catch(() => {});
+        });
+        row.querySelector('.icons')?.appendChild(revealBtn);
+      }
       const track = document.createElement('div');
       track.className = 'tl-track';
       track.style.width = `${width}px`;

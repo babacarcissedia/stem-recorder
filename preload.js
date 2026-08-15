@@ -16,6 +16,7 @@ const studio = {
   saveManifest: (takeId, doc) => ipcRenderer.invoke('studio:saveManifest', takeId, doc),
   apply: (takeId) => ipcRenderer.invoke('studio:apply', takeId),
   openTakeFolder: (takeId) => ipcRenderer.invoke('studio:openTakeFolder', takeId),
+  revealStem: (takeId, stemFile) => ipcRenderer.invoke('studio:revealStem', takeId, stemFile),
   ffmpegOk: () => ipcRenderer.invoke('studio:ffmpegOk'),
   getFilmstrip: (takeId, stemFile) => ipcRenderer.invoke('studio:getFilmstrip', takeId, stemFile),
   getWaveform: (takeId) => ipcRenderer.invoke('studio:getWaveform', takeId),
