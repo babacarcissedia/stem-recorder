@@ -1,9 +1,9 @@
 {
   "name": "stem-recorder",
-  "productName": "Stem Recorder",
-  "version": "0.1.1",
+  "productName": "Stem Studio",
+  "version": "0.2.0",
   "private": false,
-  "description": "Record screen, camera, and mic as separate stems (mp4 + mp3) in one take folder.",
+  "description": "Record screen/cam/mic stems and edit locally (timeline clips \u2192 ffmpeg apply).",
   "license": "MIT",
   "author": {
     "name": "Babacar Cisse Dia",
@@ -24,13 +24,16 @@
     "stems",
     "electron",
     "ffmpeg",
-    "mp4",
-    "mp3"
+    "editor",
+    "timeline"
   ],
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "electron ."
+    "dev": "electron .",
+    "smoke:apply": "node scripts/smoke-apply.js",
+    "smoke:clips": "node scripts/smoke-clip-ops.js",
+    "smoke:transcribe": "node scripts/smoke-transcribe.js"
   },
   "devDependencies": {
     "electron": "^37.2.0"

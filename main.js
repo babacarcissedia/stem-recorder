@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
+const { pathToFileURL } = require('url');
 const {
   app,
   BrowserWindow,
@@ -12,9 +12,25 @@ const {
   shell,
 } = require('electron');
 
-const APP_NAME = 'Stem Recorder';
+const { outRoot } = require('./lib/paths');
+const { findFfmpeg, runFfmpeg, applyClips } = require('./lib/ffmpeg-util');
+const {
+  listTakes,
+  readManifest,
+  writeManifest,
+  mediaUrls,
+  takeDirFor,
+  FINAL_NAME,
+} = require('./lib/edit-manifest');
+const {
+  runLocal: runLocalAsr,
+  runCloud: runCloudAsr,
+  readTranscript,
+  asrStatus,
+} = require('./lib/transcribe');
+
+const APP_NAME = 'Stem Studio';
 const ICON = path.join(__dirname, 'build', 'icon.png');
-const OUT_ROOT = () => path.join(app.getPath('videos'), 'stem-recorder');
 
 if (process.platform === 'darwin' && app.dock && fs.existsSync(ICON)) {
   app.dock.setIcon(ICON);
@@ -22,44 +38,11 @@ if (process.platform === 'darwin' && app.dock && fs.existsSync(ICON)) {
 
 app.setName(APP_NAME);
 if (process.platform === 'win32') {
-  app.setAppUserModelId('dev.bcd.stem-recorder');
+  app.setAppUserModelId('dev.bcd.stem-studio');
 }
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
-}
-
-function findFfmpeg() {
-  const candidates = [
-    process.env.FFMPEG_PATH,
-    'ffmpeg',
-    '/opt/homebrew/bin/ffmpeg',
-    '/usr/local/bin/ffmpeg',
-    '/usr/bin/ffmpeg',
-  ].filter(Boolean);
-  for (const bin of candidates) {
-    try {
-      const { spawnSync } = require('child_process');
-      const r = spawnSync(bin, ['-version'], { encoding: 'utf8' });
-      if (r.status === 0) return bin;
-    } catch {
-      /* try next */
-    }
-  }
-  return null;
-}
-
-function runFfmpeg(bin, args) {
-  return new Promise((resolve, reject) => {
-    const p = spawn(bin, args, { stdio: ['ignore', 'ignore', 'pipe'] });
-    let err = '';
-    p.stderr.on('data', (d) => { err += d.toString(); });
-    p.on('error', reject);
-    p.on('close', (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(err.trim().split('\n').slice(-8).join('\n') || `ffmpeg exit ${code}`));
-    });
-  });
 }
 
 /**
@@ -70,7 +53,6 @@ function runFfmpeg(bin, args) {
 async function finalizeStem(takeDir, kind, rawPath) {
   const ffmpeg = findFfmpeg();
   if (!ffmpeg) {
-    // Keep raw container; rename to kind.webm
     const fallback = path.join(takeDir, `${kind}${path.extname(rawPath) || '.webm'}`);
     if (rawPath !== fallback) fs.renameSync(rawPath, fallback);
     return { file: fallback, format: path.extname(fallback).slice(1), transcoded: false };
@@ -101,8 +83,8 @@ async function finalizeStem(takeDir, kind, rawPath) {
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1280,
-    height: 860,
+    width: 1320,
+    height: 900,
     minWidth: 960,
     minHeight: 640,
     title: APP_NAME,
@@ -150,10 +132,11 @@ function createWindow() {
   });
 }
 
-ipcMain.handle('recorder:outRoot', () => OUT_ROOT());
+/* —— Record IPC (unchanged contract) —— */
+ipcMain.handle('recorder:outRoot', () => outRoot());
 
 ipcMain.handle('recorder:beginTake', (_evt, stamp) => {
-  const takeDir = path.join(OUT_ROOT(), `take-${stamp}`);
+  const takeDir = path.join(outRoot(), `take-${stamp}`);
   ensureDir(takeDir);
   const ffmpeg = findFfmpeg();
   fs.writeFileSync(
@@ -186,7 +169,6 @@ ipcMain.handle('recorder:saveTrack', async (_evt, { takeDir, kind, ext, data }) 
     );
     return result.file;
   } catch (err) {
-    // Leave raw file if transcode fails so the take is not lost
     const fallback = path.join(takeDir, `${kind}.${rawExt}`);
     if (fs.existsSync(rawPath)) fs.renameSync(rawPath, fallback);
     fs.appendFileSync(
@@ -202,17 +184,72 @@ ipcMain.handle('recorder:openTake', (_evt, takeDir) => {
   if (takeDir && fs.existsSync(takeDir)) shell.openPath(takeDir);
 });
 
+/* —— Studio / Edit-T1 IPC —— */
+ipcMain.handle('studio:listTakes', () => listTakes());
+
+ipcMain.handle('studio:getTake', (_evt, takeId) => {
+  const { takeDir, duration, manifest } = readManifest(takeId);
+  const media = mediaUrls(takeId);
+  return { takeId, takeDir, duration, manifest, urls: media.urls };
+});
+
+ipcMain.handle('studio:saveManifest', (_evt, takeId, doc) => writeManifest(takeId, doc));
+
+ipcMain.handle('studio:apply', async (_evt, takeId) => {
+  const { takeDir, manifest } = readManifest(takeId);
+  const sourceName = manifest.source || 'screen.mp4';
+  const src = path.join(takeDir, sourceName);
+  if (!fs.existsSync(src)) throw new Error(`missing source ${sourceName}`);
+
+  const editDir = path.join(takeDir, 'edit');
+  ensureDir(editDir);
+  const out = path.join(takeDir, FINAL_NAME);
+  const work = path.join(editDir, '.work');
+  if (fs.existsSync(work)) fs.rmSync(work, { recursive: true, force: true });
+  ensureDir(work);
+
+  try {
+    await applyClips(src, manifest.clips, out, work);
+  } finally {
+    fs.rmSync(work, { recursive: true, force: true });
+  }
+
+  return {
+    final: out,
+    url: pathToFileURL(out).href,
+    clips: manifest.clips.length,
+  };
+});
+
+ipcMain.handle('studio:openTakeFolder', (_evt, takeId) => {
+  const takeDir = takeDirFor(takeId);
+  shell.openPath(takeDir);
+});
+
+ipcMain.handle('studio:ffmpegOk', () => Boolean(findFfmpeg()));
+
+ipcMain.handle('studio:transcribe', async (_evt, { takeId, provider } = {}) => {
+  const takeDir = takeDirFor(takeId);
+  // Explicit provider choice only — no silent local→cloud fallback.
+  if (provider === 'cloud') return runCloudAsr({ takeDir });
+  return runLocalAsr({ takeDir });
+});
+
+ipcMain.handle('studio:getTranscript', (_evt, takeId) => readTranscript(takeDirFor(takeId)));
+
+ipcMain.handle('studio:asrStatus', () => asrStatus());
+
 app.whenReady().then(() => {
   if (process.platform === 'darwin' && typeof app.setAboutPanelParameters === 'function') {
     app.setAboutPanelParameters({
       applicationName: APP_NAME,
       applicationVersion: app.getVersion(),
       copyright: '© 2026 Babacar Cisse Dia',
-      credits: 'Separate screen · cam · mic stems for overlay later.\nhttps://github.com/babacarcissedia/stem-recorder',
+      credits: 'Record + edit stems locally.\nhttps://github.com/babacarcissedia/stem-recorder',
       iconPath: fs.existsSync(ICON) ? ICON : undefined,
     });
   }
-  ensureDir(OUT_ROOT());
+  ensureDir(outRoot());
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
