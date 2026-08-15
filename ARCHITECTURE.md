@@ -47,7 +47,17 @@ Record (renderer MediaRecorder)
   → take dir  Movies/stem-recorder/take-<stamp>/
       screen.mp4 · cam.mp4 · audio.mp3 · manifest.txt
   → edit/manifest.json   clips[] — idempotent edit truth
-      { in, out, crop? }  crop = normalized 0–1 rect of the source frame
+      { in, out, crop?, freeze? }  crop = normalized 0–1 rect of the source frame
+                          freeze (Edit-T2c) = held-frame segment: `in` is the
+                          frozen frame's source time, out - in the hold
+                          length, so duration math / trim / undo / clipboard
+                          apply unchanged. Inserted after a clip to hold its
+                          last frame (VO gaps). Preview parks the video on
+                          the frame and advances the playhead by wall clock;
+                          Apply input-seeks to the frame and renders
+                          trim=end_frame=1 + tpad clone (composes with crop
+                          and the cam PiP overlay). Source-time lookups
+                          (marks, cues) skip freeze segments.
       cam: { mirror?, rotate?, pip?, pipLayout? }  take-level, cam stem only. mirror =
                           selfie flip; rotate = clockwise degrees in 90° steps
                           (phone orientation). Preview is a CSS transform on

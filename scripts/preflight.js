@@ -15,6 +15,7 @@ const steps = [
   { name: 'check-architecture', cmd: ['node', 'scripts/check-architecture.js'] },
   { name: 'smoke:clips', cmd: ['npm', 'run', 'smoke:clips'] },
   { name: 'smoke:pip', cmd: ['npm', 'run', 'smoke:pip'] },
+  { name: 'smoke:freeze', cmd: ['npm', 'run', 'smoke:freeze'] },
   { name: 'smoke:gaps', cmd: ['npm', 'run', 'smoke:gaps'] },
   { name: 'smoke:thumbs', cmd: ['npm', 'run', 'smoke:thumbs'] },
   { name: 'smoke:transcribe', cmd: ['npm', 'run', 'smoke:transcribe'] },

@@ -61,7 +61,6 @@ async function main() {
   await applyClips(src, doc.clips, pipOut, work, {
     cam: { path: camSrc, mirror: true, rotate: 90 },
   });
-  fs.rmSync(work, { recursive: true, force: true });
   const pipDim = probeDimensions(pipOut);
   const pipDur = probeDuration(pipOut);
   const pipOk = Boolean(srcDim && pipDim)
@@ -69,11 +68,35 @@ async function main() {
     && pipDim.height === srcDim.height
     && pipDur != null && Math.abs(pipDur - 4) < 0.35;
 
-  const ok = trimOk && cropKept && cropOk && pipOk;
+  // Edit-T2c: a 1.5s freeze after the [2,6] trim must stretch the export to
+  // ≈5.5s at unchanged dimensions — screen-only and composed with cam PiP.
+  const freezeClips = [
+    { id: 'clip-1', source: 'screen.mp4', in: 2, out: 6 },
+    { id: 'clip-f', source: 'screen.mp4', in: 6, out: 7.5, freeze: true },
+  ];
+  const freezeOut = path.join(takeDir, 'edit', 'final-freeze.mp4');
+  await applyClips(src, freezeClips, freezeOut, work);
+  const frzDim = probeDimensions(freezeOut);
+  const frzDur = probeDuration(freezeOut);
+  const freezePipOut = path.join(takeDir, 'edit', 'final-freeze-pip.mp4');
+  await applyClips(src, freezeClips, freezePipOut, work, {
+    cam: { path: camSrc, mirror: true, rotate: 90 },
+  });
+  const frzPipDim = probeDimensions(freezePipOut);
+  const frzPipDur = probeDuration(freezePipOut);
+  fs.rmSync(work, { recursive: true, force: true });
+  const freezeOk = Boolean(srcDim && frzDim && frzPipDim)
+    && frzDim.width === srcDim.width && frzDim.height === srcDim.height
+    && frzDur != null && Math.abs(frzDur - 5.5) < 0.4
+    && frzPipDim.width === srcDim.width && frzPipDim.height === srcDim.height
+    && frzPipDur != null && Math.abs(frzPipDur - 5.5) < 0.4;
+
+  const ok = trimOk && cropKept && cropOk && pipOk && freezeOk;
   console.log(JSON.stringify({
     takeId, out, expected: 4, duration: dur, trimOk,
     crop, cropKept, srcDim, outDim, cropOk,
-    pipDim, pipDur, pipOk, ok,
+    pipDim, pipDur, pipOk,
+    frzDur, frzDim, frzPipDur, frzPipDim, freezeOk, ok,
   }, null, 2));
   if (!ok) process.exit(1);
 }

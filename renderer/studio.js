@@ -39,6 +39,7 @@
   const undoBtn = document.getElementById('undoBtn');
   const redoBtn = document.getElementById('redoBtn');
   const cutBtn = document.getElementById('cutBtn');
+  const freezeBtn = document.getElementById('freezeBtn');
   const markInBtn = document.getElementById('markInBtn');
   const markOutBtn = document.getElementById('markOutBtn');
   const cutRangeBtn = document.getElementById('cutRangeBtn');
@@ -266,6 +267,12 @@
     selectedIdx = mapped.index;
     syncingFromTimeline = true;
     if (Number.isFinite(mapped.sourceTime)) editVideo.currentTime = mapped.sourceTime;
+    if (playing && manifest.clips[mapped.index]?.freeze) {
+      startFreezeHold(mapped.index, mapped.offsetInClip);
+    } else {
+      cancelFreezeHold();
+      if (playing && editVideo.paused) editVideo.play().catch(() => {});
+    }
     if (selectedIdx !== renderedSelectedIdx) {
       renderSelectionPanel();
       renderTimeline();
@@ -440,7 +447,8 @@
     const count = Math.max(1, Math.round(widthPx / 72));
     const start = Number(clip.in) || 0;
     for (let i = 0; i < count; i += 1) {
-      const srcT = start + ((i + 0.5) / count) * dur;
+      // A freeze segment shows its single held frame across the whole span.
+      const srcT = clip.freeze ? start : start + ((i + 0.5) / count) * dur;
       const idx = Math.max(0, Math.min(strip.frames.length - 1, Math.floor(srcT / strip.intervalSec)));
       const tile = document.createElement('i');
       tile.className = 'thumb';
@@ -458,7 +466,7 @@
     const bars = Math.max(8, Math.floor(widthPx / 3));
     const start = Number(clip.in) || 0;
     for (let i = 0; i < bars; i += 1) {
-      const srcT = start + ((i + 0.5) / bars) * dur;
+      const srcT = clip.freeze ? start : start + ((i + 0.5) / bars) * dur;
       const idx = Math.max(0, Math.min(waveform.peaks.length - 1, Math.floor(srcT * waveform.peaksPerSec)));
       const b = document.createElement('b');
       b.style.height = `${Math.round(8 + waveform.peaks[idx] * 92)}%`;
@@ -557,14 +565,16 @@
         const dur = ops.clipDuration(clip, duration);
         const clipW = (dur / total) * width;
         const el = document.createElement('div');
-        el.className = `tl-clip ${lane.id}${idx === selectedIdx ? ' selected' : ''}${has ? '' : ' missing'}`;
+        el.className = `tl-clip ${lane.id}${clip.freeze ? ' freeze' : ''}${idx === selectedIdx ? ' selected' : ''}${has ? '' : ' missing'}`;
         el.style.flex = `0 0 ${clipW}px`;
-        el.title = `${lane.label} · ${fmt(clip.in)} → ${fmt(clip.out)}`;
+        el.title = clip.freeze
+          ? `${lane.label} · freeze frame ${fmt(clip.in)} · hold ${dur.toFixed(2)}s`
+          : `${lane.label} · ${fmt(clip.in)} → ${fmt(clip.out)}`;
         if (lane.kind === 'audio') el.appendChild(waveBarsEl(clip, clipW));
         else el.appendChild(filmStripEl(lane.id, clip, clipW));
         const label = document.createElement('span');
         label.className = 'label';
-        label.textContent = `#${idx + 1}`;
+        label.textContent = clip.freeze ? `❄ #${idx + 1}` : `#${idx + 1}`;
         el.appendChild(label);
 
         if (idx === selectedIdx && lane.id === 'screen') {
@@ -620,8 +630,10 @@
     manifest.clips.forEach((clip, idx) => {
       const row = document.createElement('div');
       row.className = 'clip-row' + (idx === selectedIdx ? ' selected' : '');
-      row.innerHTML = `<div class="clip-meta"><strong>#${idx + 1}${idx === selectedIdx ? ' · selected' : ''}</strong>
-        <span>${fmt(clip.in)} → ${fmt(clip.out)}</span></div>`;
+      row.innerHTML = `<div class="clip-meta"><strong>${clip.freeze ? '❄ ' : ''}#${idx + 1}${idx === selectedIdx ? ' · selected' : ''}</strong>
+        <span>${clip.freeze
+    ? `freeze ${fmt(clip.in)} · hold ${ops.clipDuration(clip, duration).toFixed(1)}s`
+    : `${fmt(clip.in)} → ${fmt(clip.out)}`}</span></div>`;
       row.addEventListener('click', () => {
         selectClip(idx);
         let acc = 0;
@@ -639,7 +651,9 @@
     renderTimeline();
     syncFieldsFromClip();
     const c = selectedClip();
-    setStatus(`Selected #${selectedIdx + 1} · ${fmt(c.in)} → ${fmt(c.out)}`);
+    setStatus(c.freeze
+      ? `Selected #${selectedIdx + 1} · freeze frame ${fmt(c.in)} · hold ${ops.clipDuration(c, duration).toFixed(1)}s`
+      : `Selected #${selectedIdx + 1} · ${fmt(c.in)} → ${fmt(c.out)}`);
   }
 
   function refreshAll() {
@@ -831,6 +845,11 @@
       });
     }
     const haveClips = Boolean(manifest?.clips?.length);
+    addItem(
+      `Freeze frame after #${selectedIdx + 1}`,
+      doFreeze,
+      !haveClips || Boolean(manifest?.clips?.[selectedIdx]?.freeze),
+    );
     addItem(`Copy clip #${selectedIdx + 1}`, doCopyClip, !haveClips);
     addItem(`Cut clip #${selectedIdx + 1}`, doCutClipToClipboard, !haveClips || manifest.clips.length <= 1);
     addItem('Paste', doPasteClip, !haveClips || !clipClipboard?.length);
@@ -1444,8 +1463,97 @@
     }
   }
 
+  /* —— Edit-T2c freeze: insert + play a held-frame segment —— */
+
+  const FREEZE_DEFAULT_SEC = 1.5;
+  let freezeRaf = null;
+
+  function cancelFreezeHold() {
+    if (freezeRaf != null) cancelAnimationFrame(freezeRaf);
+    freezeRaf = null;
+  }
+
+  /**
+   * Play a freeze segment: park the video on the held frame and advance the
+   * playhead by wall clock (× rate) until the segment's output span elapses,
+   * then continue into the next clip.
+   */
+  function startFreezeHold(idx, offsetInClip) {
+    cancelFreezeHold();
+    const clip = manifest.clips[idx];
+    const dur = ops.clipDuration(clip, duration);
+    let acc = 0;
+    for (let i = 0; i < idx; i += 1) acc += ops.clipDuration(manifest.clips[i], duration);
+    syncingFromTimeline = true;
+    editVideo.pause();
+    editVideo.currentTime = Number(clip.in) || 0;
+    requestAnimationFrame(() => { syncingFromTimeline = false; });
+    let offset = Math.max(0, Number(offsetInClip) || 0);
+    let last = performance.now();
+    const step = (now) => {
+      if (!playing || !manifest?.clips?.length) {
+        freezeRaf = null;
+        return;
+      }
+      offset += ((now - last) / 1000) * playbackRate;
+      last = now;
+      if (offset >= dur) {
+        freezeRaf = null;
+        if (idx < manifest.clips.length - 1) {
+          advanceToClip(idx + 1);
+        } else {
+          outputTime = Math.max(0, outDur() - 0.001);
+          updatePlayheadUi();
+          stopPlay();
+        }
+        return;
+      }
+      outputTime = acc + offset;
+      updatePlayheadUi();
+      editTimeLabel.textContent = `out ${fmt(outputTime)} · src ${fmt(clip.in)} · freeze`;
+      if (tlOutTime) tlOutTime.textContent = `${fmtClock(outputTime)} / ${fmtClock(outDur())}`;
+      freezeRaf = requestAnimationFrame(step);
+    };
+    freezeRaf = requestAnimationFrame(step);
+  }
+
+  /** Continue playback in clips[idx]: seek + play for a real clip, hold for a freeze. */
+  function advanceToClip(idx) {
+    selectedIdx = idx;
+    const clip = manifest.clips[idx];
+    if (clip.freeze) {
+      startFreezeHold(idx, 0);
+      refreshAll();
+      return;
+    }
+    syncingFromTimeline = true;
+    editVideo.currentTime = clip.in || 0;
+    if (editVideo.paused) editVideo.play().catch(() => {});
+    refreshAll();
+    requestAnimationFrame(() => { syncingFromTimeline = false; });
+  }
+
+  function doFreeze() {
+    if (!manifest?.clips?.length) return;
+    const prev = snapshot();
+    try {
+      const res = ops.insertFreezeAfter(manifest.clips, selectedIdx, FREEZE_DEFAULT_SEC, duration);
+      manifest.clips = res.clips;
+      pushUndo(prev);
+      selectedIdx = res.freezeIndex;
+      refreshAll();
+      let acc = 0;
+      for (let i = 0; i < res.freezeIndex; i += 1) acc += ops.clipDuration(manifest.clips[i], duration);
+      seekOutput(acc + 0.01);
+      setStatus(`Freeze ${FREEZE_DEFAULT_SEC}s after #${res.freezeIndex} — holds the clip's last frame · drag its edges to adjust · Apply renders the still`, 'ok');
+    } catch (e) {
+      setStatus(String(e.message || e), 'warn');
+    }
+  }
+
   function stopPlay() {
     playing = false;
+    cancelFreezeHold();
     editVideo.pause();
     if (tlPlayBtn) tlPlayBtn.textContent = 'Play';
   }
@@ -1459,6 +1567,11 @@
     if (tlPlayBtn) tlPlayBtn.textContent = 'Pause';
     applyPlaybackRate();
     const mapped = ops.outputToSource(manifest.clips, outputTime, duration);
+    if (manifest.clips[mapped.index]?.freeze) {
+      selectedIdx = mapped.index;
+      startFreezeHold(mapped.index, mapped.offsetInClip);
+      return;
+    }
     editVideo.currentTime = mapped.sourceTime;
     editVideo.play().catch(() => stopPlay());
   }
@@ -1503,19 +1616,18 @@
   }
 
   editVideo?.addEventListener('timeupdate', () => {
+    // During a freeze hold the rAF loop owns the playhead; stray video
+    // events must not snap it back to the segment start.
+    if (freezeRaf != null) return;
     if (syncingFromTimeline || draggingPlayhead || resizing || !manifest?.clips?.length) return;
     const src = editVideo.currentTime;
     const c = selectedClip();
-    if (!c) return;
+    if (!c || c.freeze) return;
     const end = ops.clipEnd(c, duration);
     if (playing && end != null && src >= end - 0.04) {
       if (selectedIdx < manifest.clips.length - 1) {
-        selectedIdx += 1;
-        const next = manifest.clips[selectedIdx];
-        syncingFromTimeline = true;
-        editVideo.currentTime = next.in || 0;
-        refreshAll();
-        requestAnimationFrame(() => { syncingFromTimeline = false; });
+        advanceToClip(selectedIdx + 1);
+        if (manifest.clips[selectedIdx].freeze) return;
       } else {
         stopPlay();
       }
@@ -1589,6 +1701,7 @@
   undoBtn?.addEventListener('click', doUndo);
   redoBtn?.addEventListener('click', doRedo);
   splitBtn?.addEventListener('click', doSplit);
+  freezeBtn?.addEventListener('click', doFreeze);
   cutBtn?.addEventListener('click', doCut);
   markInBtn?.addEventListener('click', doMarkIn);
   markOutBtn?.addEventListener('click', doMarkOut);
@@ -1657,7 +1770,7 @@
       applyBtn.disabled = true;
       await studio.saveManifest(currentTakeId, manifest);
       const res = await studio.apply(currentTakeId);
-      setStatus(`Applied → edit/final.mp4 (${res.clips} clip${res.clips === 1 ? '' : 's'}${res.pip ? ' · cam PiP' : ''})`, 'ok');
+      setStatus(`Applied → edit/final.mp4 (${res.clips} clip${res.clips === 1 ? '' : 's'}${res.freeze ? ` · ${res.freeze} freeze` : ''}${res.pip ? ' · cam PiP' : ''})`, 'ok');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     } finally {
@@ -1706,6 +1819,9 @@
     } else if (e.key === 's' || e.key === 'S' || e.key === 'b' || e.key === 'B') {
       e.preventDefault();
       doSplit();
+    } else if (e.key === 'f' || e.key === 'F') {
+      e.preventDefault();
+      doFreeze();
     } else if (e.key === 'i' || e.key === 'I') {
       e.preventDefault();
       doMarkIn();
