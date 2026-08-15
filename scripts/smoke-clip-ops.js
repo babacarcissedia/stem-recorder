@@ -162,13 +162,22 @@ const base = [
 }
 
 {
-  // Cam mirror: only { mirror: true } persists; anything else is "no settings".
+  // Cam settings: only { mirror: true } and 90-step rotate persist;
+  // anything else is "no settings".
   assert.deepStrictEqual(normalizeCam({ mirror: true }), { mirror: true });
   assert.strictEqual(normalizeCam({ mirror: false }), null);
   assert.strictEqual(normalizeCam({ mirror: 'yes' }), null);
   assert.strictEqual(normalizeCam({}), null);
   assert.strictEqual(normalizeCam(null), null);
   assert.strictEqual(normalizeCam('mirror'), null);
+  assert.deepStrictEqual(normalizeCam({ rotate: 90 }), { rotate: 90 });
+  assert.deepStrictEqual(normalizeCam({ rotate: 180 }), { rotate: 180 });
+  assert.deepStrictEqual(normalizeCam({ mirror: true, rotate: 270 }), { mirror: true, rotate: 270 });
+  assert.strictEqual(normalizeCam({ rotate: 0 }), null);
+  assert.strictEqual(normalizeCam({ rotate: 45 }), null);
+  assert.strictEqual(normalizeCam({ rotate: '90' }), null);
+  assert.strictEqual(normalizeCam({ rotate: 360 }), null);
+  assert.deepStrictEqual(normalizeCam({ mirror: false, rotate: 90 }), { rotate: 90 });
 }
 
 console.log(JSON.stringify({ ok: true, cases: 12 }));

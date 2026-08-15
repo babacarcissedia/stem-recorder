@@ -75,6 +75,7 @@
   const cropClearBtn = document.getElementById('cropClearBtn');
   const cropCancelBtn = document.getElementById('cropCancelBtn');
   const camMirrorBtn = document.getElementById('camMirrorBtn');
+  const camRotateBtn = document.getElementById('camRotateBtn');
 
   let currentTakeId = null;
   let manifest = null;
@@ -641,7 +642,7 @@
     syncFieldsFromClip();
     applyPlaybackRate();
     updatePreviewCrop();
-    updatePreviewMirror();
+    updatePreviewCamTransform();
     const total = outDur();
     if (tlOutTime) tlOutTime.textContent = `${fmtClock(outputTime)} / ${fmtClock(total)}`;
   }
@@ -650,7 +651,7 @@
     const file = previewStem === 'cam' ? 'cam.mp4' : 'screen.mp4';
     const url = urls[file] || urls['screen.mp4'];
     if (!url) return;
-    updatePreviewMirror();
+    updatePreviewCamTransform();
     const keep = editVideo.currentTime || 0;
     const wasPlaying = playing;
     editVideo.src = url;
@@ -914,43 +915,87 @@
   cropCancelBtn?.addEventListener('click', cancelCrop);
   window.addEventListener('resize', layoutCropOverlay);
 
-  /* —— I.4 cam mirror (horizontal flip, cam stem only) —— */
+  /* —— I.4/I.5 cam mirror + rotate (cam stem only) —— */
 
   function camMirrored() {
     return Boolean(manifest?.cam?.mirror);
   }
 
-  /** Flip only the cam preview; screen (and crop mode) stay unmirrored. */
-  function updatePreviewMirror() {
-    const flip = camMirrored() && previewStem === 'cam' && Boolean(urls['cam.mp4']);
-    editVideo?.classList.toggle('mirror', flip);
+  function camRotation() {
+    return manifest?.cam?.rotate || 0;
+  }
+
+  /** Merge a patch into take-level cam settings; absent key = no settings. */
+  function setCamSettings(patch) {
+    const cam = ops.normalizeCam({ ...(manifest.cam || {}), ...patch });
+    if (cam) manifest.cam = cam;
+    else delete manifest.cam;
+  }
+
+  /**
+   * Transform only the cam preview; screen (and crop mode) stay untouched.
+   * Mirror applies in source space before the rotation — the Edit-T2 ffmpeg
+   * equivalent is `hflip` before `transpose` on the cam input.
+   */
+  function updatePreviewCamTransform() {
+    const active = previewStem === 'cam' && Boolean(urls['cam.mp4']);
+    const deg = active ? camRotation() : 0;
+    const parts = [];
+    if (deg) parts.push(`rotate(${deg}deg)`);
+    // The stage is a fixed 16:9 box, so a quarter-turn overflows it
+    // vertically; 9/16 shrinks the turned frame back inside.
+    if (deg === 90 || deg === 270) parts.push('scale(0.5625)');
+    if (active && camMirrored()) parts.push('scaleX(-1)');
+    if (editVideo) editVideo.style.transform = parts.join(' ');
+    const haveCam = Boolean(urls['cam.mp4']);
     if (camMirrorBtn) {
-      camMirrorBtn.disabled = !urls['cam.mp4'];
+      camMirrorBtn.disabled = !haveCam;
       camMirrorBtn.classList.toggle('on', camMirrored());
     }
+    if (camRotateBtn) {
+      camRotateBtn.disabled = !haveCam;
+      camRotateBtn.classList.toggle('on', camRotation() !== 0);
+      camRotateBtn.textContent = camRotation() ? `Rotate ${camRotation()}°` : 'Rotate';
+    }
+  }
+
+  function switchPreviewToCam() {
+    if (previewStem === 'cam') return;
+    previewStem = 'cam';
+    document.querySelectorAll('[data-preview]').forEach((b) => {
+      b.classList.toggle('active', b.getAttribute('data-preview') === 'cam');
+    });
+    loadPreviewStem();
   }
 
   function doToggleCamMirror() {
     if (!manifest || !urls['cam.mp4']) return;
     const prev = snapshot();
     const next = !camMirrored();
-    if (next) manifest.cam = { mirror: true };
-    else delete manifest.cam;
+    setCamSettings({ mirror: next });
     pushUndo(prev);
-    if (next && previewStem !== 'cam') {
-      previewStem = 'cam';
-      document.querySelectorAll('[data-preview]').forEach((b) => {
-        b.classList.toggle('active', b.getAttribute('data-preview') === 'cam');
-      });
-      loadPreviewStem();
-    }
-    updatePreviewMirror();
+    if (next) switchPreviewToCam();
+    updatePreviewCamTransform();
     setStatus(next
       ? 'Cam mirrored (selfie flip) — saved on the take · Apply keeps screen as-is until cam joins the export (Edit-T2 PiP)'
       : 'Cam mirror off', next ? 'ok' : '');
   }
 
+  function doRotateCam() {
+    if (!manifest || !urls['cam.mp4']) return;
+    const prev = snapshot();
+    const deg = (camRotation() + 90) % 360;
+    setCamSettings({ rotate: deg });
+    pushUndo(prev);
+    switchPreviewToCam();
+    updatePreviewCamTransform();
+    setStatus(deg
+      ? `Cam rotated ${deg}° — saved on the take · Apply keeps screen as-is until cam joins the export (Edit-T2 PiP)`
+      : 'Cam rotation off', deg ? 'ok' : '');
+  }
+
   camMirrorBtn?.addEventListener('click', doToggleCamMirror);
+  camRotateBtn?.addEventListener('click', doRotateCam);
 
   function snapshot() {
     return {
