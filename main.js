@@ -235,6 +235,7 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
     final: out,
     url: pathToFileURL(out).href,
     clips: manifest.clips.length,
+    freeze: manifest.clips.filter((c) => c.freeze).length,
     pip,
   };
 });
