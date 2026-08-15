@@ -63,4 +63,16 @@ const base = [
   assert.strictEqual(threw, true);
 }
 
-console.log(JSON.stringify({ ok: true, cases: 5 }));
+{
+  const clips = [{ id: 'a', source: 'screen.mp4', in: 0, out: 10 }];
+  const a = splitAt(clips, 0, 2, 10);
+  const b = splitAt(a, 1, 5, 10);
+  assert.strictEqual(b.length, 3);
+  const cut = cutClip(b, 1);
+  assert.deepStrictEqual(
+    cut.map((c) => [c.in, c.out]),
+    [[0, 2], [5, 10]],
+  );
+}
+
+console.log(JSON.stringify({ ok: true, cases: 6 }));

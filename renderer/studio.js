@@ -36,6 +36,9 @@
   const setClipRangeBtn = document.getElementById('setClipRangeBtn');
   const splitBtn = document.getElementById('splitBtn');
   const cutBtn = document.getElementById('cutBtn');
+  const markInBtn = document.getElementById('markInBtn');
+  const markOutBtn = document.getElementById('markOutBtn');
+  const cutRangeBtn = document.getElementById('cutRangeBtn');
   const magnetBtn = document.getElementById('magnetBtn');
   const snapBtn = document.getElementById('snapBtn');
   const rateSelect = document.getElementById('rateSelect');
@@ -71,10 +74,22 @@
   let previewStem = 'screen';
   let playbackRate = 1;
   let asrProvider = sessionStorage.getItem('asrProvider') === 'cloud' ? 'cloud' : 'local';
+  /** Source-time marks for Cut range (null until set). */
+  let markIn = null;
+  let markOut = null;
+
+  const CUT_PAUSE_HELP =
+    'Cut a pause: Split @ A · Split @ B · Delete middle (ripple) — or Mark In / Mark Out → Cut range';
 
   function setStatus(msg, kind) {
     editStatus.textContent = msg || '';
     editStatus.dataset.kind = kind || '';
+  }
+
+  function marksHint() {
+    const inn = markIn == null ? '—' : fmt(markIn);
+    const out = markOut == null ? '—' : fmt(markOut);
+    return `marks In ${inn} · Out ${out}`;
   }
 
   function showView(name) {
@@ -400,12 +415,14 @@
     });
     loadPreviewStem();
     showView('edit');
+    markIn = null;
+    markOut = null;
     refreshAll();
     seekOutput(0);
     loadTranscript(takeId);
     setStatus(urls['edit/final.mp4']
-      ? 'Loaded · final exists'
-      : 'Drag playhead · Split / edge-trim · Delete ripples');
+      ? `Loaded · final exists · ${CUT_PAUSE_HELP}`
+      : CUT_PAUSE_HELP);
   }
 
   function setAsrProvider(provider) {
@@ -483,7 +500,10 @@
       selectedIdx = mapped.index;
       refreshAll();
       seekOutput(outputTime);
-      setStatus(`Split at ${fmt(mapped.sourceTime)} → ${manifest.clips.length} clips`, 'ok');
+      setStatus(
+        `Split at ${fmt(mapped.sourceTime)} → ${manifest.clips.length} clips · next: Split @ B or Delete middle`,
+        'ok',
+      );
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     }
@@ -495,7 +515,46 @@
       if (selectedIdx >= manifest.clips.length) selectedIdx = manifest.clips.length - 1;
       refreshAll();
       seekOutput(Math.min(outputTime, Math.max(0, outDur() - 0.01)));
-      setStatus(magnetOn ? 'Deleted · ripple join' : 'Deleted selected clip', 'ok');
+      setStatus(
+        magnetOn
+          ? 'Deleted middle · ripple join (pause cut)'
+          : 'Deleted selected clip',
+        'ok',
+      );
+    } catch (e) {
+      setStatus(String(e.message || e), 'warn');
+    }
+  }
+
+  function doMarkIn() {
+    if (!manifest?.clips?.length) return;
+    const mapped = ops.outputToSource(manifest.clips, outputTime, duration);
+    markIn = mapped.sourceTime;
+    setStatus(`Mark In ${fmt(markIn)} · ${marksHint()} · set Mark Out then Cut range`, 'ok');
+  }
+
+  function doMarkOut() {
+    if (!manifest?.clips?.length) return;
+    const mapped = ops.outputToSource(manifest.clips, outputTime, duration);
+    markOut = mapped.sourceTime;
+    setStatus(`Mark Out ${fmt(markOut)} · ${marksHint()} · Cut range to ripple-delete In→Out`, 'ok');
+  }
+
+  function doCutRange() {
+    if (markIn == null || markOut == null) {
+      setStatus('Set Mark In and Mark Out first (or Split @ A · Split @ B · Delete middle)', 'warn');
+      return;
+    }
+    const a = Math.min(markIn, markOut);
+    const b = Math.max(markIn, markOut);
+    try {
+      manifest.clips = ops.cutRange(manifest.clips, a, b, duration);
+      if (selectedIdx >= manifest.clips.length) selectedIdx = Math.max(0, manifest.clips.length - 1);
+      markIn = null;
+      markOut = null;
+      refreshAll();
+      seekOutput(Math.min(outputTime, Math.max(0, outDur() - 0.01)));
+      setStatus(`Cut range ${fmt(a)}–${fmt(b)} · ripple join`, 'ok');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     }
@@ -621,6 +680,9 @@
   tlPlayBtn?.addEventListener('click', togglePlay);
   splitBtn?.addEventListener('click', doSplit);
   cutBtn?.addEventListener('click', doCut);
+  markInBtn?.addEventListener('click', doMarkIn);
+  markOutBtn?.addEventListener('click', doMarkOut);
+  cutRangeBtn?.addEventListener('click', doCutRange);
   transcribeBtn?.addEventListener('click', doTranscribe);
   asrLocalBtn?.addEventListener('click', () => setAsrProvider('local'));
   asrCloudBtn?.addEventListener('click', () => setAsrProvider('cloud'));
@@ -706,6 +768,12 @@
     } else if (e.key === 's' || e.key === 'S' || e.key === 'b' || e.key === 'B') {
       e.preventDefault();
       doSplit();
+    } else if (e.key === 'i' || e.key === 'I') {
+      e.preventDefault();
+      doMarkIn();
+    } else if (e.key === 'o' || e.key === 'O') {
+      e.preventDefault();
+      doMarkOut();
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
       doCut();
