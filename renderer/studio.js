@@ -35,6 +35,8 @@
   const clipOutSec = document.getElementById('clipOutSec');
   const setClipRangeBtn = document.getElementById('setClipRangeBtn');
   const splitBtn = document.getElementById('splitBtn');
+  const undoBtn = document.getElementById('undoBtn');
+  const redoBtn = document.getElementById('redoBtn');
   const cutBtn = document.getElementById('cutBtn');
   const markInBtn = document.getElementById('markInBtn');
   const markOutBtn = document.getElementById('markOutBtn');
@@ -77,6 +79,8 @@
   /** Source-time marks for Cut range (null until set). */
   let markIn = null;
   let markOut = null;
+  /** In-session undo/redo over clip-list snapshots (not persisted to disk). */
+  const undoStack = window.StemUndoStack ? window.StemUndoStack.createUndoStack(100) : null;
 
   const CUT_PAUSE_HELP =
     'Cut a pause: Split @ A · Split @ B · Delete middle (ripple) — or Mark In / Mark Out → Cut range';
@@ -182,19 +186,31 @@
     if (editVideo) editVideo.playbackRate = playbackRate;
   }
 
-  function snapTime(t) {
-    if (!snapOn || !manifest?.clips?.length) return t;
-    const edges = [0, outDur()];
+  function snapTargets() {
+    const targets = new Set([0]);
+    const add = (v) => {
+      if (Number.isFinite(v)) targets.add(Math.round(v * 1000) / 1000);
+    };
     let acc = 0;
     for (const c of manifest.clips) {
-      edges.push(acc);
+      add(acc);
       acc += ops.clipDuration(c, duration);
-      edges.push(acc);
+      add(acc);
     }
+    for (const mark of [markIn, markOut]) {
+      if (mark == null) continue;
+      const idx = ops.findClipAtTime(manifest.clips, mark, duration);
+      if (idx >= 0) add(ops.sourceToOutput(manifest.clips, idx, mark, duration));
+    }
+    return targets;
+  }
+
+  function snapTime(t) {
+    if (!snapOn || !manifest?.clips?.length) return t;
     const thresh = 8 / pxPerSec;
     let best = t;
     let bestD = thresh;
-    for (const e of edges) {
+    for (const e of snapTargets()) {
       const d = Math.abs(e - t);
       if (d < bestD) {
         bestD = d;
@@ -417,6 +433,8 @@
     showView('edit');
     markIn = null;
     markOut = null;
+    undoStack?.clear();
+    updateUndoUi();
     refreshAll();
     seekOutput(0);
     loadTranscript(takeId);
@@ -493,10 +511,57 @@
     }
   }
 
+  function snapshot() {
+    return { clips: manifest.clips.map((c) => ({ ...c })), selectedIdx };
+  }
+
+  function updateUndoUi() {
+    if (undoBtn) undoBtn.disabled = !undoStack?.canUndo();
+    if (redoBtn) redoBtn.disabled = !undoStack?.canRedo();
+  }
+
+  function pushUndo(prev) {
+    if (!undoStack) return;
+    undoStack.push(prev);
+    updateUndoUi();
+  }
+
+  function restoreSnapshot(snap) {
+    manifest.clips = snap.clips.map((c) => ({ ...c }));
+    selectedIdx = Math.max(0, Math.min(snap.selectedIdx ?? 0, manifest.clips.length - 1));
+    refreshAll();
+    seekOutput(Math.min(outputTime, Math.max(0, outDur() - 0.01)));
+    updateUndoUi();
+  }
+
+  function doUndo() {
+    if (!undoStack || !manifest?.clips) return;
+    const snap = undoStack.undo(snapshot());
+    if (!snap) {
+      setStatus('Nothing to undo');
+      return;
+    }
+    restoreSnapshot(snap);
+    setStatus(`Undo → ${manifest.clips.length} clip${manifest.clips.length === 1 ? '' : 's'}`, 'ok');
+  }
+
+  function doRedo() {
+    if (!undoStack || !manifest?.clips) return;
+    const snap = undoStack.redo(snapshot());
+    if (!snap) {
+      setStatus('Nothing to redo');
+      return;
+    }
+    restoreSnapshot(snap);
+    setStatus(`Redo → ${manifest.clips.length} clip${manifest.clips.length === 1 ? '' : 's'}`, 'ok');
+  }
+
   function doSplit() {
+    const prev = snapshot();
     try {
       const mapped = ops.outputToSource(manifest.clips, outputTime, duration);
       manifest.clips = ops.splitAt(manifest.clips, mapped.index, mapped.sourceTime, duration);
+      pushUndo(prev);
       selectedIdx = mapped.index;
       refreshAll();
       seekOutput(outputTime);
@@ -510,8 +575,10 @@
   }
 
   function doCut() {
+    const prev = snapshot();
     try {
       manifest.clips = ops.cutClip(manifest.clips, selectedIdx);
+      pushUndo(prev);
       if (selectedIdx >= manifest.clips.length) selectedIdx = manifest.clips.length - 1;
       refreshAll();
       seekOutput(Math.min(outputTime, Math.max(0, outDur() - 0.01)));
@@ -547,8 +614,10 @@
     }
     const a = Math.min(markIn, markOut);
     const b = Math.max(markIn, markOut);
+    const prev = snapshot();
     try {
       manifest.clips = ops.cutRange(manifest.clips, a, b, duration);
+      pushUndo(prev);
       if (selectedIdx >= manifest.clips.length) selectedIdx = Math.max(0, manifest.clips.length - 1);
       markIn = null;
       markOut = null;
@@ -582,7 +651,7 @@
   function startResize(e, index, edge) {
     e.preventDefault();
     e.stopPropagation();
-    resizing = { index, edge, startX: e.clientX };
+    resizing = { index, edge, startX: e.clientX, prev: snapshot() };
     e.currentTarget.classList.add('active');
     e.currentTarget.setPointerCapture(e.pointerId);
     const onMove = (ev) => {
@@ -607,9 +676,11 @@
       } catch (_) { /* too short */ }
     };
     const onUp = () => {
+      const prev = resizing?.prev;
       resizing = null;
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
+      if (prev && JSON.stringify(prev.clips) !== JSON.stringify(manifest.clips)) pushUndo(prev);
       setStatus(`Trimmed #${index + 1}`, 'ok');
     };
     document.addEventListener('pointermove', onMove);
@@ -678,6 +749,8 @@
   bindPlayheadDrag(tlPlayheadLayer);
 
   tlPlayBtn?.addEventListener('click', togglePlay);
+  undoBtn?.addEventListener('click', doUndo);
+  redoBtn?.addEventListener('click', doRedo);
   splitBtn?.addEventListener('click', doSplit);
   cutBtn?.addEventListener('click', doCut);
   markInBtn?.addEventListener('click', doMarkIn);
@@ -717,8 +790,10 @@
   setClipRangeBtn?.addEventListener('click', () => {
     const inn = Number(clipInSec.value);
     const out = Number(clipOutSec.value);
+    const prev = snapshot();
     try {
       manifest.clips = ops.trimClip(manifest.clips, selectedIdx, inn, out, duration);
+      pushUndo(prev);
       refreshAll();
       seekOutput(ops.sourceToOutput(manifest.clips, selectedIdx, inn, duration));
       setStatus(`Trimmed #${selectedIdx + 1} → ${fmt(inn)}–${fmt(out)}`, 'ok');
@@ -762,6 +837,18 @@
     if (views.edit?.hidden) return;
     const tag = (e.target && e.target.tagName) || '';
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z')) {
+      e.preventDefault();
+      if (e.shiftKey) doRedo();
+      else doUndo();
+      return;
+    }
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'y' || e.key === 'Y')) {
+      e.preventDefault();
+      doRedo();
+      return;
+    }
+    if (e.metaKey || e.ctrlKey) return;
     if (e.key === ' ' || e.code === 'Space') {
       e.preventDefault();
       togglePlay();
