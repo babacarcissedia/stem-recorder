@@ -7,7 +7,10 @@ const {
   splitAt,
   cutClip,
   cutRange,
+  copySlice,
+  pasteAfter,
   trimClip,
+  totalOutputDuration,
   normalizeCrop,
   normalizeCam,
   cropsEqual,
@@ -180,4 +183,52 @@ const base = [
   assert.deepStrictEqual(normalizeCam({ mirror: false, rotate: 90 }), { rotate: 90 });
 }
 
-console.log(JSON.stringify({ ok: true, cases: 12 }));
+{
+  // I.6 copySlice: deep clones (crop included), bounds checked.
+  const rect = { x: 0.25, y: 0.25, w: 0.5, h: 0.5 };
+  const clips = setCrop(splitAt(base, 0, 4, 10), rect);
+  const copied = copySlice(clips, 0, 2);
+  assert.strictEqual(copied.length, 2);
+  assert.notStrictEqual(copied[0], clips[0]);
+  assert.notStrictEqual(copied[0].crop, clips[0].crop);
+  assert.deepStrictEqual(copied.map((c) => [c.in, c.out]), [[0, 4], [4, 10]]);
+  copied[0].in = 99;
+  copied[0].crop.x = 0.9;
+  assert.strictEqual(clips[0].in, 0);
+  assert.strictEqual(clips[0].crop.x, 0.25);
+  for (const bad of [() => copySlice(clips, -1, 1), () => copySlice(clips, 2, 1), () => copySlice(clips, 0, 3), () => copySlice(clips, 0, 0)]) {
+    let threw = false;
+    try { bad(); } catch (_) { threw = true; }
+    assert.strictEqual(threw, true);
+  }
+}
+
+{
+  // I.6 pasteAfter: fresh ids, flags preserved, ripple duration, cut→paste round trip.
+  const rect = { x: 0.1, y: 0.1, w: 0.5, h: 0.5 };
+  const clips = setCrop(splitAt(base, 0, 4, 10), rect);
+  const board = copySlice(clips, 1, 1);
+  const res = pasteAfter(clips, board, 0);
+  assert.strictEqual(res.clips.length, 3);
+  assert.strictEqual(res.firstPastedIndex, 1);
+  assert.strictEqual(res.pastedCount, 1);
+  assert.deepStrictEqual(res.clips.map((c) => [c.in, c.out]), [[0, 4], [4, 10], [4, 10]]);
+  const pasted = res.clips[1];
+  assert.notStrictEqual(pasted.id, clips[1].id);
+  assert.strictEqual(cropsEqual(pasted.crop, rect), true);
+  assert.strictEqual(pasted.source, 'screen.mp4');
+  assert.strictEqual(totalOutputDuration(res.clips, 10), 16);
+  // Paste at the very start (afterIndex -1) and past the end clamp.
+  assert.deepStrictEqual(pasteAfter(clips, board, -1).clips.map((c) => [c.in, c.out]), [[4, 10], [0, 4], [4, 10]]);
+  assert.deepStrictEqual(pasteAfter(clips, board, 99).clips.map((c) => [c.in, c.out]), [[0, 4], [4, 10], [4, 10]]);
+  // Cut → paste round trip restores the same in/out sequence.
+  const afterCut = cutClip(clips, 0);
+  const back = pasteAfter(afterCut, copySlice(clips, 0, 1), -1);
+  assert.deepStrictEqual(back.clips.map((c) => [c.in, c.out]), clips.map((c) => [c.in, c.out]));
+  // Empty clipboard throws.
+  let threw = false;
+  try { pasteAfter(clips, [], 0); } catch (_) { threw = true; }
+  assert.strictEqual(threw, true);
+}
+
+console.log(JSON.stringify({ ok: true, cases: 14 }));
