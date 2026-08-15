@@ -82,6 +82,8 @@
   const pipHandle = document.getElementById('pipHandle');
   const captionsBtn = document.getElementById('captionsBtn');
   const captionOverlay = document.getElementById('captionOverlay');
+  const exportRateSelect = document.getElementById('exportRateSelect');
+  const musicBtn = document.getElementById('musicBtn');
 
   let currentTakeId = null;
   let manifest = null;
@@ -666,6 +668,7 @@
     updatePreviewCrop();
     updatePreviewCamTransform();
     updateCaptionsUi();
+    updateExportUi();
     const total = outDur();
     if (tlOutTime) tlOutTime.textContent = `${fmtClock(outputTime)} / ${fmtClock(total)}`;
   }
@@ -859,6 +862,45 @@
   captionsBtn?.addEventListener('click', doToggleCaptions);
   editVideo?.addEventListener('timeupdate', updateCaptionOverlay);
   editVideo?.addEventListener('seeked', updateCaptionOverlay);
+
+  /* —— Edit-T2e: constant export speed + music bed (take-level) —— */
+
+  function updateExportUi() {
+    if (exportRateSelect) exportRateSelect.value = String(manifest?.exportRate || 1);
+    if (musicBtn) {
+      const music = manifest?.music || null;
+      musicBtn.classList.toggle('on', Boolean(music));
+      musicBtn.title = music
+        ? `Music bed: ${music.path.split(/[\\/]/).pop()} @ ${music.gainDb} dB — click to remove`
+        : 'Add a music bed — mixed under the dialogue at −18 dB for the whole export on Apply; saved on the take';
+    }
+  }
+
+  exportRateSelect?.addEventListener('change', () => {
+    if (!manifest) return;
+    const rate = Number(exportRateSelect.value) || 1;
+    if (rate === 1) delete manifest.exportRate;
+    else manifest.exportRate = rate;
+    updateExportUi();
+    setStatus(rate === 1
+      ? 'Export speed 1× — final.mp4 keeps real time'
+      : `Export speed ${rate}× — Apply renders final.mp4 at ${rate}× (video + audio)`, rate === 1 ? '' : 'ok');
+  });
+
+  musicBtn?.addEventListener('click', async () => {
+    if (!manifest) return;
+    if (manifest.music) {
+      delete manifest.music;
+      updateExportUi();
+      setStatus('Music removed — Apply renders without a bed');
+      return;
+    }
+    const picked = await studio.chooseMusic();
+    if (!picked) return;
+    manifest.music = { path: picked, gainDb: -18 };
+    updateExportUi();
+    setStatus(`Music bed: ${picked.split(/[\\/]/).pop()} — mixed at −18 dB under the export on Apply`, 'ok');
+  });
 
   async function loadTranscript(takeId) {
     try {
@@ -1864,7 +1906,11 @@
       const captionNote = res.captions
         ? ' · captions burned'
         : (res.captionsSkipped ? ` · captions skipped: ${res.captionsSkipped}` : '');
-      setStatus(`Applied → edit/final.mp4 (${res.clips} clip${res.clips === 1 ? '' : 's'}${res.freeze ? ` · ${res.freeze} freeze` : ''}${res.pip ? ' · cam PiP' : ''}${captionNote})`, res.captionsSkipped ? 'warn' : 'ok');
+      const rateNote = res.rate && res.rate !== 1 ? ` · ${res.rate}×` : '';
+      const musicNote = res.music
+        ? ' · music bed'
+        : (res.musicSkipped ? ` · music skipped: ${res.musicSkipped}` : '');
+      setStatus(`Applied → edit/final.mp4 (${res.clips} clip${res.clips === 1 ? '' : 's'}${res.freeze ? ` · ${res.freeze} freeze` : ''}${res.pip ? ' · cam PiP' : ''}${captionNote}${rateNote}${musicNote})`, (res.captionsSkipped || res.musicSkipped) ? 'warn' : 'ok');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     } finally {

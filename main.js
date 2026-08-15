@@ -6,6 +6,7 @@ const { pathToFileURL } = require('url');
 const {
   app,
   BrowserWindow,
+  dialog,
   session,
   desktopCapturer,
   ipcMain,
@@ -235,6 +236,17 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
     }
   }
 
+  // Edit-T2e: constant export speed + music bed, both normalized by the
+  // manifest read. A music file that vanished since it was attached skips
+  // the bed (reported) rather than failing Apply.
+  const rate = manifest.exportRate || null;
+  let music = manifest.music || null;
+  let musicSkipped = null;
+  if (music && !fs.existsSync(music.path)) {
+    musicSkipped = `music file missing: ${music.path}`;
+    music = null;
+  }
+
   try {
     await applyClips(src, manifest.clips, out, work, {
       ...(pip ? {
@@ -246,6 +258,8 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
         },
       } : {}),
       ...(burn.burn ? { subtitles: burn.vtt } : {}),
+      ...(rate ? { rate } : {}),
+      ...(music ? { music } : {}),
     });
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
@@ -259,7 +273,20 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
     pip,
     captions: burn.burn,
     captionsSkipped: burn.skipped || null,
+    rate: rate || 1,
+    music: Boolean(music),
+    musicSkipped,
   };
+});
+
+ipcMain.handle('studio:chooseMusic', async (evt) => {
+  const win = BrowserWindow.fromWebContents(evt.sender);
+  const res = await dialog.showOpenDialog(win, {
+    title: 'Choose music bed',
+    properties: ['openFile'],
+    filters: [{ name: 'Audio', extensions: ['mp3', 'wav', 'm4a', 'aac', 'flac', 'ogg'] }],
+  });
+  return res.canceled || !res.filePaths.length ? null : res.filePaths[0];
 });
 
 ipcMain.handle('studio:openTakeFolder', (_evt, takeId) => {

@@ -20,6 +20,7 @@ const steps = [
   { name: 'smoke:thumbs', cmd: ['npm', 'run', 'smoke:thumbs'] },
   { name: 'smoke:transcribe', cmd: ['npm', 'run', 'smoke:transcribe'] },
   { name: 'smoke:captions', cmd: ['npm', 'run', 'smoke:captions'] },
+  { name: 'smoke:export', cmd: ['npm', 'run', 'smoke:export'] },
   {
     name: 'smoke:apply',
     cmd: ['npm', 'run', 'smoke:apply'],
