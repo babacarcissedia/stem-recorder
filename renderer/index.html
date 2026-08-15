@@ -304,6 +304,15 @@
             </div>
           </div>
           <button type="button" class="secondary" id="setClipRangeBtn">Set In/Out</button>
+          <h3>Audio wave</h3>
+          <div class="wave-panel" id="wavePanel" title="Click / drag to seek · Shift-click sets Mark In then Mark Out">
+            <canvas id="wavePanelCanvas"></canvas>
+            <div class="wave-panel-empty" id="wavePanelEmpty" hidden>Loading wave…</div>
+            <div class="wave-panel-zoom">
+              <button type="button" id="waveZoomOutBtn" title="Zoom out wave">−</button>
+              <button type="button" id="waveZoomInBtn" title="Zoom in wave around playhead">+</button>
+            </div>
+          </div>
           <div id="clipList" style="margin-top:0.55rem"></div>
           <h3>Transcript</h3>
           <div id="transcriptPanel" class="transcript-panel"><p class="empty">No transcript yet.</p></div>
