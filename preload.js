@@ -23,6 +23,7 @@ const studio = {
   transcribe: (payload) => ipcRenderer.invoke('studio:transcribe', payload),
   getTranscript: (takeId) => ipcRenderer.invoke('studio:getTranscript', takeId),
   setCueText: (takeId, index, text) => ipcRenderer.invoke('studio:setCueText', takeId, index, text),
+  chooseMusic: () => ipcRenderer.invoke('studio:chooseMusic'),
   asrStatus: () => ipcRenderer.invoke('studio:asrStatus'),
 };
 

@@ -40,7 +40,8 @@
     "smoke:thumbs": "node scripts/smoke-thumbs.js",
     "smoke:gaps": "node scripts/smoke-gap-chips.js",
     "smoke:transcribe": "node scripts/smoke-transcribe.js",
-    "smoke:captions": "node scripts/smoke-captions.js"
+    "smoke:captions": "node scripts/smoke-captions.js",
+    "smoke:export": "node scripts/smoke-export.js"
   },
   "devDependencies": {
     "electron": "^41.10.5"

@@ -404,6 +404,18 @@
         </div>
         <button type="button" id="transcribeBtn" title="Transcribe audio → edit/captions.vtt">Transcribe</button>
         <button type="button" id="captionsBtn" title="Burn captions into final.mp4 on Apply (from edit/captions.vtt — run Transcribe first); saved on the take">Captions</button>
+        <div class="tl-rate" title="Constant export speed — final.mp4 renders at this rate on Apply; saved on the take">
+          <label for="exportRateSelect" style="color:#9aa3b5;font-size:0.72rem">Export</label>
+          <select id="exportRateSelect" aria-label="Export speed">
+            <option value="0.75">0.75×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.25">1.25×</option>
+            <option value="1.5">1.5×</option>
+            <option value="1.75">1.75×</option>
+            <option value="2">2×</option>
+          </select>
+        </div>
+        <button type="button" id="musicBtn" title="Add a music bed — mixed under the dialogue at −18 dB for the whole export on Apply; saved on the take">Music</button>
         <span class="spacer"></span>
         <div class="tl-zoom">
           <button type="button" id="zoomOutBtn">−</button>

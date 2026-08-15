@@ -86,6 +86,31 @@ Record (renderer MediaRecorder)
                           (same source-time lookup); the transcript panel's
                           double-click cue edit rewrites captions.vtt +
                           transcript.txt (text only, timing untouched).
+      exportRate: 1.25     take-level (Edit-T2e), optional — constant export
+                          speed, clamped 0.25–4 (1× stored as absent). Apply
+                          renders every trimmed clip with setpts=PTS/rate on
+                          the video (appended LAST in the filter chain, after
+                          the caption burn — the subtitles filter reads
+                          source-timeline PTS) and an atempo chain on the
+                          audio (factors kept inside atempo's 0.5–2 range),
+                          so concat parts already carry the sped timing.
+                          Freeze holds are wall-clock, not source ranges, so
+                          they scale by 1/rate directly. Preview's Rate
+                          select stays a transient playback control; Export
+                          is the persisted one.
+      music: { path, gainDb }  take-level (Edit-T2e), optional — music bed,
+                          picked via a main-process file dialog
+                          (studio:chooseMusic). Apply mixes it under the
+                          export in a final pass over the concat result
+                          (video stream copied): bed ducked to gainDb
+                          (default −18 dB, clamped −60–0), looped to cover
+                          the export, mix ends with the export
+                          (amix duration=first, normalize=0 keeps the
+                          dialogue level untouched; video-only exports get
+                          the ducked bed as their audio track). The bed is
+                          not sped by exportRate — it scores the final
+                          timeline. A missing music file skips the bed and
+                          reports it, like a missing captions.vtt.
   → preview (renderer reads media via file URLs from main; edits are
       model-only: clip-ops + undo-stack mutate clips[] in memory)
   → Apply (separate path: main → ffmpeg-util.applyClips → edit/final.mp4)

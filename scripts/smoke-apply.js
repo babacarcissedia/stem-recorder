@@ -12,7 +12,7 @@ const fs = require('fs');
 process.env.STEM_OUT_ROOT = process.env.STEM_OUT_ROOT || '/tmp/stem-test-takes';
 
 const {
-  applyClips, probeDuration, probeDimensions, findFfmpeg, runFfmpeg, hasSubtitlesFilter,
+  applyClips, probeDuration, probeDimensions, probeHasAudio, findFfmpeg, runFfmpeg, hasSubtitlesFilter,
 } = require('../lib/ffmpeg-util');
 const { writeManifest, readManifest, FINAL_NAME } = require('../lib/edit-manifest');
 
@@ -111,15 +111,54 @@ async function main() {
   } else {
     captionsSkipped = 'ffmpeg build lacks the subtitles filter (libass)';
   }
+  // Edit-T2e: a constant 2× export halves the [2,6] trim to ≈2s; with the
+  // 1.5s freeze appended the hold shrinks by the same factor → ≈2.75s.
+  const rateOut = path.join(takeDir, 'edit', 'final-rate.mp4');
+  await applyClips(src, doc.clips, rateOut, work, { rate: 2 });
+  const rateDur = probeDuration(rateOut);
+  const rateFrzOut = path.join(takeDir, 'edit', 'final-rate-freeze.mp4');
+  await applyClips(src, freezeClips, rateFrzOut, work, { rate: 2 });
+  const rateFrzDur = probeDuration(rateFrzOut);
+  const rateOk = rateDur != null && Math.abs(rateDur - 2) < 0.35
+    && rateFrzDur != null && Math.abs(rateFrzDur - 2.75) < 0.4;
+
+  // Edit-T2e: music bed — synthesize a short sine, mix it under the
+  // (video-only) export: duration/dimensions unchanged, audio track present.
+  // The 2s sine loops across the 4s export. Composes with rate.
+  const musicSrc = path.join(takeDir, 'music-smoke.wav');
+  if (!fs.existsSync(musicSrc)) {
+    await runFfmpeg(findFfmpeg(), [
+      '-hide_banner', '-y',
+      '-f', 'lavfi', '-i', 'sine=frequency=440:duration=2',
+      '-c:a', 'pcm_s16le',
+      musicSrc,
+    ]);
+  }
+  const musicOut = path.join(takeDir, 'edit', 'final-music.mp4');
+  await applyClips(src, doc.clips, musicOut, work, { music: { path: musicSrc, gainDb: -18 } });
+  const musicDim = probeDimensions(musicOut);
+  const musicDur = probeDuration(musicOut);
+  const musicRateOut = path.join(takeDir, 'edit', 'final-music-rate.mp4');
+  await applyClips(src, doc.clips, musicRateOut, work, { rate: 2, music: { path: musicSrc, gainDb: -18 } });
+  const musicRateDur = probeDuration(musicRateOut);
+  const musicOk = Boolean(srcDim && musicDim)
+    && musicDim.width === srcDim.width && musicDim.height === srcDim.height
+    && musicDur != null && Math.abs(musicDur - 4) < 0.35
+    && probeHasAudio(musicOut)
+    && musicRateDur != null && Math.abs(musicRateDur - 2) < 0.35
+    && probeHasAudio(musicRateOut);
+
   fs.rmSync(work, { recursive: true, force: true });
 
-  const ok = trimOk && cropKept && cropOk && pipOk && freezeOk && captionsOk;
+  const ok = trimOk && cropKept && cropOk && pipOk && freezeOk && captionsOk && rateOk && musicOk;
   console.log(JSON.stringify({
     takeId, out, expected: 4, duration: dur, trimOk,
     crop, cropKept, srcDim, outDim, cropOk,
     pipDim, pipDur, pipOk,
     frzDur, frzDim, frzPipDur, frzPipDim, freezeOk,
-    captionsOk, captionsSkipped, ok,
+    captionsOk, captionsSkipped,
+    rateDur, rateFrzDur, rateOk,
+    musicDur, musicRateDur, musicOk, ok,
   }, null, 2));
   if (!ok) process.exit(1);
 }
