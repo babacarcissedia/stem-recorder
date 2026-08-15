@@ -376,3 +376,73 @@
 }
 
 .stage video { pointer-events: none; }
+
+.asr-provider {
+  display: inline-flex;
+  gap: 0;
+  border: 1px solid #3a4254;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.asr-provider button {
+  width: auto;
+  margin: 0;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0;
+  border: none;
+  background: #2a3140;
+  color: #c8c2b4;
+  font-size: 0.78rem;
+}
+
+.asr-provider button.active {
+  background: #2f4a3a;
+  color: #b8f0c8;
+}
+
+.transcript-panel {
+  max-height: 14rem;
+  overflow: auto;
+  margin: 0.35rem 0 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.transcript-panel .empty {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.cue-row {
+  display: grid;
+  grid-template-columns: 4.2rem 1fr;
+  gap: 0.45rem;
+  align-items: start;
+  width: 100%;
+  margin: 0;
+  text-align: left;
+  padding: 0.35rem 0.45rem;
+  background: #fafafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.78rem;
+}
+
+.cue-row:hover {
+  border-color: #e2d4a0;
+  background: var(--accent-soft);
+}
+
+.cue-time {
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.cue-text {
+  color: var(--fg);
+  line-height: 1.35;
+}

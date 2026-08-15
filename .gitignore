@@ -3,3 +3,6 @@ dist/
 *.log
 .DS_Store
 .DS_Store?
+
+.venv-asr/
+node_modules/
