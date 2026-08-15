@@ -1,8 +1,6 @@
-# Stem Recorder
+# Stem Studio (was Stem Recorder)
 
-Cross-platform desktop app that records **screen**, **camera**, and **microphone** as **separate stems** in one take folder.
-
-![Stem Recorder icon](build/icon.png)
+Cross-platform **Electron** app: **record** screen / camera / mic as separate stems, then **edit locally** (Edit-T1 timeline → ffmpeg apply).
 
 ```
 Movies/stem-recorder/
@@ -11,43 +9,65 @@ Movies/stem-recorder/
     cam.mp4
     audio.mp3
     manifest.txt
+    edit/
+      manifest.json   # clips[] — idempotent edit truth
+      final.mp4       # local apply output
 ```
 
-Capture uses the browser MediaRecorder (usually WebM), then **ffmpeg** transcodes to **mp4** (H.264) and **mp3** (LAME). Requires `ffmpeg` on your PATH (Homebrew: `brew install ffmpeg`).
+Phone PWA is parked; this desktop path is the product edit surface for now.
 
-MIT licensed.
-
-## Quick start
+## Quick start (laptop)
 
 ```bash
 git clone https://github.com/babacarcissedia/stem-recorder.git
 cd stem-recorder
+git checkout feature/electron-edit-t1-11d7   # until merged
 npm install
 npm start
 ```
 
+Requires `ffmpeg` on PATH (`brew install ffmpeg`).
+
+### Record
 1. Pick camera + mic  
 2. Pick screen / window  
-3. **Record** → **Stop**  
-4. Folder opens with `screen.mp4` · `cam.mp4` · `audio.mp3`
+3. **Record** → **Stop** → take folder opens  
+
+### Edit (Edit-T1)
+1. **Library** → pick a take with `screen.mp4`  
+2. Scrub · **Mark In** / **Mark Out** · add/reorder clips  
+3. **Save manifest** → `edit/manifest.json`  
+4. **Apply locally** → `edit/final.mp4`  
+
+Manifest shape:
+
+```json
+{
+  "version": 1,
+  "takeId": "take-…",
+  "source": "screen.mp4",
+  "clips": [{ "id": "clip-1", "source": "screen.mp4", "in": 2.0, "out": 6.0 }]
+}
+```
+
+Legacy spike `keepFrom` / `keepTo` is accepted and normalized to one clip.
+
+### Headless apply smoke
+
+```bash
+STEM_OUT_ROOT=/path/to/takes node scripts/smoke-apply.js take-demo
+```
 
 ## Formats
 
 | Stem | Output | Notes |
 |---|---|---|
-| Screen | `screen.mp4` | H.264, no audio |
-| Camera | `cam.mp4` | H.264, no audio |
+| Screen | `screen.mp4` | H.264 |
+| Camera | `cam.mp4` | H.264 |
 | Mic | `audio.mp3` | 192 kbps MP3 |
+| Edit | `edit/final.mp4` | Accurate trim/concat via ffmpeg |
 
-If ffmpeg is missing, raw `.webm` files are kept so the take is not lost.
-
-## ffmpeg CLI fallback
-
-```bash
-./dual-record.sh list
-./dual-record.sh start
-./dual-record.sh stop
-```
+Cloud helpers (optional later): `https://asr.traxelio.com/transcribe` and `/apply` — desktop prefers local ffmpeg.
 
 ## License
 

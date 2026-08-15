@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stem Recorder</title>
+  <title>Stem Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
@@ -130,10 +130,96 @@
     }
     .checks { margin-top: 0.85rem; font-size: 0.84rem; color: var(--muted); line-height: 1.45; }
     .checks strong { color: var(--fg); }
+
+    .app-nav {
+      display: flex; gap: 0.4rem; margin: 0 0 1.1rem; flex-wrap: wrap;
+    }
+    .app-nav button {
+      width: auto; margin: 0; padding: 0.45rem 0.9rem;
+      background: #fff; color: var(--fg);
+    }
+    .app-nav button.active {
+      background: var(--accent-soft); border-color: #e2d4a0; color: #6b5410;
+    }
+    .take-row {
+      display: flex; justify-content: space-between; gap: 1rem; align-items: baseline;
+      width: 100%; text-align: left; margin: 0 0 0.4rem; background: #fff;
+    }
+    .take-row span { color: var(--muted); font-size: 0.78rem; font-weight: 500; }
+    .take-row:disabled { opacity: 0.45; }
+    .empty { color: var(--muted); }
+    .edit-layout {
+      display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.75fr);
+      gap: 1rem; align-items: start;
+    }
+    @media (max-width: 980px) { .edit-layout { grid-template-columns: 1fr; } }
+    .clip-row {
+      border: 1px solid var(--line); border-radius: 10px; padding: 0.55rem 0.65rem;
+      margin-bottom: 0.4rem; background: #fafafa;
+    }
+    .clip-meta { display: flex; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.35rem; }
+    .clip-actions { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+    .clip-actions button { width: auto; margin: 0; padding: 0.3rem 0.5rem; font-size: 0.78rem; }
+    .danger-text { color: var(--warn) !important; }
+    #editStatus[data-kind="ok"] { color: var(--ok); }
+    #editStatus[data-kind="warn"] { color: var(--warn); }
+    #editStatus { min-height: 1.3em; font-size: 0.85rem; color: var(--muted); margin: 0.5rem 0; }
+    #editTimeLabel { font-family: "IBM Plex Mono", monospace; font-size: 0.85rem; color: var(--muted); }
+    .view-header { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; margin-bottom: 0.75rem; }
   </style>
 </head>
 <body>
-  <div class="kicker">Stem Recorder</div>
+  <div class="kicker">Stem Studio</div>
+  <nav class="app-nav" aria-label="Primary">
+    <button type="button" class="active" data-nav="record">Record</button>
+    <button type="button" data-nav="library">Library</button>
+    <button type="button" data-nav="edit" id="navEdit" hidden>Edit</button>
+  </nav>
+
+  <section id="view-library" hidden>
+    <h1>Library</h1>
+    <p class="lead">Local takes under <code>Movies/stem-recorder/</code>. Open one to edit the screen stem.</p>
+    <div class="panel">
+      <h2>Takes</h2>
+      <div id="libraryTakes"></div>
+    </div>
+  </section>
+
+  <section id="view-edit" hidden>
+    <div class="view-header">
+      <div>
+        <h1 id="editTitle">Edit</h1>
+        <p class="lead" style="margin:0">Timeline clips → <code>edit/manifest.json</code> → local Apply → <code>edit/final.mp4</code></p>
+      </div>
+      <button type="button" class="secondary" id="backLibraryBtn" style="width:auto">← Library</button>
+    </div>
+    <div class="edit-layout">
+      <div>
+        <div class="stage-wrap">
+          <div class="cap">Screen · scrub to mark In / Out</div>
+          <div class="stage">
+            <video id="editVideo" controls playsinline></video>
+          </div>
+        </div>
+        <div id="editTimeLabel">—</div>
+        <div id="editStatus"></div>
+      </div>
+      <div class="panel">
+        <h2>Clips</h2>
+        <div class="row-btns">
+          <button type="button" id="markInBtn">Mark In</button>
+          <button type="button" id="markOutBtn">Mark Out</button>
+        </div>
+        <button type="button" class="secondary" id="addClipBtn">Add clip</button>
+        <div id="clipList" style="margin-top:0.75rem"></div>
+        <button type="button" id="saveManifestBtn">Save manifest</button>
+        <button type="button" class="rec" id="applyBtn" style="margin-top:0.5rem">Apply locally</button>
+        <button type="button" class="secondary" id="openFolderBtn">Open take folder</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-record">
   <h1>Record screen + cam + audio</h1>
   <p class="lead">
     One take folder with separate stems: <code>screen.mp4</code> · <code>cam.mp4</code> · <code>audio.mp3</code>.
@@ -761,5 +847,7 @@
       .then(() => onSourceChange())
       .catch((e) => log(String(e.message || e)));
   </script>
+  </section>
+  <script src="studio.js"></script>
 </body>
 </html>
