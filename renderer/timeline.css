@@ -28,12 +28,15 @@
   margin: 0;
   padding: 0.35rem 0.7rem;
   font-size: 0.78rem;
+  background: #2a3140;
+  border: 1px solid #3a4254;
+  color: #c8d4de;
 }
 
 .preview-switch button.active {
-  background: var(--accent-soft);
-  border-color: #e2d4a0;
-  color: #6b5410;
+  background: var(--accent);
+  border-color: #d4ad2e;
+  color: #1a1f2a;
 }
 
 .tl-toolbar {
@@ -461,7 +464,7 @@
   border-radius: 10px;
   padding: 0.4rem 0.5rem;
   margin-bottom: 0.3rem;
-  background: #fafafa;
+  background: #141a26;
   cursor: pointer;
 }
 
@@ -469,6 +472,8 @@
   border-color: var(--accent);
   background: var(--accent-soft);
 }
+
+.clip-meta span { color: var(--muted); }
 
 .clip-meta {
   display: flex;
@@ -535,14 +540,14 @@
   margin: 0;
   text-align: left;
   padding: 0.35rem 0.45rem;
-  background: #fafafa;
+  background: #141a26;
   border: 1px solid var(--line);
   border-radius: 8px;
   font-size: 0.78rem;
 }
 
 .cue-row:hover {
-  border-color: #e2d4a0;
+  border-color: #6a5a20;
   background: var(--accent-soft);
 }
 
@@ -607,7 +612,74 @@
   font-size: 0.78rem;
 }
 
+.crop-actions button.primary {
+  background: var(--accent, #f0c94a);
+  border-color: #d4ad2e;
+  color: #1a1f2a;
+}
+
 #cropBtn.on {
-  background: var(--accent-soft, #f4ead0);
-  border-color: #e2d4a0;
+  background: #4a3d16;
+  border-color: #7a681f;
+  color: #f0c94a;
+}
+
+/* —— Edit dark shell ————————————————————————————————————————————
+   One CapCut-like dark chrome for the whole Edit view. The theme variables
+   are re-scoped on #view-edit so every rule that reads them (panels, labels,
+   status, cue/clip accents) resolves dark without touching Record/Library.
+   :where() keeps the overrides at the same specificity as the light base
+   rules in index.html, so toolbar/wave/crop styling above still wins. */
+
+#view-edit {
+  --fg: #f2efe8;
+  --muted: #9aa3b5;
+  --accent: #f0c94a;
+  --accent-soft: #332b12;
+  --card: #1a1f2a;
+  --line: #2a3140;
+  --ok: #7fd6a4;
+  --warn: #f0a075;
+  background: #12161f;
+  color: var(--fg);
+  border: 1px solid #2a3140;
+  border-radius: 18px;
+  padding: 1rem 1.1rem 1.25rem;
+}
+
+:where(#view-edit) select,
+:where(#view-edit) button {
+  background: #2a3140;
+  border-color: #3a4254;
+  color: #f2efe8;
+}
+
+:where(#view-edit) button.secondary {
+  background: #2a3140;
+  border-color: #3a4254;
+  color: #f2efe8;
+}
+
+:where(#view-edit) .stage-wrap {
+  background: #0c0f16;
+  border-color: #2a3140;
+}
+
+:where(#view-edit) input[type="number"] {
+  width: 100%;
+  font: inherit;
+  background: #0c0f16;
+  color: var(--fg);
+  border: 1px solid #3a4254;
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+}
+
+:where(#view-edit) .cue-edit input {
+  background: #0c0f16;
+  color: var(--fg);
+}
+
+:where(#view-edit) .panel {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 }
