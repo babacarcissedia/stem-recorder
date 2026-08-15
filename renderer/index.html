@@ -284,8 +284,20 @@
           </div>
           <div class="stage-wrap">
             <div class="cap">Preview</div>
-            <div class="stage">
+            <div class="stage" id="editStage">
               <video id="editVideo" playsinline></video>
+              <div class="crop-overlay" id="cropOverlay" hidden>
+                <div class="crop-rect" id="cropRect" title="Drag to move · handles to resize">
+                  <i data-h="nw"></i><i data-h="n"></i><i data-h="ne"></i>
+                  <i data-h="e"></i><i data-h="se"></i><i data-h="s"></i>
+                  <i data-h="sw"></i><i data-h="w"></i>
+                </div>
+              </div>
+              <div class="crop-actions" id="cropActions" hidden>
+                <button type="button" class="primary" id="cropDoneBtn">Done</button>
+                <button type="button" id="cropClearBtn">Clear</button>
+                <button type="button" id="cropCancelBtn">Cancel</button>
+              </div>
             </div>
           </div>
         </div>
@@ -326,6 +338,7 @@
         <button type="button" id="redoBtn" title="Redo (Cmd/Ctrl+Shift+Z)" disabled>Redo</button>
         <button type="button" id="splitBtn" title="Split at playhead (S) — cut pause: Split @ A, Split @ B, Delete middle">Split</button>
         <button type="button" class="danger" id="cutBtn" title="Delete selected clip (ripple join when Magnet is on)">Delete</button>
+        <button type="button" id="cropBtn" title="Crop screen to a region — drag handles on the preview; rendered on Apply">Crop</button>
         <button type="button" id="markInBtn" title="Mark In at playhead (I)">Mark In</button>
         <button type="button" id="markOutBtn" title="Mark Out at playhead (O)">Mark Out</button>
         <button type="button" class="danger" id="cutRangeBtn" title="Cut marked In→Out range (ripple join)">Cut range</button>

@@ -11,7 +11,7 @@ const fs = require('fs');
 // Minimal electron app stub so lib/paths can load without Electron when testing apply only
 process.env.STEM_OUT_ROOT = process.env.STEM_OUT_ROOT || '/tmp/stem-test-takes';
 
-const { applyClips, probeDuration } = require('../lib/ffmpeg-util');
+const { applyClips, probeDuration, probeDimensions } = require('../lib/ffmpeg-util');
 const { writeManifest, readManifest, FINAL_NAME } = require('../lib/edit-manifest');
 
 async function main() {
@@ -28,10 +28,30 @@ async function main() {
   const work = path.join(takeDir, 'edit', '.work');
   fs.mkdirSync(work, { recursive: true });
   await applyClips(src, doc.clips, out, work);
-  fs.rmSync(work, { recursive: true, force: true });
   const dur = probeDuration(out);
-  console.log(JSON.stringify({ takeId, out, expected: 4, duration: dur, ok: dur != null && Math.abs(dur - 4) < 0.35 }, null, 2));
-  if (dur == null || Math.abs(dur - 4) >= 0.35) process.exit(1);
+  const trimOk = dur != null && Math.abs(dur - 4) < 0.35;
+
+  // I.3: crop to the center quarter — manifest round-trip must keep the rect,
+  // the export must come out at half the source dimensions (even-floored).
+  const crop = { x: 0.25, y: 0.25, w: 0.5, h: 0.5 };
+  writeManifest(takeId, { ...doc, clips: doc.clips.map((c) => ({ ...c, crop })) });
+  const reread = readManifest(takeId).manifest;
+  const cropKept = JSON.stringify(reread.clips[0].crop) === JSON.stringify(crop);
+  const cropOut = path.join(takeDir, 'edit', 'final-crop.mp4');
+  await applyClips(src, reread.clips, cropOut, work);
+  fs.rmSync(work, { recursive: true, force: true });
+  const srcDim = probeDimensions(src);
+  const outDim = probeDimensions(cropOut);
+  const cropOk = Boolean(srcDim && outDim)
+    && outDim.width === Math.floor((srcDim.width * crop.w) / 2) * 2
+    && outDim.height === Math.floor((srcDim.height * crop.h) / 2) * 2;
+
+  const ok = trimOk && cropKept && cropOk;
+  console.log(JSON.stringify({
+    takeId, out, expected: 4, duration: dur, trimOk,
+    crop, cropKept, srcDim, outDim, cropOk, ok,
+  }, null, 2));
+  if (!ok) process.exit(1);
 }
 
 main().catch((e) => {

@@ -66,6 +66,14 @@
   const wavePanelEmpty = document.getElementById('wavePanelEmpty');
   const waveZoomInBtn = document.getElementById('waveZoomInBtn');
   const waveZoomOutBtn = document.getElementById('waveZoomOutBtn');
+  const editStage = document.getElementById('editStage');
+  const cropBtn = document.getElementById('cropBtn');
+  const cropOverlay = document.getElementById('cropOverlay');
+  const cropRect = document.getElementById('cropRect');
+  const cropActions = document.getElementById('cropActions');
+  const cropDoneBtn = document.getElementById('cropDoneBtn');
+  const cropClearBtn = document.getElementById('cropClearBtn');
+  const cropCancelBtn = document.getElementById('cropCancelBtn');
 
   let currentTakeId = null;
   let manifest = null;
@@ -97,6 +105,9 @@
   /** Wave-panel zoom (1 = full take) + drag state (window frozen during a drag). */
   let waveZoom = 1;
   let draggingWave = null;
+  /** I.3 screen crop: draft rect (normalized 0–1) while crop mode is on. */
+  let cropMode = false;
+  let cropDraft = null;
   /** In-session undo/redo over clip-list snapshots (not persisted to disk). */
   const undoStack = window.StemUndoStack ? window.StemUndoStack.createUndoStack(100) : null;
 
@@ -617,6 +628,7 @@
     renderTimeline();
     syncFieldsFromClip();
     applyPlaybackRate();
+    updatePreviewCrop();
     const total = outDur();
     if (tlOutTime) tlOutTime.textContent = `${fmtClock(outputTime)} / ${fmtClock(total)}`;
   }
@@ -666,6 +678,8 @@
     transcriptCues = [];
     undoStack?.clear();
     updateUndoUi();
+    setCropMode(false);
+    cropDraft = null;
     refreshAll();
     seekOutput(0);
     loadTimelineMedia(takeId);
@@ -745,6 +759,146 @@
       transcribeBtn.disabled = false;
     }
   }
+
+  /* —— I.3 screen crop —— */
+
+  function currentCrop() {
+    return manifest?.clips?.find((c) => c.crop)?.crop || null;
+  }
+
+  /** Letterboxed content box of the video inside the stage (object-fit: contain). */
+  function videoContentRect() {
+    const stageW = editStage.clientWidth;
+    const stageH = editStage.clientHeight;
+    const vw = editVideo.videoWidth;
+    const vh = editVideo.videoHeight;
+    if (!vw || !vh) return { left: 0, top: 0, width: stageW, height: stageH };
+    const scale = Math.min(stageW / vw, stageH / vh);
+    const w = vw * scale;
+    const h = vh * scale;
+    return { left: (stageW - w) / 2, top: (stageH - h) / 2, width: w, height: h };
+  }
+
+  function layoutCropOverlay() {
+    if (!cropMode || !cropOverlay || !cropDraft) return;
+    const box = videoContentRect();
+    cropOverlay.style.left = `${box.left}px`;
+    cropOverlay.style.top = `${box.top}px`;
+    cropOverlay.style.width = `${box.width}px`;
+    cropOverlay.style.height = `${box.height}px`;
+    cropRect.style.left = `${cropDraft.x * 100}%`;
+    cropRect.style.top = `${cropDraft.y * 100}%`;
+    cropRect.style.width = `${cropDraft.w * 100}%`;
+    cropRect.style.height = `${cropDraft.h * 100}%`;
+  }
+
+  /** Dim the cropped-out area on the screen preview once a crop is set. */
+  function updatePreviewCrop() {
+    const crop = currentCrop();
+    if (crop && previewStem === 'screen' && !cropMode) {
+      const right = Math.max(0, 1 - crop.x - crop.w) * 100;
+      const bottom = Math.max(0, 1 - crop.y - crop.h) * 100;
+      editVideo.style.clipPath = `inset(${crop.y * 100}% ${right}% ${bottom}% ${crop.x * 100}%)`;
+    } else {
+      editVideo.style.clipPath = '';
+    }
+    cropBtn?.classList.toggle('on', Boolean(crop));
+  }
+
+  function setCropMode(on) {
+    cropMode = on;
+    if (cropOverlay) cropOverlay.hidden = !on;
+    if (cropActions) cropActions.hidden = !on;
+    cropBtn?.classList.toggle('active', on);
+    updatePreviewCrop();
+    if (on) layoutCropOverlay();
+  }
+
+  function enterCropMode() {
+    if (!manifest?.clips?.length || !urls['screen.mp4']) return;
+    if (previewStem !== 'screen') {
+      previewStem = 'screen';
+      document.querySelectorAll('[data-preview]').forEach((b) => {
+        b.classList.toggle('active', b.getAttribute('data-preview') === 'screen');
+      });
+      loadPreviewStem();
+    }
+    stopPlay();
+    cropDraft = currentCrop() ? { ...currentCrop() } : { x: 0, y: 0, w: 1, h: 1 };
+    setCropMode(true);
+    setStatus('Crop: drag the handles around the app window · Done to keep, Clear to remove', 'ok');
+  }
+
+  function commitCrop(crop) {
+    const prev = snapshot();
+    manifest.clips = ops.setCrop(manifest.clips, crop);
+    const next = currentCrop();
+    if (JSON.stringify(prev.clips) !== JSON.stringify(manifest.clips)) pushUndo(prev);
+    setCropMode(false);
+    cropDraft = null;
+    setStatus(next
+      ? `Crop set ${Math.round(next.w * 100)}%×${Math.round(next.h * 100)}% — Apply renders it into final.mp4`
+      : 'Crop cleared — full frame on Apply', next ? 'ok' : '');
+  }
+
+  function cancelCrop() {
+    setCropMode(false);
+    cropDraft = null;
+    setStatus('Crop unchanged');
+  }
+
+  function startCropDrag(e, handle) {
+    if (!cropMode || !cropDraft) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const MIN = 0.05;
+    const box = videoContentRect();
+    const start = { ...cropDraft };
+    const x0 = e.clientX;
+    const y0 = e.clientY;
+    const onMove = (ev) => {
+      const dx = (ev.clientX - x0) / Math.max(1, box.width);
+      const dy = (ev.clientY - y0) / Math.max(1, box.height);
+      const d = { ...start };
+      if (handle === 'move') {
+        d.x = Math.min(Math.max(start.x + dx, 0), 1 - start.w);
+        d.y = Math.min(Math.max(start.y + dy, 0), 1 - start.h);
+      } else {
+        if (handle.includes('w')) {
+          d.x = Math.min(Math.max(start.x + dx, 0), start.x + start.w - MIN);
+          d.w = start.w + (start.x - d.x);
+        }
+        if (handle.includes('e')) {
+          d.w = Math.min(Math.max(start.w + dx, MIN), 1 - start.x);
+        }
+        if (handle.includes('n')) {
+          d.y = Math.min(Math.max(start.y + dy, 0), start.y + start.h - MIN);
+          d.h = start.h + (start.y - d.y);
+        }
+        if (handle.includes('s')) {
+          d.h = Math.min(Math.max(start.h + dy, MIN), 1 - start.y);
+        }
+      }
+      cropDraft = d;
+      layoutCropOverlay();
+    };
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }
+
+  cropRect?.addEventListener('pointerdown', (e) => {
+    const handle = e.target.dataset?.h;
+    startCropDrag(e, handle || 'move');
+  });
+  cropBtn?.addEventListener('click', () => (cropMode ? cancelCrop() : enterCropMode()));
+  cropDoneBtn?.addEventListener('click', () => commitCrop(cropDraft));
+  cropClearBtn?.addEventListener('click', () => commitCrop(null));
+  cropCancelBtn?.addEventListener('click', cancelCrop);
+  window.addEventListener('resize', layoutCropOverlay);
 
   function snapshot() {
     return { clips: manifest.clips.map((c) => ({ ...c })), selectedIdx };
@@ -955,6 +1109,7 @@
     applyPlaybackRate();
     refreshAll();
     seekOutput(outputTime);
+    layoutCropOverlay();
   });
 
   editVideo?.addEventListener('ended', stopPlay);
@@ -1107,6 +1262,11 @@
       return;
     }
     if (e.metaKey || e.ctrlKey) return;
+    if (e.key === 'Escape' && cropMode) {
+      e.preventDefault();
+      cancelCrop();
+      return;
+    }
     if (e.key === ' ' || e.code === 'Space') {
       e.preventDefault();
       togglePlay();
