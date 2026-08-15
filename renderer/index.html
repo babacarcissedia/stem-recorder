@@ -313,6 +313,8 @@
 
       <div class="tl-toolbar" role="toolbar" aria-label="Timeline tools">
         <button type="button" id="tlPlayBtn">Play</button>
+        <button type="button" id="undoBtn" title="Undo (Cmd/Ctrl+Z)" disabled>Undo</button>
+        <button type="button" id="redoBtn" title="Redo (Cmd/Ctrl+Shift+Z)" disabled>Redo</button>
         <button type="button" id="splitBtn" title="Split at playhead (S) — cut pause: Split @ A, Split @ B, Delete middle">Split</button>
         <button type="button" class="danger" id="cutBtn" title="Delete selected clip (ripple join when Magnet is on)">Delete</button>
         <button type="button" id="markInBtn" title="Mark In at playhead (I)">Mark In</button>
@@ -991,6 +993,7 @@
   </script>
   </section>
   <script src="../lib/clip-ops.js"></script>
+  <script src="../lib/undo-stack.js"></script>
   <script src="studio.js"></script>
 </body>
 </html>

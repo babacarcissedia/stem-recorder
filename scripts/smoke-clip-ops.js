@@ -9,6 +9,7 @@ const {
   cutRange,
   trimClip,
 } = require('../lib/clip-ops');
+const { createUndoStack } = require('../lib/undo-stack');
 
 const base = [
   { id: 'a', source: 'screen.mp4', in: 0, out: 10 },
@@ -75,4 +76,57 @@ const base = [
   );
 }
 
-console.log(JSON.stringify({ ok: true, cases: 6 }));
+{
+  // Undo/redo mirrors the studio flow: push the pre-op state, mutate, undo, redo.
+  const stack = createUndoStack();
+  assert.strictEqual(stack.canUndo(), false);
+  assert.strictEqual(stack.canRedo(), false);
+  assert.strictEqual(stack.undo(base), null);
+
+  let clips = base;
+  stack.push(clips);
+  clips = splitAt(clips, 0, 4, 10);
+  stack.push(clips);
+  clips = cutClip(clips, 0);
+  assert.deepStrictEqual(clips.map((c) => [c.in, c.out]), [[4, 10]]);
+
+  clips = stack.undo(clips);
+  assert.deepStrictEqual(clips.map((c) => [c.in, c.out]), [[0, 4], [4, 10]]);
+  assert.strictEqual(stack.canRedo(), true);
+
+  clips = stack.undo(clips);
+  assert.deepStrictEqual(clips.map((c) => [c.in, c.out]), [[0, 10]]);
+  assert.strictEqual(stack.canUndo(), false);
+
+  clips = stack.redo(clips);
+  clips = stack.redo(clips);
+  assert.deepStrictEqual(clips.map((c) => [c.in, c.out]), [[4, 10]]);
+  assert.strictEqual(stack.canRedo(), false);
+  assert.strictEqual(stack.redo(clips), null);
+}
+
+{
+  // A fresh push clears the redo stack.
+  const stack = createUndoStack();
+  stack.push('s0');
+  const prev = stack.undo('s1');
+  assert.strictEqual(prev, 's0');
+  assert.strictEqual(stack.canRedo(), true);
+  stack.push('s0b');
+  assert.strictEqual(stack.canRedo(), false);
+}
+
+{
+  // Cap: oldest snapshots fall off, undo never exceeds the limit.
+  const stack = createUndoStack(3);
+  for (let i = 0; i < 10; i += 1) stack.push(i);
+  const popped = [];
+  let cur = 10;
+  while (stack.canUndo()) {
+    cur = stack.undo(cur);
+    popped.push(cur);
+  }
+  assert.deepStrictEqual(popped, [9, 8, 7]);
+}
+
+console.log(JSON.stringify({ ok: true, cases: 9 }));
