@@ -48,6 +48,11 @@ Record (renderer MediaRecorder)
       screen.mp4 · cam.mp4 · audio.mp3 · manifest.txt
   → edit/manifest.json   clips[] — idempotent edit truth
       { in, out, crop? }  crop = normalized 0–1 rect of the source frame
+      cam: { mirror }?    take-level, cam stem only (selfie flip); preview is a
+                          CSS scaleX(-1) on the cam preview. Apply is
+                          screen-primary today so the flag does not touch
+                          final.mp4; when cam enters the export path (Edit-T2
+                          PiP), Apply must put `hflip` on the cam input.
   → preview (renderer reads media via file URLs from main; edits are
       model-only: clip-ops + undo-stack mutate clips[] in memory)
   → Apply (separate path: main → ffmpeg-util.applyClips → edit/final.mp4)
