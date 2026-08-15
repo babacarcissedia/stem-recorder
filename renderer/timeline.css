@@ -257,6 +257,13 @@
   background-position: center;
 }
 
+.tl-clip .film i.thumb {
+  background-color: #10141c;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 .tl-clip .wave {
   position: absolute;
   inset: 8px 4px 8px;
