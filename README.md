@@ -35,14 +35,13 @@ Requires `ffmpeg` on PATH (`brew install ffmpeg`).
 
 ### Edit (Edit-T1)
 
-Edit-T1 owns **select · split · cut · trim · reorder · apply** (charter C2). Not T2/T2b.
+CapCut / TikTok-style timeline (charter C2): preview on top, **V1 horizontal track**, playhead, toolbar Split / Delete.
 
 1. **Library** → pick a take with `screen.mp4`  
-2. Click a clip to **select**  
-3. Scrub · **Split at playhead** (`S`) · **Cut** selected clip or In→Out range (`Delete`)  
-4. Or set **In/Out** seconds → **Set clip from In/Out**  
-5. **Save manifest** → `edit/manifest.json`  
-6. **Apply locally** → `edit/final.mp4`  
+2. Click a segment on the timeline to **select**  
+3. Drag the **playhead** · **Split** (`S` / `B`) · **Delete** selected (`Delete`)  
+4. Optional: trim selected via In/Out fields  
+5. **Save** → `edit/manifest.json` · **Apply** → `edit/final.mp4`  
 
 Manifest shape:
 

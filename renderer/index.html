@@ -149,24 +149,86 @@
     .take-row:disabled { opacity: 0.45; }
     .empty { color: var(--muted); }
     .edit-layout {
-      display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.75fr);
-      gap: 1rem; align-items: start;
+      display: grid; grid-template-rows: auto auto auto;
+      gap: 0.75rem;
     }
-    @media (max-width: 980px) { .edit-layout { grid-template-columns: 1fr; } }
+    .edit-preview-row {
+      display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+      gap: 0.85rem; align-items: start;
+    }
+    @media (max-width: 900px) { .edit-preview-row { grid-template-columns: 1fr; } }
+    .tl-toolbar {
+      display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;
+      padding: 0.55rem 0.65rem; background: #1a1f2a; border-radius: 12px;
+    }
+    .tl-toolbar button {
+      width: auto; margin: 0; padding: 0.45rem 0.85rem; border-radius: 8px;
+      background: #2a3140; border-color: #3a4254; color: #f2efe8; font-weight: 650;
+    }
+    .tl-toolbar button.primary { background: var(--accent); border-color: #b89520; color: #1a1f2a; }
+    .tl-toolbar button.danger { background: #5a2a2a; border-color: #7a3a3a; color: #ffd4d4; }
+    .tl-toolbar button:disabled { opacity: 0.4; }
+    .tl-toolbar .spacer { flex: 1; }
+    .tl-toolbar .tl-time {
+      font-family: "IBM Plex Mono", monospace; font-size: 0.82rem; color: #c8c2b4;
+    }
+    .timeline-shell {
+      background: #12161f; border: 1px solid #2a3140; border-radius: 14px;
+      padding: 0.65rem 0.55rem 0.85rem; overflow: hidden;
+    }
+    .tl-ruler {
+      position: relative; height: 1.25rem; margin: 0 0 0.35rem 2.5rem;
+      font-family: "IBM Plex Mono", monospace; font-size: 0.65rem; color: #8a8490;
+    }
+    .tl-ruler span { position: absolute; transform: translateX(-50%); }
+    .tl-track-row {
+      display: grid; grid-template-columns: 2.5rem 1fr; gap: 0.35rem; align-items: stretch;
+    }
+    .tl-lane-label {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      color: #8a8490; display: flex; align-items: center; justify-content: center;
+    }
+    .tl-track {
+      position: relative; height: 72px; background: #0c0f16; border-radius: 10px;
+      overflow: hidden; cursor: pointer; user-select: none;
+    }
+    .tl-clips { position: absolute; inset: 0; display: flex; }
+    .tl-clip {
+      position: relative; height: 100%; box-sizing: border-box;
+      border: 2px solid transparent; border-radius: 8px; overflow: hidden;
+      background:
+        repeating-linear-gradient(90deg, #3d4a62 0 10px, #334056 10px 12px),
+        linear-gradient(180deg, #4a5a78, #2c364c);
+      color: #fff; font-size: 0.7rem; font-weight: 650;
+      display: flex; align-items: flex-end; padding: 0.35rem 0.45rem;
+      flex: 0 0 auto; min-width: 8px;
+    }
+    .tl-clip.selected {
+      border-color: #f0c94a; box-shadow: inset 0 0 0 1px rgba(240,201,74,0.5);
+      z-index: 2;
+    }
+    .tl-playhead {
+      position: absolute; top: 0; bottom: 0; width: 2px; background: #f0c94a;
+      pointer-events: none; z-index: 5; transform: translateX(-1px);
+    }
+    .tl-playhead::before {
+      content: ""; position: absolute; top: -2px; left: -5px;
+      border-left: 6px solid transparent; border-right: 6px solid transparent;
+      border-top: 8px solid #f0c94a;
+    }
     .clip-row.selected { border-color: var(--accent); background: var(--accent-soft); }
     .clip-row {
-      border: 1px solid var(--line); border-radius: 10px; padding: 0.55rem 0.65rem;
-      margin-bottom: 0.4rem; background: #fafafa;
+      border: 1px solid var(--line); border-radius: 10px; padding: 0.45rem 0.55rem;
+      margin-bottom: 0.35rem; background: #fafafa; cursor: pointer;
     }
-    .clip-meta { display: flex; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.35rem; }
-    .clip-actions { display: flex; gap: 0.3rem; flex-wrap: wrap; }
-    .clip-actions button { width: auto; margin: 0; padding: 0.3rem 0.5rem; font-size: 0.78rem; }
+    .clip-meta { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.82rem; }
     .danger-text { color: var(--warn) !important; }
     #editStatus[data-kind="ok"] { color: var(--ok); }
     #editStatus[data-kind="warn"] { color: var(--warn); }
-    #editStatus { min-height: 1.3em; font-size: 0.85rem; color: var(--muted); margin: 0.5rem 0; }
+    #editStatus { min-height: 1.3em; font-size: 0.85rem; color: var(--muted); margin: 0.35rem 0 0; }
     #editTimeLabel { font-family: "IBM Plex Mono", monospace; font-size: 0.85rem; color: var(--muted); }
-    .view-header { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; margin-bottom: 0.75rem; }
+    .view-header { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; margin-bottom: 0.5rem; }
+    .stage video { pointer-events: none; }
   </style>
 </head>
 <body>
@@ -190,55 +252,64 @@
     <div class="view-header">
       <div>
         <h1 id="editTitle">Edit</h1>
-        <p class="lead" style="margin:0">Timeline clips → <code>edit/manifest.json</code> → local Apply → <code>edit/final.mp4</code></p>
+        <p class="lead" style="margin:0">CapCut-style timeline · select clip · Split / Cut at playhead · Apply</p>
       </div>
       <button type="button" class="secondary" id="backLibraryBtn" style="width:auto">← Library</button>
     </div>
     <div class="edit-layout">
-      <div>
+      <div class="edit-preview-row">
         <div class="stage-wrap">
-          <div class="cap">Screen · scrub to mark In / Out</div>
+          <div class="cap">Preview</div>
           <div class="stage">
-            <video id="editVideo" controls playsinline></video>
+            <video id="editVideo" playsinline></video>
           </div>
         </div>
-        <div id="editTimeLabel">—</div>
-        <div id="editStatus"></div>
+        <div class="panel">
+          <h2>Clip</h2>
+          <div id="editTimeLabel">—</div>
+          <div id="editStatus"></div>
+          <div class="row-btns" style="margin-top:0.55rem">
+            <div>
+              <label for="clipInSec">In (s)</label>
+              <input id="clipInSec" type="number" min="0" step="0.1" value="0" />
+            </div>
+            <div>
+              <label for="clipOutSec">Out (s)</label>
+              <input id="clipOutSec" type="number" min="0" step="0.1" value="0" />
+            </div>
+          </div>
+          <button type="button" class="secondary" id="setClipRangeBtn">Trim selected to In/Out</button>
+          <div id="clipList" style="margin-top:0.65rem"></div>
+          <button type="button" class="secondary" id="openFolderBtn">Open take folder</button>
+        </div>
       </div>
-      <div class="panel">
-        <h2>Clips</h2>
-        <div class="row-btns">
-          <button type="button" id="markInBtn">Mark In</button>
-          <button type="button" id="markOutBtn">Mark Out</button>
-        </div>
-        <label for="editScrub">Scrub</label>
-        <input id="editScrub" type="range" min="0" max="1000" value="0" step="1" style="width:100%" />
-        <div class="row-btns" style="margin-top:0.45rem">
-          <div>
-            <label for="clipInSec">In (s)</label>
-            <input id="clipInSec" type="number" min="0" step="0.1" value="0" />
+
+      <div class="tl-toolbar" role="toolbar" aria-label="Timeline tools">
+        <button type="button" id="tlPlayBtn">Play</button>
+        <button type="button" id="splitBtn">Split</button>
+        <button type="button" class="danger" id="cutBtn">Delete</button>
+        <span class="spacer"></span>
+        <span class="tl-time" id="tlOutTime">0:00 / 0:00</span>
+        <button type="button" id="saveManifestBtn">Save</button>
+        <button type="button" class="primary" id="applyBtn">Apply</button>
+      </div>
+
+      <div class="timeline-shell">
+        <div class="tl-ruler" id="tlRuler" aria-hidden="true"></div>
+        <div class="tl-track-row">
+          <div class="tl-lane-label">V1</div>
+          <div class="tl-track" id="tlTrack" title="Drag playhead · click clip to select">
+            <div class="tl-clips" id="tlClips"></div>
+            <div class="tl-playhead" id="tlPlayhead"></div>
           </div>
-          <div>
-            <label for="clipOutSec">Out (s)</label>
-            <input id="clipOutSec" type="number" min="0" step="0.1" value="0" />
-          </div>
         </div>
-        <button type="button" class="secondary" id="setClipRangeBtn">Set clip from In/Out</button>
-        <div class="row-btns" style="margin-top:0.45rem">
-          <button type="button" class="secondary" id="splitBtn">Split at playhead</button>
-          <button type="button" class="danger" id="cutBtn">Cut</button>
-        </div>
-        <p class="checks" style="margin-top:0.35rem">
-          <strong>Edit-T1</strong>: click a clip to select · Split at scrub · Cut removes selected clip,
-          or cuts out In→Out from the sequence (gap delete).
-        </p>
-        <button type="button" class="secondary" id="addClipBtn">Add clip</button>
-        <div id="clipList" style="margin-top:0.75rem"></div>
-        <button type="button" id="saveManifestBtn">Save manifest</button>
-        <button type="button" class="rec" id="applyBtn" style="margin-top:0.5rem">Apply locally</button>
-        <button type="button" class="secondary" id="openFolderBtn">Open take folder</button>
       </div>
     </div>
+    <!-- kept for keyboard/API compatibility; hidden -->
+    <input id="editScrub" type="range" min="0" max="1000" value="0" hidden />
+    <button type="button" id="markInBtn" hidden>Mark In</button>
+    <button type="button" id="markOutBtn" hidden>Mark Out</button>
+    <button type="button" id="addClipBtn" hidden>Add clip</button>
   </section>
 
   <section id="view-record">
