@@ -11,7 +11,7 @@ const fs = require('fs');
 // Minimal electron app stub so lib/paths can load without Electron when testing apply only
 process.env.STEM_OUT_ROOT = process.env.STEM_OUT_ROOT || '/tmp/stem-test-takes';
 
-const { applyClips, probeDuration, probeDimensions } = require('../lib/ffmpeg-util');
+const { applyClips, probeDuration, probeDimensions, findFfmpeg, runFfmpeg } = require('../lib/ffmpeg-util');
 const { writeManifest, readManifest, FINAL_NAME } = require('../lib/edit-manifest');
 
 async function main() {
@@ -39,17 +39,41 @@ async function main() {
   const cropKept = JSON.stringify(reread.clips[0].crop) === JSON.stringify(crop);
   const cropOut = path.join(takeDir, 'edit', 'final-crop.mp4');
   await applyClips(src, reread.clips, cropOut, work);
-  fs.rmSync(work, { recursive: true, force: true });
   const srcDim = probeDimensions(src);
   const outDim = probeDimensions(cropOut);
   const cropOk = Boolean(srcDim && outDim)
     && outDim.width === Math.floor((srcDim.width * crop.w) / 2) * 2
     && outDim.height === Math.floor((srcDim.height * crop.h) / 2) * 2;
 
-  const ok = trimOk && cropKept && cropOk;
+  // Edit-T2a: cam PiP overlay (mirror + rotate on the cam input) must keep
+  // the base dimensions and the trimmed duration. Synthesize a cam stem when
+  // the fixture take has none.
+  const camSrc = path.join(takeDir, 'cam.mp4');
+  if (!fs.existsSync(camSrc)) {
+    await runFfmpeg(findFfmpeg(), [
+      '-hide_banner', '-y',
+      '-f', 'lavfi', '-i', 'testsrc=size=640x480:rate=30:duration=8',
+      '-c:v', 'libx264', '-preset', 'veryfast', '-pix_fmt', 'yuv420p',
+      camSrc,
+    ]);
+  }
+  const pipOut = path.join(takeDir, 'edit', 'final-pip.mp4');
+  await applyClips(src, doc.clips, pipOut, work, {
+    cam: { path: camSrc, mirror: true, rotate: 90 },
+  });
+  fs.rmSync(work, { recursive: true, force: true });
+  const pipDim = probeDimensions(pipOut);
+  const pipDur = probeDuration(pipOut);
+  const pipOk = Boolean(srcDim && pipDim)
+    && pipDim.width === srcDim.width
+    && pipDim.height === srcDim.height
+    && pipDur != null && Math.abs(pipDur - 4) < 0.35;
+
+  const ok = trimOk && cropKept && cropOk && pipOk;
   console.log(JSON.stringify({
     takeId, out, expected: 4, duration: dur, trimOk,
-    crop, cropKept, srcDim, outDim, cropOk, ok,
+    crop, cropKept, srcDim, outDim, cropOk,
+    pipDim, pipDur, pipOk, ok,
   }, null, 2));
   if (!ok) process.exit(1);
 }

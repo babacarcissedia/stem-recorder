@@ -209,8 +209,23 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
   if (fs.existsSync(work)) fs.rmSync(work, { recursive: true, force: true });
   ensureDir(work);
 
+  // Edit-T2a: cam PiP is on by default whenever the take has a cam stem;
+  // cam.pip === false is the stored opt-out. No PiP when the cam itself is
+  // the primary source.
+  const camPath = path.join(takeDir, 'cam.mp4');
+  const camSettings = manifest.cam || {};
+  const pip = sourceName !== 'cam.mp4'
+    && fs.existsSync(camPath)
+    && camSettings.pip !== false;
+
   try {
-    await applyClips(src, manifest.clips, out, work);
+    await applyClips(src, manifest.clips, out, work, pip ? {
+      cam: {
+        path: camPath,
+        mirror: Boolean(camSettings.mirror),
+        rotate: camSettings.rotate || 0,
+      },
+    } : {});
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
   }
@@ -219,6 +234,7 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
     final: out,
     url: pathToFileURL(out).href,
     clips: manifest.clips.length,
+    pip,
   };
 });
 

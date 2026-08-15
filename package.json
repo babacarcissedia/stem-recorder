@@ -35,6 +35,7 @@
     "check:arch": "node scripts/check-architecture.js",
     "smoke:apply": "node scripts/smoke-apply.js",
     "smoke:clips": "node scripts/smoke-clip-ops.js",
+    "smoke:pip": "node scripts/smoke-pip-filter.js",
     "smoke:thumbs": "node scripts/smoke-thumbs.js",
     "smoke:gaps": "node scripts/smoke-gap-chips.js",
     "smoke:transcribe": "node scripts/smoke-transcribe.js"
