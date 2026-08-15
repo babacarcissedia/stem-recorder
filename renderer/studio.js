@@ -775,6 +775,72 @@
     }
   }
 
+  /* —— I.2 context menu → Transcribe / transcript —— */
+
+  let ctxMenuEl = null;
+
+  function closeCtxMenu() {
+    ctxMenuEl?.remove();
+    ctxMenuEl = null;
+  }
+
+  let flashTimer = null;
+
+  function focusTranscriptPanel() {
+    if (!transcriptPanel) return;
+    transcriptPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    transcriptPanel.classList.add('flash');
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => transcriptPanel.classList.remove('flash'), 1200);
+  }
+
+  function openCtxMenu(x, y) {
+    closeCtxMenu();
+    if (!currentTakeId) return;
+    const menu = document.createElement('div');
+    menu.className = 'ctx-menu';
+    menu.setAttribute('role', 'menu');
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.setAttribute('role', 'menuitem');
+    if (transcriptCues.length) {
+      item.textContent = 'Show transcript';
+      item.addEventListener('click', () => {
+        closeCtxMenu();
+        focusTranscriptPanel();
+      });
+    } else {
+      item.textContent = `Transcribe (${asrProvider})`;
+      item.addEventListener('click', () => {
+        closeCtxMenu();
+        if (transcribeBtn?.disabled) return;
+        focusTranscriptPanel();
+        doTranscribe();
+      });
+    }
+    menu.appendChild(item);
+    document.body.appendChild(menu);
+    const rect = menu.getBoundingClientRect();
+    menu.style.left = `${Math.min(x, window.innerWidth - rect.width - 8)}px`;
+    menu.style.top = `${Math.min(y, window.innerHeight - rect.height - 8)}px`;
+    ctxMenuEl = menu;
+    item.focus();
+  }
+
+  [editStage, tlInner, wavePanel].forEach((el) => {
+    el?.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      openCtxMenu(e.clientX, e.clientY);
+    });
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (ctxMenuEl && !ctxMenuEl.contains(e.target)) closeCtxMenu();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeCtxMenu();
+  });
+  window.addEventListener('blur', closeCtxMenu);
+
   /* —— I.3 screen crop —— */
 
   function currentCrop() {
