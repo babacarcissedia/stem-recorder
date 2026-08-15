@@ -1,0 +1,2 @@
+Controller note 2026-08-15: origin/main advanced with #7 audio wave panel (a094ddd).
+Before opening/merging I.3 crop PR: git fetch && rebase onto origin/main; resolve studio.js/index.html conflicts; npm run preflight.

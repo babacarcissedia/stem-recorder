@@ -374,55 +374,71 @@
       </div>
 
       <div class="tl-toolbar" role="toolbar" aria-label="Timeline tools">
-        <button type="button" id="tlPlayBtn">Play</button>
-        <button type="button" id="undoBtn" title="Undo (Cmd/Ctrl+Z)" disabled>Undo</button>
-        <button type="button" id="redoBtn" title="Redo (Cmd/Ctrl+Shift+Z)" disabled>Redo</button>
-        <button type="button" id="splitBtn" title="Split at playhead (S) — cut pause: Split @ A, Split @ B, Delete middle">Split</button>
-        <button type="button" id="freezeBtn" title="Freeze frame (F) — insert a held still after the selected clip (default 1.5s; drag its edges to adjust); rendered on Apply">Freeze</button>
-        <button type="button" class="danger" id="cutBtn" title="Delete selected clip (ripple join when Magnet is on)">Delete</button>
-        <button type="button" id="cropBtn" title="Crop screen to a region — drag handles on the preview; rendered on Apply">Crop</button>
-        <button type="button" id="camMirrorBtn" title="Mirror cam horizontally (selfie flip) — cam preview + saved on the take; screen stays unmirrored">Mirror</button>
-        <button type="button" id="camRotateBtn" title="Rotate cam 90° clockwise per press (phone orientation) — cam preview + saved on the take; screen stays upright">Rotate</button>
-        <button type="button" id="camPipBtn" title="Cam picture-in-picture on Apply — bottom-right overlay in final.mp4 (on by default when the take has a cam); saved on the take">PiP</button>
-        <button type="button" id="markInBtn" title="Mark In at playhead (I)">Mark In</button>
-        <button type="button" id="markOutBtn" title="Mark Out at playhead (O)">Mark Out</button>
-        <button type="button" class="danger" id="cutRangeBtn" title="Cut marked In→Out range (ripple join)">Cut range</button>
-        <button type="button" class="on" id="magnetBtn" title="Magnetic timeline — ripple on">Magnet</button>
-        <button type="button" id="snapBtn" class="on" title="Snap playhead to edges">Snap</button>
-        <div class="tl-rate" title="Preview playback speed">
-          <label for="rateSelect" style="color:#9aa3b5;font-size:0.72rem">Rate</label>
-          <select id="rateSelect" aria-label="Playback rate">
-            <option value="0.5">0.5×</option>
-            <option value="1" selected>1×</option>
-            <option value="1.5">1.5×</option>
-            <option value="2">2×</option>
-          </select>
+        <div class="tl-group" role="group" aria-label="Transport">
+          <button type="button" id="tlPlayBtn">Play</button>
+          <span class="tl-time" id="tlOutTime">0:00 / 0:00</span>
         </div>
-        <div class="asr-provider" role="group" aria-label="Transcribe provider" title="Local Whisper (default) or Traxelio cloud">
-          <button type="button" class="active" id="asrLocalBtn">Local</button>
-          <button type="button" id="asrCloudBtn">Cloud</button>
+        <div class="tl-group" role="group" aria-label="Edit">
+          <button type="button" id="undoBtn" title="Undo (Cmd/Ctrl+Z)" disabled>Undo</button>
+          <button type="button" id="redoBtn" title="Redo (Cmd/Ctrl+Shift+Z)" disabled>Redo</button>
+          <button type="button" id="splitBtn" title="Split at playhead (S) — cut pause: Split @ A, Split @ B, Delete middle">Split</button>
+          <button type="button" id="freezeBtn" title="Freeze frame (F) — insert a held still after the selected clip (default 1.5s; drag its edges to adjust); rendered on Apply">Freeze</button>
+          <button type="button" class="danger" id="cutBtn" title="Delete selected clip (ripple join when Magnet is on)">Delete</button>
+          <button type="button" id="markInBtn" title="Mark In at playhead (I)">Mark In</button>
+          <button type="button" id="markOutBtn" title="Mark Out at playhead (O)">Mark Out</button>
+          <button type="button" class="danger" id="cutRangeBtn" title="Cut marked In→Out range (ripple join)">Cut range</button>
         </div>
-        <button type="button" id="transcribeBtn" title="Transcribe audio → edit/captions.vtt">Transcribe</button>
-        <button type="button" id="captionsBtn" title="Burn captions into final.mp4 on Apply (from edit/captions.vtt — run Transcribe first); saved on the take">Captions</button>
-        <div class="tl-rate" title="Constant export speed — final.mp4 renders at this rate on Apply; saved on the take">
-          <label for="exportRateSelect" style="color:#9aa3b5;font-size:0.72rem">Export</label>
-          <select id="exportRateSelect" aria-label="Export speed">
-            <option value="0.75">0.75×</option>
-            <option value="1" selected>1×</option>
-            <option value="1.25">1.25×</option>
-            <option value="1.5">1.5×</option>
-            <option value="1.75">1.75×</option>
-            <option value="2">2×</option>
-          </select>
+        <div class="tl-group" role="group" aria-label="Cam">
+          <button type="button" id="cropBtn" title="Crop screen to a region — drag handles on the preview; rendered on Apply">Crop</button>
+          <button type="button" id="camMirrorBtn" title="Mirror cam horizontally (selfie flip) — cam preview + saved on the take; screen stays unmirrored">Mirror</button>
+          <button type="button" id="camRotateBtn" title="Rotate cam 90° clockwise per press (phone orientation) — cam preview + saved on the take; screen stays upright">Rotate</button>
+          <button type="button" id="camPipBtn" title="Cam picture-in-picture on Apply — bottom-right overlay in final.mp4 (on by default when the take has a cam); saved on the take">PiP</button>
         </div>
-        <button type="button" id="musicBtn" title="Add a music bed — mixed under the dialogue at −18 dB for the whole export on Apply; saved on the take">Music</button>
+        <div class="tl-group" role="group" aria-label="Captions and export">
+          <button type="button" id="transcribeBtn" title="Transcribe audio → edit/captions.vtt">Transcribe</button>
+          <button type="button" id="captionsBtn" title="Burn captions into final.mp4 on Apply (from edit/captions.vtt — run Transcribe first); saved on the take">Captions</button>
+          <button type="button" id="musicBtn" title="Add a music bed — mixed under the dialogue at −18 dB for the whole export on Apply; saved on the take">Music</button>
+        </div>
+        <div class="tl-more">
+          <button type="button" id="tlMoreBtn" aria-haspopup="true" aria-expanded="false" title="More tools — magnet, snap, preview rate, transcribe provider, export speed">More ▾</button>
+          <div class="tl-more-menu" id="tlMoreMenu" hidden>
+            <div class="tl-more-row" role="group" aria-label="Timeline modes">
+              <button type="button" class="on" id="magnetBtn" title="Magnetic timeline — ripple on">Magnet</button>
+              <button type="button" id="snapBtn" class="on" title="Snap playhead to edges">Snap</button>
+            </div>
+            <div class="tl-more-row tl-rate" title="Preview playback speed">
+              <label for="rateSelect">Rate</label>
+              <select id="rateSelect" aria-label="Playback rate">
+                <option value="0.5">0.5×</option>
+                <option value="1" selected>1×</option>
+                <option value="1.5">1.5×</option>
+                <option value="2">2×</option>
+              </select>
+            </div>
+            <div class="tl-more-row tl-rate" title="Constant export speed — final.mp4 renders at this rate on Apply; saved on the take">
+              <label for="exportRateSelect">Export</label>
+              <select id="exportRateSelect" aria-label="Export speed">
+                <option value="0.75">0.75×</option>
+                <option value="1" selected>1×</option>
+                <option value="1.25">1.25×</option>
+                <option value="1.5">1.5×</option>
+                <option value="1.75">1.75×</option>
+                <option value="2">2×</option>
+              </select>
+            </div>
+            <div class="tl-more-row asr-provider" role="group" aria-label="Transcribe provider" title="Local Whisper (default) or Traxelio cloud">
+              <span class="tl-more-label">Transcribe via</span>
+              <button type="button" class="active" id="asrLocalBtn">Local</button>
+              <button type="button" id="asrCloudBtn">Cloud</button>
+            </div>
+          </div>
+        </div>
         <span class="spacer"></span>
         <div class="tl-zoom">
           <button type="button" id="zoomOutBtn">−</button>
           <input id="zoomRange" type="range" min="40" max="240" value="100" />
           <button type="button" id="zoomInBtn">+</button>
         </div>
-        <span class="tl-time" id="tlOutTime">0:00 / 0:00</span>
         <button type="button" id="saveManifestBtn">Save</button>
         <button type="button" class="primary" id="applyBtn">Apply</button>
       </div>
