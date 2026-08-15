@@ -112,6 +112,8 @@
   let cropDraft = null;
   /** In-session undo/redo over clip-list snapshots (not persisted to disk). */
   const undoStack = window.StemUndoStack ? window.StemUndoStack.createUndoStack(100) : null;
+  /** I.6 in-memory clip clipboard — per take (cleared on openEdit: clips reference this take's media). */
+  let clipClipboard = null;
 
   const CUT_PAUSE_HELP =
     'Cut a pause: Split @ A · Split @ B · Delete middle (ripple) — or Mark In / Mark Out → Cut range';
@@ -693,6 +695,7 @@
     transcriptCues = [];
     undoStack?.clear();
     updateUndoUi();
+    clipClipboard = null;
     setCropMode(false);
     cropDraft = null;
     refreshAll();
@@ -800,31 +803,39 @@
     const menu = document.createElement('div');
     menu.className = 'ctx-menu';
     menu.setAttribute('role', 'menu');
-    const item = document.createElement('button');
-    item.type = 'button';
-    item.setAttribute('role', 'menuitem');
-    if (transcriptCues.length) {
-      item.textContent = 'Show transcript';
+    const addItem = (label, onClick, disabled) => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.setAttribute('role', 'menuitem');
+      item.textContent = label;
+      item.disabled = Boolean(disabled);
       item.addEventListener('click', () => {
         closeCtxMenu();
-        focusTranscriptPanel();
+        onClick();
       });
+      menu.appendChild(item);
+      return item;
+    };
+    let first;
+    if (transcriptCues.length) {
+      first = addItem('Show transcript', focusTranscriptPanel);
     } else {
-      item.textContent = `Transcribe (${asrProvider})`;
-      item.addEventListener('click', () => {
-        closeCtxMenu();
+      first = addItem(`Transcribe (${asrProvider})`, () => {
         if (transcribeBtn?.disabled) return;
         focusTranscriptPanel();
         doTranscribe();
       });
     }
-    menu.appendChild(item);
+    const haveClips = Boolean(manifest?.clips?.length);
+    addItem(`Copy clip #${selectedIdx + 1}`, doCopyClip, !haveClips);
+    addItem(`Cut clip #${selectedIdx + 1}`, doCutClipToClipboard, !haveClips || manifest.clips.length <= 1);
+    addItem('Paste', doPasteClip, !haveClips || !clipClipboard?.length);
     document.body.appendChild(menu);
     const rect = menu.getBoundingClientRect();
     menu.style.left = `${Math.min(x, window.innerWidth - rect.width - 8)}px`;
     menu.style.top = `${Math.min(y, window.innerHeight - rect.height - 8)}px`;
     ctxMenuEl = menu;
-    item.focus();
+    first.focus();
   }
 
   [editStage, tlInner, wavePanel].forEach((el) => {
@@ -1189,6 +1200,59 @@
     }
   }
 
+  /* —— I.6 clip clipboard: copy / cut / paste within the take —— */
+
+  function doCopyClip() {
+    if (!manifest?.clips?.length) return;
+    try {
+      clipClipboard = ops.copySlice(manifest.clips, selectedIdx, 1);
+      const c = clipClipboard[0];
+      setStatus(`Copied #${selectedIdx + 1} · ${fmt(c.in)} → ${fmt(c.out)} · Paste inserts after the playhead clip`, 'ok');
+    } catch (e) {
+      setStatus(String(e.message || e), 'warn');
+    }
+  }
+
+  function doCutClipToClipboard() {
+    if (!manifest?.clips?.length) return;
+    const prev = snapshot();
+    try {
+      const copied = ops.copySlice(manifest.clips, selectedIdx, 1);
+      manifest.clips = ops.cutClip(manifest.clips, selectedIdx);
+      clipClipboard = copied;
+      pushUndo(prev);
+      if (selectedIdx >= manifest.clips.length) selectedIdx = manifest.clips.length - 1;
+      refreshAll();
+      seekOutput(Math.min(outputTime, Math.max(0, outDur() - 0.01)));
+      setStatus(`Cut #${prev.selectedIdx + 1} to clipboard · ripple join · Paste to re-insert`, 'ok');
+    } catch (e) {
+      setStatus(String(e.message || e), 'warn');
+    }
+  }
+
+  function doPasteClip() {
+    if (!manifest?.clips?.length) return;
+    if (!clipClipboard?.length) {
+      setStatus('Clipboard empty — Copy or Cut a clip first', 'warn');
+      return;
+    }
+    const prev = snapshot();
+    try {
+      const at = ops.outputToSource(manifest.clips, outputTime, duration).index;
+      const res = ops.pasteAfter(manifest.clips, clipClipboard, at);
+      manifest.clips = res.clips;
+      pushUndo(prev);
+      selectedIdx = res.firstPastedIndex;
+      refreshAll();
+      let acc = 0;
+      for (let i = 0; i < res.firstPastedIndex; i += 1) acc += ops.clipDuration(manifest.clips[i], duration);
+      seekOutput(acc + 0.01);
+      setStatus(`Pasted after #${at + 1} → ${manifest.clips.length} clips · ripple shift`, 'ok');
+    } catch (e) {
+      setStatus(String(e.message || e), 'warn');
+    }
+  }
+
   function stopPlay() {
     playing = false;
     editVideo.pause();
@@ -1428,6 +1492,15 @@
     if ((e.metaKey || e.ctrlKey) && (e.key === 'y' || e.key === 'Y')) {
       e.preventDefault();
       doRedo();
+      return;
+    }
+    if ((e.metaKey || e.ctrlKey) && ['c', 'x', 'v'].includes(e.key.toLowerCase()) && !e.shiftKey && !e.altKey) {
+      // Selected text keeps native Cmd/Ctrl+C — clip copy only when nothing is highlighted.
+      if (e.key.toLowerCase() === 'c' && String(window.getSelection?.() || '')) return;
+      e.preventDefault();
+      if (e.key.toLowerCase() === 'c') doCopyClip();
+      else if (e.key.toLowerCase() === 'x') doCutClipToClipboard();
+      else doPasteClip();
       return;
     }
     if (e.metaKey || e.ctrlKey) return;
