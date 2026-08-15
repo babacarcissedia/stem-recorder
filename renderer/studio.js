@@ -7,6 +7,7 @@
 (function studioUi() {
   const studio = window.stemStudio;
   const ops = window.StemClipOps;
+  const gapChips = window.StemGapChips;
   if (!studio || !ops) return;
 
   const LANES = [
@@ -49,6 +50,7 @@
   const tlPlayheadCap = document.getElementById('tlPlayheadCap');
   const tlPlayheadLayer = document.getElementById('tlPlayheadLayer');
   const tlRuler = document.getElementById('tlRuler');
+  const tlChips = document.getElementById('tlChips');
   const tlInner = document.getElementById('tlInner');
   const tlOutTime = document.getElementById('tlOutTime');
   const tlPlayBtn = document.getElementById('tlPlayBtn');
@@ -82,6 +84,9 @@
   /** Real filmstrip frames + waveform peaks (disk-cached by the main process). */
   let filmstrips = { cam: null, screen: null };
   let waveform = null;
+  /** Gap/retake cut suggestions (source-time ranges) + the cues they came from. */
+  let chips = [];
+  let transcriptCues = [];
   /** Selection index the timeline DOM was last built for — scrub repaints skip rebuilds. */
   let renderedSelectedIdx = -1;
   /** In-session undo/redo over clip-list snapshots (not persisted to disk). */
@@ -323,12 +328,51 @@
     return wrap;
   }
 
+  function recomputeChips() {
+    chips = gapChips
+      ? gapChips.buildChips({
+        peaks: waveform?.peaks,
+        peaksPerSec: waveform?.peaksPerSec,
+        cues: transcriptCues,
+      })
+      : [];
+  }
+
+  function renderChipsRow() {
+    if (!tlChips) return;
+    tlChips.innerHTML = '';
+    if (!manifest?.clips?.length || !chips.length) return;
+    const total = outDur() || 1;
+    const width = trackWidthPx();
+    tlChips.style.width = `${width}px`;
+    for (const chip of chips) {
+      const span = gapChips.chipOutputSpan(manifest.clips, chip.start, chip.end, duration);
+      if (!span || span.end - span.start < 0.05) continue;
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = `tl-chip ${chip.kind}`;
+      el.style.left = `${(span.start / total) * width}px`;
+      el.style.width = `${Math.max(8, ((span.end - span.start) / total) * width)}px`;
+      el.textContent = chip.label;
+      el.title = `${chip.label} · ${fmt(chip.start)} → ${fmt(chip.end)} · click to arm Cut range`;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        markIn = chip.start;
+        markOut = chip.end;
+        seekOutput(span.start);
+        setStatus(`${chip.kind === 'gap' ? 'Gap' : 'Retake'} ${fmt(chip.start)}–${fmt(chip.end)} armed · ${marksHint()} · Cut range to remove`, 'ok');
+      });
+      tlChips.appendChild(el);
+    }
+  }
+
   function loadTimelineMedia(takeId) {
     filmstrips = { cam: null, screen: null };
     waveform = null;
     const applyIfCurrent = (assign) => (data) => {
       if (currentTakeId !== takeId || !data) return;
       assign(data);
+      recomputeChips();
       renderTimeline();
     };
     studio.getFilmstrip(takeId, 'screen.mp4').then(applyIfCurrent((d) => { filmstrips.screen = d; })).catch(() => {});
@@ -414,6 +458,7 @@
     });
 
     renderRuler();
+    renderChipsRow();
     updatePlayheadUi();
     renderedSelectedIdx = selectedIdx;
   }
@@ -495,6 +540,8 @@
     showView('edit');
     markIn = null;
     markOut = null;
+    chips = [];
+    transcriptCues = [];
     undoStack?.clear();
     updateUndoUi();
     refreshAll();
@@ -524,6 +571,9 @@
   }
 
   function renderTranscript(data) {
+    transcriptCues = data?.cues || [];
+    recomputeChips();
+    renderChipsRow();
     if (!transcriptPanel) return;
     transcriptPanel.innerHTML = '';
     if (!data || !data.cues?.length) {

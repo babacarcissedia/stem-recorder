@@ -141,6 +141,36 @@
   transform: translateX(-50%);
 }
 
+.tl-chips {
+  position: relative;
+  height: 18px;
+  margin-left: 88px;
+}
+
+.tl-chips:empty { height: 0; }
+
+.tl-chip {
+  position: absolute;
+  top: 2px;
+  height: 14px;
+  min-width: 8px;
+  border: 0;
+  border-radius: 4px;
+  padding: 0 4px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.56rem;
+  line-height: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  color: #0f1218;
+}
+
+.tl-chip.gap { background: #d7a94a; }
+.tl-chip.retake { background: #b48ce8; }
+.tl-chip:hover { filter: brightness(1.15); }
+
 .tl-lanes {
   position: relative;
   margin-top: 0.35rem;
