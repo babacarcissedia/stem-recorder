@@ -182,7 +182,6 @@
     .tl-toolbar button.primary { background: var(--accent); border-color: #b89520; color: #1a1f2a; }
     .tl-toolbar button.danger { background: #5a2a2a; border-color: #7a3a3a; color: #ffd4d4; }
     .tl-toolbar button:disabled { opacity: 0.4; }
-    .tl-toolbar .spacer { flex: 1; }
     .tl-toolbar .tl-time {
       font-family: "IBM Plex Mono", monospace; font-size: 0.82rem; color: #c8c2b4;
     }
@@ -281,7 +280,7 @@
     .danger-text { color: var(--warn) !important; }
     #editStatus[data-kind="ok"] { color: var(--ok); }
     #editStatus[data-kind="warn"] { color: var(--warn); }
-    #editStatus { min-height: 1.3em; font-size: 0.85rem; color: var(--muted); margin: 0.35rem 0 0; }
+    #editStatus { flex: 1 1 10rem; min-width: 8rem; font-size: 0.85rem; color: var(--muted); text-align: right; }
     #editTimeLabel { font-family: "IBM Plex Mono", monospace; font-size: 0.85rem; color: var(--muted); }
     .view-header { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; margin-bottom: 0.5rem; }
     .stage video { pointer-events: none; }
@@ -307,10 +306,7 @@
 
   <section id="view-edit" hidden>
     <div class="view-header">
-      <div>
-        <h1 id="editTitle">Edit</h1>
-        <p class="lead" style="margin:0">CapCut-like timeline · cam / screen / audio · cut a pause: Split @ A · Split @ B · Delete middle (ripple)</p>
-      </div>
+      <h1 id="editTitle">Edit</h1>
       <button type="button" class="secondary" id="backLibraryBtn" style="width:auto">← Library</button>
     </div>
     <div class="edit-layout">
@@ -318,7 +314,6 @@
         <div class="panel">
           <h2>Selection</h2>
           <div id="editTimeLabel">—</div>
-          <div id="editStatus"></div>
           <div class="row-btns" style="margin-top:0.55rem">
             <div>
               <label for="clipInSec">In (s)</label>
@@ -433,7 +428,7 @@
             </div>
           </div>
         </div>
-        <span class="spacer"></span>
+        <div id="editStatus" role="status" aria-live="polite"></div>
         <div class="tl-zoom">
           <button type="button" id="zoomOutBtn">−</button>
           <input id="zoomRange" type="range" min="40" max="240" value="100" />
