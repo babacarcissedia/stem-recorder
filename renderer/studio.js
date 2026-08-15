@@ -78,6 +78,7 @@
   const camRotateBtn = document.getElementById('camRotateBtn');
   const camPipBtn = document.getElementById('camPipBtn');
   const pipVideo = document.getElementById('pipVideo');
+  const pipHandle = document.getElementById('pipHandle');
 
   let currentTakeId = null;
   let manifest = null;
@@ -1060,6 +1061,7 @@
     pipVideo.hidden = !show;
     if (!show) {
       if (!pipVideo.paused) pipVideo.pause();
+      layoutPipPreview();
       return;
     }
     if (pipVideo.getAttribute('src') !== urls['cam.mp4']) {
@@ -1071,8 +1073,128 @@
     if (deg === 90 || deg === 270) parts.push('scale(0.5625)');
     if (camMirrored()) parts.push('scaleX(-1)');
     pipVideo.style.transform = parts.join(' ');
+    layoutPipPreview();
     syncPipClock();
   }
+
+  /* —— Edit-T2b: draggable PiP layout (position + size), persisted on the take —— */
+
+  let pipDraft = null; // in-flight drag rect { x, y, w }, normalized to the output frame
+
+  function pipLayoutValue() {
+    return manifest?.cam?.pipLayout || null;
+  }
+
+  /**
+   * The output frame inside the stage: the letterboxed screen content box,
+   * narrowed to the crop region when a crop is set — Apply overlays the PiP
+   * after the crop, so layout coords are relative to the cropped base.
+   */
+  function pipFrameRect() {
+    const box = videoContentRect();
+    const crop = currentCrop();
+    if (!crop) return box;
+    return {
+      left: box.left + crop.x * box.width,
+      top: box.top + crop.y * box.height,
+      width: crop.w * box.width,
+      height: crop.h * box.height,
+    };
+  }
+
+  /** Current on-screen PiP rect as a normalized layout (untransformed box). */
+  function measurePipLayout() {
+    const frame = pipFrameRect();
+    if (!frame.width || !frame.height) return null;
+    return {
+      x: (pipVideo.offsetLeft - frame.left) / frame.width,
+      y: (pipVideo.offsetTop - frame.top) / frame.height,
+      w: pipVideo.offsetWidth / frame.width,
+    };
+  }
+
+  /** Position the PiP box (and its resize handle) from the draft or saved layout. */
+  function layoutPipPreview() {
+    if (!pipVideo) return;
+    if (pipVideo.hidden) {
+      if (pipHandle) pipHandle.hidden = true;
+      return;
+    }
+    const layout = pipDraft || pipLayoutValue();
+    if (layout) {
+      const frame = pipFrameRect();
+      pipVideo.style.right = 'auto';
+      pipVideo.style.bottom = 'auto';
+      pipVideo.style.left = `${frame.left + layout.x * frame.width}px`;
+      pipVideo.style.top = `${frame.top + layout.y * frame.height}px`;
+      pipVideo.style.width = `${layout.w * frame.width}px`;
+    } else {
+      pipVideo.style.left = '';
+      pipVideo.style.top = '';
+      pipVideo.style.right = '';
+      pipVideo.style.bottom = '';
+      pipVideo.style.width = '';
+    }
+    if (pipHandle) {
+      pipHandle.hidden = false;
+      pipHandle.style.left = `${pipVideo.offsetLeft + pipVideo.offsetWidth - 7}px`;
+      pipHandle.style.top = `${pipVideo.offsetTop + pipVideo.offsetHeight - 7}px`;
+    }
+  }
+
+  function startPipDrag(e, mode) {
+    if (!manifest || pipVideo.hidden) return;
+    e.preventDefault();
+    const frame = pipFrameRect();
+    if (!frame.width || !frame.height) return;
+    const start = pipDraft ? { ...pipDraft } : (pipLayoutValue() || measurePipLayout());
+    if (!start) return;
+    const startHFrac = (pipVideo.offsetHeight / frame.height) || (start.w * 0.75);
+    const x0 = e.clientX;
+    const y0 = e.clientY;
+    const MIN_W = 0.1;
+    const MAX_W = 0.8;
+    let moved = false;
+    const onMove = (ev) => {
+      moved = true;
+      const dx = (ev.clientX - x0) / frame.width;
+      const dy = (ev.clientY - y0) / frame.height;
+      const d = { ...start };
+      if (mode === 'resize') d.w = Math.min(Math.max(start.w + dx, MIN_W), MAX_W);
+      else {
+        d.x = start.x + dx;
+        d.y = start.y + dy;
+      }
+      const hFrac = startHFrac * (d.w / start.w);
+      d.x = Math.min(Math.max(d.x, 0), Math.max(0, 1 - d.w));
+      d.y = Math.min(Math.max(d.y, 0), Math.max(0, 1 - hFrac));
+      pipDraft = d;
+      layoutPipPreview();
+    };
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      if (moved) commitPipLayout();
+      else pipDraft = null;
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }
+
+  function commitPipLayout() {
+    if (!pipDraft || !manifest) return;
+    const prev = snapshot();
+    setCamSettings({ pipLayout: pipDraft });
+    pipDraft = null;
+    pushUndo(prev);
+    layoutPipPreview();
+    setStatus('Cam PiP layout saved on the take — Apply renders it at this spot and size', 'ok');
+  }
+
+  pipVideo?.addEventListener('pointerdown', (e) => startPipDrag(e, 'move'));
+  pipHandle?.addEventListener('pointerdown', (e) => startPipDrag(e, 'resize'));
+  pipVideo?.addEventListener('loadedmetadata', layoutPipPreview);
+  window.addEventListener('resize', layoutPipPreview);
 
   /** Keep the PiP shadow within ~0.3s of the main preview (linked stems). */
   function syncPipClock() {

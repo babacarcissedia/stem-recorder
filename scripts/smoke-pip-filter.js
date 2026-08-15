@@ -9,7 +9,9 @@
  */
 
 const assert = require('assert');
-const { camTransformFilters, pipFilterGraph, cropFilter } = require('../lib/ffmpeg-util');
+const {
+  camTransformFilters, pipOverlayPosition, pipFilterGraph, cropFilter,
+} = require('../lib/ffmpeg-util');
 
 // —— camTransformFilters: hflip first, then the clockwise transpose ——
 assert.deepStrictEqual(camTransformFilters(null), []);
@@ -43,4 +45,31 @@ assert.strictEqual(
 // rotated frame, not the raw one.
 assert.ok(full.indexOf('transpose=1') < full.indexOf('scale=w=320'));
 
-console.log(JSON.stringify({ ok: true, cases: 13 }, null, 2));
+// —— Edit-T2b pipOverlayPosition: no layout → the T2a bottom-right margin ——
+assert.strictEqual(pipOverlayPosition(null, 24), 'x=W-w-24:y=H-h-24');
+
+// —— layout → normalized position, clamped on-canvas as ffmpeg expressions ——
+// (quoted so the commas inside min/max survive the filter-graph parser)
+assert.strictEqual(
+  pipOverlayPosition({ x: 0.05, y: 0.1, w: 0.3 }, 24),
+  "x='min(max(W*0.05,0),W-w)':y='min(max(H*0.1,0),H-h)'"
+);
+
+// —— pipFilterGraph honors the layout end to end ——
+const laidOut = pipFilterGraph({
+  crop: null, cam: { mirror: true }, pipWidth: 384, margin: 24,
+  layout: { x: 0.6, y: 0.65, w: 0.3 },
+});
+assert.strictEqual(
+  laidOut,
+  "[0:v]null[base];[1:v]hflip,scale=w=384:h=-2[pip];"
+  + "[base][pip]overlay=x='min(max(W*0.6,0),W-w)':y='min(max(H*0.65,0),H-h)'[v]"
+);
+
+// —— no layout on pipFilterGraph keeps the T2a default graph byte-for-byte ——
+assert.strictEqual(
+  pipFilterGraph({ crop: null, cam: {}, pipWidth: 480, margin: 24, layout: null }),
+  plain
+);
+
+console.log(JSON.stringify({ ok: true, cases: 17 }, null, 2));

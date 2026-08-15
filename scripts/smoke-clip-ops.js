@@ -13,6 +13,7 @@ const {
   totalOutputDuration,
   normalizeCrop,
   normalizeCam,
+  normalizePipLayout,
   cropsEqual,
   setCrop,
 } = require('../lib/clip-ops');
@@ -187,6 +188,27 @@ const base = [
   assert.strictEqual(normalizeCam({ pip: 'off' }), null);
   assert.deepStrictEqual(normalizeCam({ mirror: true, rotate: 90, pip: false }), { mirror: true, rotate: 90, pip: false });
   assert.deepStrictEqual(normalizeCam({ mirror: true, pip: true }), { mirror: true });
+
+  // Edit-T2b: pipLayout { x, y, w } normalized to the output frame.
+  assert.deepStrictEqual(normalizePipLayout({ x: 0.6, y: 0.65, w: 0.3 }), { x: 0.6, y: 0.65, w: 0.3 });
+  assert.strictEqual(normalizePipLayout(null), null);
+  assert.strictEqual(normalizePipLayout({ x: 0.5, y: 0.5 }), null); // w required
+  assert.strictEqual(normalizePipLayout({ x: 'a', y: 0, w: 0.3 }), null);
+  // w clamps to [0.1, 0.8]; x clamps so the box stays inside the frame width.
+  assert.deepStrictEqual(normalizePipLayout({ x: 0.9, y: 0, w: 0.05 }), { x: 0.9, y: 0, w: 0.1 });
+  assert.deepStrictEqual(normalizePipLayout({ x: 0.9, y: 2, w: 0.9 }), { x: 0.2, y: 0.95, w: 0.8 });
+  assert.deepStrictEqual(normalizePipLayout({ x: -1, y: -1, w: 0.25 }), { x: 0, y: 0, w: 0.25 });
+  // rounding to 4dp
+  assert.deepStrictEqual(normalizePipLayout({ x: 0.123456, y: 0.5, w: 0.25 }), { x: 0.1235, y: 0.5, w: 0.25 });
+  // normalizeCam carries it (fresh object) and drops invalid layouts.
+  assert.deepStrictEqual(normalizeCam({ pipLayout: { x: 0.6, y: 0.65, w: 0.3 } }), { pipLayout: { x: 0.6, y: 0.65, w: 0.3 } });
+  const sharedLayout = { x: 0.6, y: 0.65, w: 0.3 };
+  assert.notStrictEqual(normalizeCam({ pipLayout: sharedLayout }).pipLayout, sharedLayout);
+  assert.strictEqual(normalizeCam({ pipLayout: { x: 1 } }), null);
+  assert.deepStrictEqual(
+    normalizeCam({ mirror: true, pip: false, pipLayout: { x: 0.1, y: 0.1, w: 0.2 } }),
+    { mirror: true, pip: false, pipLayout: { x: 0.1, y: 0.1, w: 0.2 } }
+  );
 }
 
 {
