@@ -17,6 +17,9 @@ const studio = {
   apply: (takeId) => ipcRenderer.invoke('studio:apply', takeId),
   openTakeFolder: (takeId) => ipcRenderer.invoke('studio:openTakeFolder', takeId),
   ffmpegOk: () => ipcRenderer.invoke('studio:ffmpegOk'),
+  transcribe: (payload) => ipcRenderer.invoke('studio:transcribe', payload),
+  getTranscript: (takeId) => ipcRenderer.invoke('studio:getTranscript', takeId),
+  asrStatus: () => ipcRenderer.invoke('studio:asrStatus'),
 };
 
 contextBridge.exposeInMainWorld('batchRecorder', recorder);

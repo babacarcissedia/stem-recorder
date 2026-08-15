@@ -56,6 +56,23 @@ Manifest shape:
 
 Legacy spike `keepFrom` / `keepTo` is accepted and normalized to one clip.
 
+### Transcribe
+
+Toolbar **Transcribe** with **Local** (default) | **Cloud** provider toggle. Writes
+`edit/transcript.txt` · `edit/captions.vtt` · `edit/asr.json` (provider, model,
+language, createdAt, sourceFile). Cues show in the Selection panel — click one to
+seek the playhead. No burn-in, no translation.
+
+- **Local** — Hugging Face Whisper via Python (`scripts/hf-whisper-transcribe.py`).
+  Needs `pip3 install transformers torch`. Model via `STEM_ASR_WHISPER_MODEL`
+  (default `openai/whisper-base`; aliases `base`/`small`/… work).
+- **Cloud** — `POST $STEM_ASR_URL` (default `https://asr.traxelio.com/transcribe`)
+  with `Bearer $STEM_ASR_TOKEN`. Never used as a silent fallback — if local deps
+  are missing you get a clear error and can switch to Cloud explicitly.
+
+Audio source: prefers `audio.mp3`; else extracts `edit/.asr-audio.mp3` from
+`screen.mp4` with ffmpeg. Plumbing smoke: `npm run smoke:transcribe`.
+
 ### Headless apply smoke
 
 ```bash

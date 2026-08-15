@@ -222,6 +222,24 @@
       margin-bottom: 0.35rem; background: #fafafa; cursor: pointer;
     }
     .clip-meta { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.82rem; }
+    .asr-provider { display: flex; border: 1px solid #3a4254; border-radius: 8px; overflow: hidden; }
+    .asr-provider button {
+      width: auto; margin: 0; padding: 0.45rem 0.7rem; border: none; border-radius: 0;
+      background: #2a3140; color: #9aa3b5; font-weight: 650;
+    }
+    .asr-provider button.active { background: var(--accent); color: #1a1f2a; }
+    .transcript-panel { max-height: 16rem; overflow: auto; }
+    .cue-row {
+      display: flex; gap: 0.5rem; align-items: baseline; width: 100%; text-align: left;
+      border: 1px solid var(--line); border-radius: 10px; padding: 0.4rem 0.55rem;
+      margin: 0 0 0.35rem; background: #fafafa; font-weight: 500;
+    }
+    .cue-row:hover { border-color: var(--accent); }
+    .cue-row .cue-time {
+      font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; color: var(--accent);
+      flex: 0 0 auto;
+    }
+    .cue-row .cue-text { font-size: 0.82rem; }
     .danger-text { color: var(--warn) !important; }
     #editStatus[data-kind="ok"] { color: var(--ok); }
     #editStatus[data-kind="warn"] { color: var(--warn); }
@@ -287,6 +305,8 @@
           </div>
           <button type="button" class="secondary" id="setClipRangeBtn">Set In/Out</button>
           <div id="clipList" style="margin-top:0.55rem"></div>
+          <h3>Transcript</h3>
+          <div id="transcriptPanel" class="transcript-panel"><p class="empty">No transcript yet.</p></div>
           <button type="button" class="secondary" id="openFolderBtn">Open take folder</button>
         </div>
       </div>
@@ -306,6 +326,11 @@
             <option value="2">2×</option>
           </select>
         </div>
+        <div class="asr-provider" role="group" aria-label="Transcribe provider" title="Local Whisper (default) or Traxelio cloud">
+          <button type="button" class="active" id="asrLocalBtn">Local</button>
+          <button type="button" id="asrCloudBtn">Cloud</button>
+        </div>
+        <button type="button" id="transcribeBtn" title="Transcribe audio → edit/captions.vtt">Transcribe</button>
         <span class="spacer"></span>
         <div class="tl-zoom">
           <button type="button" id="zoomOutBtn">−</button>

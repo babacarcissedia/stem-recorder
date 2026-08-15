@@ -22,6 +22,12 @@ const {
   takeDirFor,
   FINAL_NAME,
 } = require('./lib/edit-manifest');
+const {
+  runLocal: runLocalAsr,
+  runCloud: runCloudAsr,
+  readTranscript,
+  asrStatus,
+} = require('./lib/transcribe');
 
 const APP_NAME = 'Stem Studio';
 const ICON = path.join(__dirname, 'build', 'icon.png');
@@ -221,6 +227,17 @@ ipcMain.handle('studio:openTakeFolder', (_evt, takeId) => {
 });
 
 ipcMain.handle('studio:ffmpegOk', () => Boolean(findFfmpeg()));
+
+ipcMain.handle('studio:transcribe', async (_evt, { takeId, provider } = {}) => {
+  const takeDir = takeDirFor(takeId);
+  // Explicit provider choice only — no silent local→cloud fallback.
+  if (provider === 'cloud') return runCloudAsr({ takeDir });
+  return runLocalAsr({ takeDir });
+});
+
+ipcMain.handle('studio:getTranscript', (_evt, takeId) => readTranscript(takeDirFor(takeId)));
+
+ipcMain.handle('studio:asrStatus', () => asrStatus());
 
 app.whenReady().then(() => {
   if (process.platform === 'darwin' && typeof app.setAboutPanelParameters === 'function') {

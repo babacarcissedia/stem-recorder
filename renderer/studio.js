@@ -50,6 +50,10 @@
   const zoomRange = document.getElementById('zoomRange');
   const zoomInBtn = document.getElementById('zoomInBtn');
   const zoomOutBtn = document.getElementById('zoomOutBtn');
+  const transcribeBtn = document.getElementById('transcribeBtn');
+  const asrLocalBtn = document.getElementById('asrLocalBtn');
+  const asrCloudBtn = document.getElementById('asrCloudBtn');
+  const transcriptPanel = document.getElementById('transcriptPanel');
 
   let currentTakeId = null;
   let manifest = null;
@@ -66,6 +70,7 @@
   let pxPerSec = 100;
   let previewStem = 'screen';
   let playbackRate = 1;
+  let asrProvider = sessionStorage.getItem('asrProvider') === 'cloud' ? 'cloud' : 'local';
 
   function setStatus(msg, kind) {
     editStatus.textContent = msg || '';
@@ -397,9 +402,78 @@
     showView('edit');
     refreshAll();
     seekOutput(0);
+    loadTranscript(takeId);
     setStatus(urls['edit/final.mp4']
       ? 'Loaded · final exists'
       : 'Drag playhead · Split / edge-trim · Delete ripples');
+  }
+
+  function setAsrProvider(provider) {
+    asrProvider = provider === 'cloud' ? 'cloud' : 'local';
+    sessionStorage.setItem('asrProvider', asrProvider);
+    asrLocalBtn?.classList.toggle('active', asrProvider === 'local');
+    asrCloudBtn?.classList.toggle('active', asrProvider === 'cloud');
+  }
+
+  function seekToCue(cue) {
+    if (!manifest?.clips?.length) return;
+    const idx = ops.findClipAtTime(manifest.clips, cue.start, duration);
+    if (idx < 0) {
+      setStatus(`Cue at ${fmt(cue.start)} was cut from the timeline`, 'warn');
+      return;
+    }
+    seekOutput(ops.sourceToOutput(manifest.clips, idx, cue.start, duration));
+  }
+
+  function renderTranscript(data) {
+    if (!transcriptPanel) return;
+    transcriptPanel.innerHTML = '';
+    if (!data || !data.cues?.length) {
+      transcriptPanel.innerHTML = '<p class="empty">No transcript yet.</p>';
+      return;
+    }
+    data.cues.forEach((cue) => {
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'cue-row';
+      const time = document.createElement('span');
+      time.className = 'cue-time';
+      time.textContent = fmt(cue.start);
+      const text = document.createElement('span');
+      text.className = 'cue-text';
+      text.textContent = cue.text;
+      row.appendChild(time);
+      row.appendChild(text);
+      row.addEventListener('click', () => seekToCue(cue));
+      transcriptPanel.appendChild(row);
+    });
+  }
+
+  async function loadTranscript(takeId) {
+    try {
+      renderTranscript(await studio.getTranscript(takeId));
+    } catch {
+      renderTranscript(null);
+    }
+  }
+
+  async function doTranscribe() {
+    if (!currentTakeId) return;
+    transcribeBtn.disabled = true;
+    setStatus(`Transcribing (${asrProvider})… first local run downloads the model`);
+    try {
+      const res = await studio.transcribe({ takeId: currentTakeId, provider: asrProvider });
+      await loadTranscript(currentTakeId);
+      setStatus(`Transcribed (${res.provider}) → edit/captions.vtt · ${res.segments} cue${res.segments === 1 ? '' : 's'}`, 'ok');
+    } catch (e) {
+      const msg = String(e.message || e);
+      const cloudHint = asrProvider === 'local' && /python|transformers|torch/i.test(msg)
+        ? ' Switch to Cloud to use asr.traxelio.com this once.'
+        : '';
+      setStatus(`${msg}${cloudHint}`, 'warn');
+    } finally {
+      transcribeBtn.disabled = false;
+    }
   }
 
   function doSplit() {
@@ -547,6 +621,10 @@
   tlPlayBtn?.addEventListener('click', togglePlay);
   splitBtn?.addEventListener('click', doSplit);
   cutBtn?.addEventListener('click', doCut);
+  transcribeBtn?.addEventListener('click', doTranscribe);
+  asrLocalBtn?.addEventListener('click', () => setAsrProvider('local'));
+  asrCloudBtn?.addEventListener('click', () => setAsrProvider('cloud'));
+  setAsrProvider(asrProvider);
 
   magnetBtn?.addEventListener('click', () => {
     magnetOn = !magnetOn;
