@@ -271,7 +271,7 @@
     <div class="view-header">
       <div>
         <h1 id="editTitle">Edit</h1>
-        <p class="lead" style="margin:0">CapCut-like timeline · cam / screen / audio · playhead split &amp; edge trim</p>
+        <p class="lead" style="margin:0">CapCut-like timeline · cam / screen / audio · cut a pause: Split @ A · Split @ B · Delete middle (ripple)</p>
       </div>
       <button type="button" class="secondary" id="backLibraryBtn" style="width:auto">← Library</button>
     </div>
@@ -313,8 +313,11 @@
 
       <div class="tl-toolbar" role="toolbar" aria-label="Timeline tools">
         <button type="button" id="tlPlayBtn">Play</button>
-        <button type="button" id="splitBtn" title="Split at playhead (S)">Split</button>
-        <button type="button" class="danger" id="cutBtn" title="Delete selected (ripple)">Delete</button>
+        <button type="button" id="splitBtn" title="Split at playhead (S) — cut pause: Split @ A, Split @ B, Delete middle">Split</button>
+        <button type="button" class="danger" id="cutBtn" title="Delete selected clip (ripple join when Magnet is on)">Delete</button>
+        <button type="button" id="markInBtn" title="Mark In at playhead (I)">Mark In</button>
+        <button type="button" id="markOutBtn" title="Mark Out at playhead (O)">Mark Out</button>
+        <button type="button" class="danger" id="cutRangeBtn" title="Cut marked In→Out range (ripple join)">Cut range</button>
         <button type="button" class="on" id="magnetBtn" title="Magnetic timeline — ripple on">Magnet</button>
         <button type="button" id="snapBtn" class="on" title="Snap playhead to edges">Snap</button>
         <div class="tl-rate" title="Preview playback speed">
@@ -355,8 +358,6 @@
       </div>
     </div>
     <input id="editScrub" type="range" min="0" max="1000" value="0" hidden />
-    <button type="button" id="markInBtn" hidden>Mark In</button>
-    <button type="button" id="markOutBtn" hidden>Mark Out</button>
     <button type="button" id="addClipBtn" hidden>Add</button>
   </section>
 
