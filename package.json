@@ -40,6 +40,6 @@
     "smoke:transcribe": "node scripts/smoke-transcribe.js"
   },
   "devDependencies": {
-    "electron": "^37.2.0"
+    "electron": "^41.10.5"
   }
 }
