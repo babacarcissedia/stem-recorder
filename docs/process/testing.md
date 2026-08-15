@@ -12,6 +12,7 @@ Fail-fast, prints a real exit code per step:
 |---|---|---|
 | `check-architecture` | layer invariants (see ARCHITECTURE.md) | — |
 | `smoke:clips` | clip ops + undo stack (pure model) | — |
+| `smoke:pip` | Edit-T2a cam-PiP filter graph (pure strings) | — |
 | `smoke:gaps` | gap/retake chip derivation (pure model) | — |
 | `smoke:thumbs` | filmstrip + waveform cache round-trip | ffmpeg |
 | `smoke:transcribe` | VTT parse/build + audio resolution (no Whisper call) | ffmpeg |

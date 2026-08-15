@@ -48,18 +48,25 @@ Record (renderer MediaRecorder)
       screen.mp4 · cam.mp4 · audio.mp3 · manifest.txt
   → edit/manifest.json   clips[] — idempotent edit truth
       { in, out, crop? }  crop = normalized 0–1 rect of the source frame
-      cam: { mirror?, rotate? }  take-level, cam stem only. mirror = selfie
-                          flip; rotate = clockwise degrees in 90° steps
+      cam: { mirror?, rotate?, pip? }  take-level, cam stem only. mirror =
+                          selfie flip; rotate = clockwise degrees in 90° steps
                           (phone orientation). Preview is a CSS transform on
                           the cam preview — mirror in source space, then the
-                          rotation. Apply is screen-primary today so neither
-                          flag touches final.mp4; when cam enters the export
-                          path (Edit-T2 PiP), Apply must put `hflip` (mirror)
-                          then `transpose` (90 → transpose=1, 180 →
-                          hflip,vflip, 270 → transpose=2) on the cam input.
+                          rotation. pip (Edit-T2a) = cam picture-in-picture
+                          on Apply; defaults ON when the take has cam.mp4, so
+                          only the opt-out (pip: false) is stored.
   → preview (renderer reads media via file URLs from main; edits are
       model-only: clip-ops + undo-stack mutate clips[] in memory)
   → Apply (separate path: main → ffmpeg-util.applyClips → edit/final.mp4)
+      With PiP active, Apply overlays the cam bottom-right (~25% of the base
+      width, small margin, aspect kept) via -filter_complex: screen is the
+      base (clip crop still applies to it); the cam input gets `hflip`
+      (mirror) then `transpose` (90 → transpose=1, 180 → hflip,vflip,
+      270 → transpose=2) then scale, then overlay. Both stems share the
+      recording timeline, so the clip in/out trim keeps them in sync. No PiP
+      when the cam itself is the primary source. Audio behavior is unchanged
+      (source audio if present — stems record video-only, audio.mp3 is
+      separate).
 ```
 
 Preview and Apply never share a code path: preview is model + `<video>`

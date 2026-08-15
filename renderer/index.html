@@ -58,6 +58,13 @@
     }
     .stage.fit-cover video { object-fit: cover; }
     .stage video.mirror { transform: scaleX(-1); }
+    /* Edit-T2a: CSS stand-in for the Apply-time cam PiP (bottom-right, 25%). */
+    .stage video.pip-preview {
+      inset: auto; right: 2%; bottom: 3.5%; width: 25%; height: auto;
+      object-fit: contain; border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      pointer-events: none;
+    }
     .hud {
       position: absolute; left: 0.5rem; bottom: 0.5rem; right: 0.5rem;
       display: flex; flex-wrap: wrap; gap: 0.35rem; pointer-events: none;
@@ -300,6 +307,7 @@
             <div class="cap">Preview</div>
             <div class="stage" id="editStage">
               <video id="editVideo" playsinline></video>
+              <video id="pipVideo" class="pip-preview" playsinline muted hidden></video>
               <div class="crop-overlay" id="cropOverlay" hidden>
                 <div class="crop-rect" id="cropRect" title="Drag to move · handles to resize">
                   <i data-h="nw"></i><i data-h="n"></i><i data-h="ne"></i>
@@ -355,6 +363,7 @@
         <button type="button" id="cropBtn" title="Crop screen to a region — drag handles on the preview; rendered on Apply">Crop</button>
         <button type="button" id="camMirrorBtn" title="Mirror cam horizontally (selfie flip) — cam preview + saved on the take; screen stays unmirrored">Mirror</button>
         <button type="button" id="camRotateBtn" title="Rotate cam 90° clockwise per press (phone orientation) — cam preview + saved on the take; screen stays upright">Rotate</button>
+        <button type="button" id="camPipBtn" title="Cam picture-in-picture on Apply — bottom-right overlay in final.mp4 (on by default when the take has a cam); saved on the take">PiP</button>
         <button type="button" id="markInBtn" title="Mark In at playhead (I)">Mark In</button>
         <button type="button" id="markOutBtn" title="Mark Out at playhead (O)">Mark Out</button>
         <button type="button" class="danger" id="cutRangeBtn" title="Cut marked In→Out range (ripple join)">Cut range</button>

@@ -181,6 +181,12 @@ const base = [
   assert.strictEqual(normalizeCam({ rotate: '90' }), null);
   assert.strictEqual(normalizeCam({ rotate: 360 }), null);
   assert.deepStrictEqual(normalizeCam({ mirror: false, rotate: 90 }), { rotate: 90 });
+  // Edit-T2a: pip defaults ON — only the opt-out (pip: false) is stored.
+  assert.strictEqual(normalizeCam({ pip: true }), null);
+  assert.deepStrictEqual(normalizeCam({ pip: false }), { pip: false });
+  assert.strictEqual(normalizeCam({ pip: 'off' }), null);
+  assert.deepStrictEqual(normalizeCam({ mirror: true, rotate: 90, pip: false }), { mirror: true, rotate: 90, pip: false });
+  assert.deepStrictEqual(normalizeCam({ mirror: true, pip: true }), { mirror: true });
 }
 
 {

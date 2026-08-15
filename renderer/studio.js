@@ -76,6 +76,8 @@
   const cropCancelBtn = document.getElementById('cropCancelBtn');
   const camMirrorBtn = document.getElementById('camMirrorBtn');
   const camRotateBtn = document.getElementById('camRotateBtn');
+  const camPipBtn = document.getElementById('camPipBtn');
+  const pipVideo = document.getElementById('pipVideo');
 
   let currentTakeId = null;
   let manifest = null;
@@ -217,6 +219,7 @@
 
   function applyPlaybackRate() {
     if (editVideo) editVideo.playbackRate = playbackRate;
+    if (pipVideo) pipVideo.playbackRate = playbackRate;
   }
 
   function snapTargets() {
@@ -1002,6 +1005,11 @@
     return manifest?.cam?.rotate || 0;
   }
 
+  /** Edit-T2a: PiP defaults ON when the take has a cam; cam.pip === false is the opt-out. */
+  function camPipEnabled() {
+    return Boolean(urls['cam.mp4']) && manifest?.cam?.pip !== false;
+  }
+
   /** Merge a patch into take-level cam settings; absent key = no settings. */
   function setCamSettings(patch) {
     const cam = ops.normalizeCam({ ...(manifest.cam || {}), ...patch });
@@ -1034,7 +1042,55 @@
       camRotateBtn.classList.toggle('on', camRotation() !== 0);
       camRotateBtn.textContent = camRotation() ? `Rotate ${camRotation()}°` : 'Rotate';
     }
+    if (camPipBtn) {
+      camPipBtn.disabled = !haveCam;
+      camPipBtn.classList.toggle('on', camPipEnabled());
+    }
+    updatePipPreview();
   }
+
+  /**
+   * CSS stand-in for the Apply-time PiP: while previewing the screen with PiP
+   * enabled, show the cam (mirror/rotate applied) in the same corner. Muted —
+   * it only shadows the main preview's clock.
+   */
+  function updatePipPreview() {
+    if (!pipVideo) return;
+    const show = previewStem === 'screen' && camPipEnabled();
+    pipVideo.hidden = !show;
+    if (!show) {
+      if (!pipVideo.paused) pipVideo.pause();
+      return;
+    }
+    if (pipVideo.getAttribute('src') !== urls['cam.mp4']) {
+      pipVideo.setAttribute('src', urls['cam.mp4']);
+    }
+    const parts = [];
+    const deg = camRotation();
+    if (deg) parts.push(`rotate(${deg}deg)`);
+    if (deg === 90 || deg === 270) parts.push('scale(0.5625)');
+    if (camMirrored()) parts.push('scaleX(-1)');
+    pipVideo.style.transform = parts.join(' ');
+    syncPipClock();
+  }
+
+  /** Keep the PiP shadow within ~0.3s of the main preview (linked stems). */
+  function syncPipClock() {
+    if (!pipVideo || pipVideo.hidden || !editVideo) return;
+    if (Math.abs((pipVideo.currentTime || 0) - (editVideo.currentTime || 0)) > 0.3) {
+      pipVideo.currentTime = editVideo.currentTime || 0;
+    }
+    if (editVideo.paused) {
+      if (!pipVideo.paused) pipVideo.pause();
+    } else if (pipVideo.paused) {
+      pipVideo.play().catch(() => {});
+    }
+  }
+
+  editVideo?.addEventListener('play', syncPipClock);
+  editVideo?.addEventListener('pause', syncPipClock);
+  editVideo?.addEventListener('seeked', syncPipClock);
+  editVideo?.addEventListener('timeupdate', syncPipClock);
 
   function switchPreviewToCam() {
     if (previewStem === 'cam') return;
@@ -1054,7 +1110,7 @@
     if (next) switchPreviewToCam();
     updatePreviewCamTransform();
     setStatus(next
-      ? 'Cam mirrored (selfie flip) — saved on the take · Apply keeps screen as-is until cam joins the export (Edit-T2 PiP)'
+      ? 'Cam mirrored (selfie flip) — saved on the take · rendered on the cam PiP at Apply'
       : 'Cam mirror off', next ? 'ok' : '');
   }
 
@@ -1067,12 +1123,25 @@
     switchPreviewToCam();
     updatePreviewCamTransform();
     setStatus(deg
-      ? `Cam rotated ${deg}° — saved on the take · Apply keeps screen as-is until cam joins the export (Edit-T2 PiP)`
+      ? `Cam rotated ${deg}° — saved on the take · rendered on the cam PiP at Apply`
       : 'Cam rotation off', deg ? 'ok' : '');
+  }
+
+  function doToggleCamPip() {
+    if (!manifest || !urls['cam.mp4']) return;
+    const prev = snapshot();
+    const next = !camPipEnabled();
+    setCamSettings({ pip: next });
+    pushUndo(prev);
+    updatePreviewCamTransform();
+    setStatus(next
+      ? 'Cam PiP on — Apply overlays cam bottom-right in final.mp4'
+      : 'Cam PiP off — Apply renders screen only', next ? 'ok' : '');
   }
 
   camMirrorBtn?.addEventListener('click', doToggleCamMirror);
   camRotateBtn?.addEventListener('click', doRotateCam);
+  camPipBtn?.addEventListener('click', doToggleCamPip);
 
   function snapshot() {
     return {
@@ -1466,7 +1535,7 @@
       applyBtn.disabled = true;
       await studio.saveManifest(currentTakeId, manifest);
       const res = await studio.apply(currentTakeId);
-      setStatus(`Applied → edit/final.mp4 (${res.clips} clip${res.clips === 1 ? '' : 's'})`, 'ok');
+      setStatus(`Applied → edit/final.mp4 (${res.clips} clip${res.clips === 1 ? '' : 's'}${res.pip ? ' · cam PiP' : ''})`, 'ok');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     } finally {
