@@ -167,7 +167,7 @@
       gap: 0.75rem;
     }
     .edit-preview-row {
-      display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+      display: grid; grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
       gap: 0.85rem; align-items: start;
     }
     @media (max-width: 900px) { .edit-preview-row { grid-template-columns: 1fr; } }
@@ -315,33 +315,6 @@
     </div>
     <div class="edit-layout">
       <div class="edit-preview-row">
-        <div>
-          <div class="preview-switch" role="group" aria-label="Preview stem">
-            <button type="button" class="active" data-preview="screen">screen</button>
-            <button type="button" data-preview="cam">cam</button>
-          </div>
-          <div class="stage-wrap">
-            <div class="cap">Preview</div>
-            <div class="stage" id="editStage">
-              <video id="editVideo" playsinline></video>
-              <video id="pipVideo" class="pip-preview" playsinline muted hidden></video>
-              <i class="pip-resize" id="pipHandle" title="Drag to resize the cam PiP" hidden></i>
-              <div class="caption-overlay" id="captionOverlay" hidden></div>
-              <div class="crop-overlay" id="cropOverlay" hidden>
-                <div class="crop-rect" id="cropRect" title="Drag to move · handles to resize">
-                  <i data-h="nw"></i><i data-h="n"></i><i data-h="ne"></i>
-                  <i data-h="e"></i><i data-h="se"></i><i data-h="s"></i>
-                  <i data-h="sw"></i><i data-h="w"></i>
-                </div>
-              </div>
-              <div class="crop-actions" id="cropActions" hidden>
-                <button type="button" class="primary" id="cropDoneBtn">Done</button>
-                <button type="button" id="cropClearBtn">Clear</button>
-                <button type="button" id="cropCancelBtn">Cancel</button>
-              </div>
-            </div>
-          </div>
-        </div>
         <div class="panel">
           <h2>Selection</h2>
           <div id="editTimeLabel">—</div>
@@ -370,6 +343,33 @@
           <h3>Transcript</h3>
           <div id="transcriptPanel" class="transcript-panel"><p class="empty">No transcript yet.</p></div>
           <button type="button" class="secondary" id="openFolderBtn">Open take folder</button>
+        </div>
+        <div>
+          <div class="preview-switch" role="group" aria-label="Preview stem">
+            <button type="button" class="active" data-preview="screen">screen</button>
+            <button type="button" data-preview="cam">cam</button>
+          </div>
+          <div class="stage-wrap">
+            <div class="cap">Preview</div>
+            <div class="stage" id="editStage">
+              <video id="editVideo" playsinline></video>
+              <video id="pipVideo" class="pip-preview" playsinline muted hidden></video>
+              <i class="pip-resize" id="pipHandle" title="Drag to resize the cam PiP" hidden></i>
+              <div class="caption-overlay" id="captionOverlay" hidden></div>
+              <div class="crop-overlay" id="cropOverlay" hidden>
+                <div class="crop-rect" id="cropRect" title="Drag to move · handles to resize">
+                  <i data-h="nw"></i><i data-h="n"></i><i data-h="ne"></i>
+                  <i data-h="e"></i><i data-h="se"></i><i data-h="s"></i>
+                  <i data-h="sw"></i><i data-h="w"></i>
+                </div>
+              </div>
+              <div class="crop-actions" id="cropActions" hidden>
+                <button type="button" class="primary" id="cropDoneBtn">Done</button>
+                <button type="button" id="cropClearBtn">Clear</button>
+                <button type="button" id="cropCancelBtn">Cancel</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
