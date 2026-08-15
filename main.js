@@ -227,6 +227,13 @@ ipcMain.handle('studio:openTakeFolder', (_evt, takeId) => {
   shell.openPath(takeDir);
 });
 
+ipcMain.handle('studio:revealStem', (_evt, takeId, stemFile) => {
+  if (!['screen.mp4', 'cam.mp4', 'audio.mp3'].includes(stemFile)) throw new Error(`invalid stem ${stemFile}`);
+  const stemPath = path.join(takeDirFor(takeId), stemFile);
+  if (!fs.existsSync(stemPath)) throw new Error(`missing stem ${stemFile}`);
+  shell.showItemInFolder(stemPath);
+});
+
 ipcMain.handle('studio:ffmpegOk', () => Boolean(findFfmpeg()));
 
 ipcMain.handle('studio:getFilmstrip', (_evt, takeId, stemFile) => {

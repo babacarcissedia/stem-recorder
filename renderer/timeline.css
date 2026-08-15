@@ -207,10 +207,22 @@
 
 .tl-lane-meta .icons {
   display: flex;
+  align-items: center;
   gap: 0.25rem;
   opacity: 0.55;
   font-size: 0.65rem;
 }
+
+.tl-reveal {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tl-reveal:hover { filter: brightness(1.4); }
 
 .tl-track {
   position: relative;
