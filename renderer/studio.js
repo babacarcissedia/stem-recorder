@@ -129,6 +129,11 @@
     renderClips();
   }
 
+  function refreshTimeLabel() {
+    const total = duration ?? (Number.isFinite(editVideo.duration) ? editVideo.duration : null);
+    timeLabel.textContent = `${fmt(editVideo.currentTime)} / ${fmt(total)}`;
+  }
+
   async function openEdit(takeId) {
     setStatus('Loading…');
     const data = await studio.getTake(takeId);
@@ -150,28 +155,38 @@
     setStatus(data.urls['edit/final.mp4'] ? 'Loaded (final exists)' : 'Loaded — trim clips, Save, Apply');
   }
 
-  editVideo?.addEventListener('timeupdate', () => {
-    timeLabel.textContent = `${fmt(editVideo.currentTime)} / ${fmt(duration ?? editVideo.duration)}`;
+  editVideo?.addEventListener('loadedmetadata', () => {
+    if (Number.isFinite(editVideo.duration) && editVideo.duration > 0) {
+      duration = editVideo.duration;
+    }
+    refreshTimeLabel();
   });
 
+  editVideo?.addEventListener('timeupdate', refreshTimeLabel);
+
   markInBtn?.addEventListener('click', () => {
-    draftIn = editVideo.currentTime;
-    setStatus(`In marked at ${fmt(draftIn)}`);
+    draftIn = Number(editVideo.currentTime) || 0;
+    setStatus(`In marked at ${fmt(draftIn)} — scrub forward, then Mark Out`);
   });
 
   markOutBtn?.addEventListener('click', () => {
-    const out = editVideo.currentTime;
-    const inn = draftIn != null ? draftIn : 0;
-    if (out <= inn) {
-      setStatus('Out must be after In', 'warn');
+    if (draftIn == null) {
+      setStatus('Mark In first', 'warn');
+      return;
+    }
+    let out = Number(editVideo.currentTime) || 0;
+    const inn = draftIn;
+    // Allow tiny float / scrub jitter
+    if (out <= inn + 0.05) {
+      setStatus(`Out (${fmt(out)}) must be after In (${fmt(inn)}) — scrub further`, 'warn');
       return;
     }
     const active = manifest.clips[manifest.clips.length - 1];
-    active.in = inn;
-    active.out = out;
+    active.in = Math.round(inn * 1000) / 1000;
+    active.out = Math.round(out * 1000) / 1000;
     draftIn = null;
     renderClips();
-    setStatus(`Clip set ${fmt(inn)} → ${fmt(out)}`);
+    setStatus(`Clip set ${fmt(active.in)} → ${fmt(active.out)}`, 'ok');
   });
 
   addClipBtn?.addEventListener('click', () => {
@@ -205,10 +220,7 @@
       await studio.saveManifest(currentTakeId, manifest);
       const res = await studio.apply(currentTakeId);
       setStatus(`Applied → edit/final.mp4 (${res.clips} clip${res.clips === 1 ? '' : 's'})`, 'ok');
-      if (res.url) {
-        // brief flash of result in player
-        editVideo.src = `${res.url}?t=${Date.now()}`;
-      }
+      // Keep source in the editor so marks stay meaningful; preview final via folder/open
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     } finally {
