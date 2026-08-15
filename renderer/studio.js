@@ -1923,6 +1923,23 @@
   });
   backLibraryBtn?.addEventListener('click', () => { stopPlay(); showView('library'); });
 
+  const tlMoreBtn = document.getElementById('tlMoreBtn');
+  const tlMoreMenu = document.getElementById('tlMoreMenu');
+  const setMoreOpen = (open) => {
+    if (!tlMoreBtn || !tlMoreMenu) return;
+    tlMoreMenu.hidden = !open;
+    tlMoreBtn.setAttribute('aria-expanded', String(open));
+  };
+  tlMoreBtn?.addEventListener('click', () => setMoreOpen(tlMoreMenu.hidden));
+  document.addEventListener('click', (e) => {
+    if (!tlMoreMenu || tlMoreMenu.hidden) return;
+    if (e.target instanceof Element && e.target.closest('.tl-more')) return;
+    setMoreOpen(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && tlMoreMenu && !tlMoreMenu.hidden) setMoreOpen(false);
+  });
+
   document.addEventListener('keydown', (e) => {
     if (views.edit?.hidden) return;
     const tag = (e.target && e.target.tagName) || '';

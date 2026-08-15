@@ -82,13 +82,75 @@
 
 .tl-toolbar .spacer { flex: 1; }
 
+.tl-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.tl-group + .tl-group,
+.tl-group + .tl-more {
+  padding-left: 0.6rem;
+  border-left: 1px solid #2c3340;
+}
+
 .tl-toolbar .tl-time {
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.8rem;
   color: #c8c2b4;
-  min-width: 7rem;
-  text-align: right;
+  min-width: 6.5rem;
 }
+
+.tl-more { position: relative; }
+
+#tlMoreBtn[aria-expanded="true"] {
+  background: #3a4254;
+  border-color: #4a5468;
+}
+
+.tl-more-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.45rem;
+  min-width: 14rem;
+  padding: 0.55rem 0.6rem;
+  background: #1b1f27;
+  border: 1px solid #2c3340;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.tl-more-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.tl-more-row label,
+.tl-more-label {
+  color: #9aa3b5;
+  font-size: 0.72rem;
+}
+
+.tl-more-row.asr-provider {
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+}
+
+.tl-more-row.asr-provider button {
+  border: 1px solid #3a4254;
+  border-radius: 8px;
+}
+
+/* [hidden] loses to display:flex/block rules (.crop-actions, .stage video, .tl-more-menu) */
+#view-edit [hidden] { display: none !important; }
 
 .tl-zoom,
 .tl-rate {
