@@ -16,7 +16,7 @@ Movies/stem-recorder/
 
 Phone PWA is parked; this desktop path is the product edit surface for now.
 
-Layers and invariants: [ARCHITECTURE.md](ARCHITECTURE.md) · agent contract: [AGENTS.md](AGENTS.md).
+Layers and invariants: [ARCHITECTURE.md](ARCHITECTURE.md) · agent contract: [CLAUDE.md](CLAUDE.md).
 Merge gate: `npm run preflight` (architecture check + all headless smokes).
 
 ## Quick start (laptop)
