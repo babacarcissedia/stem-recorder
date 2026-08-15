@@ -61,6 +61,11 @@
   const asrLocalBtn = document.getElementById('asrLocalBtn');
   const asrCloudBtn = document.getElementById('asrCloudBtn');
   const transcriptPanel = document.getElementById('transcriptPanel');
+  const wavePanel = document.getElementById('wavePanel');
+  const wavePanelCanvas = document.getElementById('wavePanelCanvas');
+  const wavePanelEmpty = document.getElementById('wavePanelEmpty');
+  const waveZoomInBtn = document.getElementById('waveZoomInBtn');
+  const waveZoomOutBtn = document.getElementById('waveZoomOutBtn');
 
   let currentTakeId = null;
   let manifest = null;
@@ -89,6 +94,9 @@
   let transcriptCues = [];
   /** Selection index the timeline DOM was last built for — scrub repaints skip rebuilds. */
   let renderedSelectedIdx = -1;
+  /** Wave-panel zoom (1 = full take) + drag state (window frozen during a drag). */
+  let waveZoom = 1;
+  let draggingWave = null;
   /** In-session undo/redo over clip-list snapshots (not persisted to disk). */
   const undoStack = window.StemUndoStack ? window.StemUndoStack.createUndoStack(100) : null;
 
@@ -253,6 +261,118 @@
     const total = outDur() || 1;
     const x = (outputTime / total) * trackWidthPx();
     if (tlPlayhead) tlPlayhead.style.left = `${x}px`;
+    drawWavePanel();
+  }
+
+  /** Visible output-time window of the wave panel (frozen while dragging so the seek target stays put). */
+  function wavePanelWindow() {
+    if (draggingWave) return draggingWave.win;
+    const total = outDur();
+    const dur = total / waveZoom;
+    const start = Math.max(0, Math.min(outputTime - dur / 2, total - dur));
+    return { start, dur };
+  }
+
+  /** Mark In/Out as an output-time span, or null when unset / cut from the timeline. */
+  function marksOutputSpan() {
+    if (markIn == null && markOut == null) return null;
+    const toOutput = (src) => {
+      if (src == null) return null;
+      const idx = ops.findClipAtTime(manifest.clips, src, duration);
+      return idx < 0 ? null : ops.sourceToOutput(manifest.clips, idx, src, duration);
+    };
+    const a = toOutput(markIn);
+    const b = toOutput(markOut);
+    if (a == null && b == null) return null;
+    const lo = Math.min(a ?? b, b ?? a);
+    return { lo, hi: Math.max(a ?? b, b ?? a), open: a == null || b == null };
+  }
+
+  function drawWavePanel() {
+    if (!wavePanelCanvas || !manifest) return;
+    const cssW = wavePanelCanvas.clientWidth;
+    const cssH = wavePanelCanvas.clientHeight;
+    if (!(cssW > 0) || !(cssH > 0)) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.round(cssW * dpr);
+    const h = Math.round(cssH * dpr);
+    if (wavePanelCanvas.width !== w) wavePanelCanvas.width = w;
+    if (wavePanelCanvas.height !== h) wavePanelCanvas.height = h;
+    const ctx = wavePanelCanvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    const hasWave = Boolean(waveform?.peaks?.length);
+    if (wavePanelEmpty) {
+      wavePanelEmpty.hidden = hasWave;
+      if (!hasWave) wavePanelEmpty.textContent = urls['audio.mp3'] ? 'Loading wave…' : 'No audio stem';
+    }
+    if (!hasWave || !manifest.clips?.length) return;
+    const win = wavePanelWindow();
+    if (!(win.dur > 0)) return;
+    const toX = (t) => ((t - win.start) / win.dur) * cssW;
+
+    const span = marksOutputSpan();
+    if (span) {
+      const x0 = toX(span.lo);
+      const x1 = span.open ? x0 : toX(span.hi);
+      ctx.fillStyle = 'rgba(240, 201, 74, 0.16)';
+      ctx.fillRect(x0, 0, Math.max(2, x1 - x0), cssH);
+      ctx.fillStyle = 'rgba(240, 201, 74, 0.7)';
+      ctx.fillRect(x0 - 0.5, 0, 1, cssH);
+      if (!span.open) ctx.fillRect(x1 - 0.5, 0, 1, cssH);
+    }
+
+    const barW = 2;
+    const gap = 1;
+    const bars = Math.max(1, Math.floor(cssW / (barW + gap)));
+    const mid = cssH / 2;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.fillRect(0, mid - 0.5, cssW, 1);
+    for (let i = 0; i < bars; i += 1) {
+      const t = win.start + ((i + 0.5) / bars) * win.dur;
+      const mapped = ops.outputToSource(manifest.clips, t, duration);
+      if (!Number.isFinite(mapped.sourceTime)) continue;
+      const idx = Math.max(0, Math.min(waveform.peaks.length - 1, Math.floor(mapped.sourceTime * waveform.peaksPerSec)));
+      const half = Math.max(1, waveform.peaks[idx] * (mid - 6));
+      const inMarks = span && !span.open && t >= span.lo && t <= span.hi;
+      ctx.fillStyle = inMarks ? '#9cc8ff' : '#6ea8ff';
+      ctx.fillRect(i * (barW + gap), mid - half, barW, half * 2);
+    }
+
+    const px = toX(outputTime);
+    if (px >= 0 && px <= cssW) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(px - 1, 0, 2, cssH);
+    }
+  }
+
+  function wavePointerToOutput(clientX) {
+    const rect = wavePanelCanvas.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (clientX - rect.left) / Math.max(1, rect.width)));
+    const win = wavePanelWindow();
+    return win.start + frac * win.dur;
+  }
+
+  /** Shift-click on the wave: first sets Mark In, second sets Mark Out, third restarts. */
+  function setWaveMark(clientX) {
+    const mapped = ops.outputToSource(manifest.clips, wavePointerToOutput(clientX), duration);
+    if (!Number.isFinite(mapped.sourceTime)) return;
+    if (markIn == null || markOut != null) {
+      markIn = mapped.sourceTime;
+      markOut = null;
+      setStatus(`Mark In ${fmt(markIn)} · ${marksHint()} · Shift-click again for Mark Out`, 'ok');
+    } else {
+      markOut = mapped.sourceTime;
+      setStatus(`Mark Out ${fmt(markOut)} · ${marksHint()} · Cut range to ripple-delete In→Out`, 'ok');
+    }
+    drawWavePanel();
+  }
+
+  function setWaveZoom(z) {
+    waveZoom = Math.max(1, Math.min(16, Number(z) || 1));
+    drawWavePanel();
+    setStatus(waveZoom === 1 ? 'Wave: full take' : `Wave zoom ${waveZoom}× around playhead`);
   }
 
   function renderRuler() {
@@ -540,6 +660,8 @@
     showView('edit');
     markIn = null;
     markOut = null;
+    waveZoom = 1;
+    draggingWave = null;
     chips = [];
     transcriptCues = [];
     undoStack?.clear();
@@ -710,6 +832,7 @@
     if (!manifest?.clips?.length) return;
     const mapped = ops.outputToSource(manifest.clips, outputTime, duration);
     markIn = mapped.sourceTime;
+    drawWavePanel();
     setStatus(`Mark In ${fmt(markIn)} · ${marksHint()} · set Mark Out then Cut range`, 'ok');
   }
 
@@ -717,6 +840,7 @@
     if (!manifest?.clips?.length) return;
     const mapped = ops.outputToSource(manifest.clips, outputTime, duration);
     markOut = mapped.sourceTime;
+    drawWavePanel();
     setStatus(`Mark Out ${fmt(markOut)} · ${marksHint()} · Cut range to ripple-delete In→Out`, 'ok');
   }
 
@@ -860,6 +984,27 @@
   }
   bindPlayheadDrag(tlPlayheadCap);
   bindPlayheadDrag(tlPlayheadLayer);
+
+  wavePanel?.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.wave-panel-zoom') || !manifest?.clips?.length) return;
+    e.preventDefault();
+    if (e.shiftKey) {
+      setWaveMark(e.clientX);
+      return;
+    }
+    draggingWave = { win: wavePanelWindow() };
+    wavePanel.setPointerCapture(e.pointerId);
+    seekOutput(wavePointerToOutput(e.clientX));
+  });
+  wavePanel?.addEventListener('pointermove', (e) => {
+    if (!draggingWave) return;
+    seekOutput(wavePointerToOutput(e.clientX));
+  });
+  wavePanel?.addEventListener('pointerup', () => { draggingWave = null; drawWavePanel(); });
+  wavePanel?.addEventListener('pointercancel', () => { draggingWave = null; drawWavePanel(); });
+  waveZoomInBtn?.addEventListener('click', () => setWaveZoom(waveZoom * 2));
+  waveZoomOutBtn?.addEventListener('click', () => setWaveZoom(waveZoom / 2));
+  window.addEventListener('resize', () => drawWavePanel());
 
   tlPlayBtn?.addEventListener('click', togglePlay);
   undoBtn?.addEventListener('click', doUndo);
