@@ -224,6 +224,7 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
         path: camPath,
         mirror: Boolean(camSettings.mirror),
         rotate: camSettings.rotate || 0,
+        layout: camSettings.pipLayout || null,
       },
     } : {});
   } finally {

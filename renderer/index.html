@@ -58,12 +58,19 @@
     }
     .stage.fit-cover video { object-fit: cover; }
     .stage video.mirror { transform: scaleX(-1); }
-    /* Edit-T2a: CSS stand-in for the Apply-time cam PiP (bottom-right, 25%). */
+    /* Edit-T2a/T2b: CSS stand-in for the Apply-time cam PiP. Default is the
+       bottom-right 25% corner; a saved cam.pipLayout overrides left/top/width
+       inline. Drag body to move, corner handle to resize (Edit-T2b). */
     .stage video.pip-preview {
       inset: auto; right: 2%; bottom: 3.5%; width: 25%; height: auto;
       object-fit: contain; border-radius: 6px;
       border: 1px solid rgba(255, 255, 255, 0.35);
-      pointer-events: none;
+      pointer-events: auto; cursor: grab; touch-action: none;
+    }
+    .stage .pip-resize {
+      position: absolute; width: 14px; height: 14px; z-index: 3;
+      background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: 3px; cursor: nwse-resize; touch-action: none;
     }
     .hud {
       position: absolute; left: 0.5rem; bottom: 0.5rem; right: 0.5rem;
@@ -308,6 +315,7 @@
             <div class="stage" id="editStage">
               <video id="editVideo" playsinline></video>
               <video id="pipVideo" class="pip-preview" playsinline muted hidden></video>
+              <i class="pip-resize" id="pipHandle" title="Drag to resize the cam PiP" hidden></i>
               <div class="crop-overlay" id="cropOverlay" hidden>
                 <div class="crop-rect" id="cropRect" title="Drag to move · handles to resize">
                   <i data-h="nw"></i><i data-h="n"></i><i data-h="ne"></i>
