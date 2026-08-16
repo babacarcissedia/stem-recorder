@@ -1,26 +1,24 @@
-export const MENU_COMMANDS = [
-  'file:new-take',
-  'file:open-take-folder',
-  'file:export-bundle',
-  'timeline:split',
-  'timeline:mark-in',
-  'timeline:mark-out',
-  'timeline:play-pause',
-] as const;
+import { SHORTCUT_REGISTRY, type ShortcutCommandId } from '../../lib/domain/shortcuts.ts';
 
-export type MenuCommand = (typeof MENU_COMMANDS)[number];
+export const MENU_COMMANDS = SHORTCUT_REGISTRY.map((binding) => binding.id) as readonly ShortcutCommandId[];
+
+export type MenuCommand = ShortcutCommandId;
 
 export const EDITOR_MENU_COMMANDS = [
   'file:open-take-folder',
+  'file:import-media',
   'file:export-bundle',
   'timeline:split',
+  'timeline:join',
+  'timeline:delete-ripple',
+  'timeline:delete-lift',
   'timeline:mark-in',
   'timeline:mark-out',
   'timeline:play-pause',
 ] as const satisfies readonly MenuCommand[];
 
 export function isMenuCommand(command: string): command is MenuCommand {
-  return (MENU_COMMANDS as readonly string[]).includes(command);
+  return SHORTCUT_REGISTRY.some((binding) => binding.id === command);
 }
 
 export function isEditorMenuCommand(command: MenuCommand): boolean {

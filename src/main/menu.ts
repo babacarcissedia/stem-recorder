@@ -1,23 +1,24 @@
 import { app, shell, BrowserWindow, Menu, type MenuItemConstructorOptions } from 'electron';
 
-import { canDispatchMenuCommand, type MenuCommand } from '../preload/api.ts';
+import { SHORTCUT_REGISTRY, type ShortcutCommandId } from '../../lib/domain/shortcuts.ts';
+import { canDispatchMenuCommand } from '../preload/api.ts';
 
-function sendCommand(command: MenuCommand): void {
+export type MenuCommand = ShortcutCommandId;
+
+function sendCommand(command: ShortcutCommandId): void {
   const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
   win?.webContents.send('menu:command', command);
 }
 
-function commandItem(
-  label: string,
-  command: MenuCommand,
-  editorCommandsEnabled: boolean,
-  accelerator?: string,
-): MenuItemConstructorOptions {
+function commandItem(id: ShortcutCommandId, editorCommandsEnabled: boolean): MenuItemConstructorOptions {
+  const binding = SHORTCUT_REGISTRY.find((entry) => entry.id === id);
+  if (!binding) throw new Error(`menu.ts: no SHORTCUT_REGISTRY entry for command '${id}'`);
+
   return {
-    label,
-    accelerator,
-    enabled: canDispatchMenuCommand(command, editorCommandsEnabled),
-    click: () => sendCommand(command),
+    label: binding.label,
+    accelerator: binding.accelerator,
+    enabled: canDispatchMenuCommand(binding.id, editorCommandsEnabled),
+    click: () => sendCommand(binding.id),
   };
 }
 
@@ -34,10 +35,11 @@ export function buildAppMenu(appName: string, editorCommandsEnabled: boolean = f
     {
       label: 'File',
       submenu: [
-        commandItem('New Take', 'file:new-take', editorCommandsEnabled, 'CmdOrCtrl+N'),
-        commandItem('Open Take Folder', 'file:open-take-folder', editorCommandsEnabled, 'CmdOrCtrl+O'),
+        commandItem('file:new-take', editorCommandsEnabled),
+        commandItem('file:open-take-folder', editorCommandsEnabled),
         { type: 'separator' },
-        commandItem('Export Bundle…', 'file:export-bundle', editorCommandsEnabled, 'CmdOrCtrl+E'),
+        commandItem('file:import-media', editorCommandsEnabled),
+        commandItem('file:export-bundle', editorCommandsEnabled),
         { type: 'separator' },
         isMac ? { role: 'close' } : { role: 'quit' },
       ],
@@ -70,12 +72,16 @@ export function buildAppMenu(appName: string, editorCommandsEnabled: boolean = f
     {
       label: 'Timeline',
       submenu: [
-        commandItem('Split', 'timeline:split', editorCommandsEnabled, 'CmdOrCtrl+B'),
+        commandItem('timeline:split', editorCommandsEnabled),
+        commandItem('timeline:join', editorCommandsEnabled),
         { type: 'separator' },
-        commandItem('Mark In', 'timeline:mark-in', editorCommandsEnabled, 'I'),
-        commandItem('Mark Out', 'timeline:mark-out', editorCommandsEnabled, 'O'),
+        commandItem('timeline:delete-ripple', editorCommandsEnabled),
+        commandItem('timeline:delete-lift', editorCommandsEnabled),
         { type: 'separator' },
-        commandItem('Play/Pause', 'timeline:play-pause', editorCommandsEnabled, 'Space'),
+        commandItem('timeline:mark-in', editorCommandsEnabled),
+        commandItem('timeline:mark-out', editorCommandsEnabled),
+        { type: 'separator' },
+        commandItem('timeline:play-pause', editorCommandsEnabled),
       ],
     },
     {

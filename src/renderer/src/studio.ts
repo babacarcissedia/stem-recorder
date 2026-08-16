@@ -2095,7 +2095,7 @@ import type { MenuCommand } from '../../preload/api.ts';
     }
   });
 
-  const menuActions: Record<MenuCommand, () => void> = {
+  const menuActions: Partial<Record<MenuCommand, () => void>> = {
     'file:new-take': () => document.querySelector<HTMLButtonElement>('[data-nav="record"]')?.click(),
     'file:open-take-folder': () => openFolderBtn?.click(),
     'file:export-bundle': () => exportBundleBtn?.click(),
@@ -2106,7 +2106,7 @@ import type { MenuCommand } from '../../preload/api.ts';
   };
   const unsubscribeMenu = window.stemMenu?.onCommand((command) => {
     if (command !== 'file:new-take' && !hasActiveEditableManifest()) return;
-    menuActions[command]();
+    menuActions[command]?.();
   });
   window.addEventListener('beforeunload', () => unsubscribeMenu?.(), { once: true });
 
