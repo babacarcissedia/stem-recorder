@@ -25,6 +25,7 @@ const studio = {
   setCueText: (takeId, index, text) => ipcRenderer.invoke('studio:setCueText', takeId, index, text),
   chooseMusic: () => ipcRenderer.invoke('studio:chooseMusic'),
   asrStatus: () => ipcRenderer.invoke('studio:asrStatus'),
+  exportBundle: (takeId) => ipcRenderer.invoke('studio:exportBundle', takeId),
 };
 
 contextBridge.exposeInMainWorld('batchRecorder', recorder);
