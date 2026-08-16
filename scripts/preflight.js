@@ -16,6 +16,7 @@ const steps = [
   { name: 'typecheck:strict', cmd: ['npm', 'run', 'typecheck:strict'] },
   { name: 'check-architecture', cmd: ['node', 'scripts/check-architecture.js'] },
   { name: 'check-hex-literals', cmd: ['node', 'scripts/check-hex-literals.js'] },
+  { name: 'check-style-literals', cmd: ['node', 'scripts/check-style-literals.js'] },
   { name: 'check:arch:self-test', cmd: ['npm', 'run', 'check:arch:self-test'] },
   { name: 'smoke:model', cmd: ['npm', 'run', 'smoke:model'] },
   { name: 'smoke:menu', cmd: ['npm', 'run', 'smoke:menu'] },

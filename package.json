@@ -37,6 +37,7 @@
     "preflight": "node scripts/preflight.js",
     "check:arch": "node scripts/check-architecture.js",
     "check:hex": "node scripts/check-hex-literals.js",
+    "check:style": "node scripts/check-style-literals.js",
     "check:arch:self-test": "node scripts/check-architecture.js --self-test",
     "smoke:apply": "node scripts/smoke-apply.js",
     "smoke:clips": "node scripts/smoke-clip-ops.js",
