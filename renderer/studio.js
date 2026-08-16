@@ -84,6 +84,7 @@
   const captionOverlay = document.getElementById('captionOverlay');
   const exportRateSelect = document.getElementById('exportRateSelect');
   const musicBtn = document.getElementById('musicBtn');
+  const exportBundleBtn = document.getElementById('exportBundleBtn');
 
   let currentTakeId = null;
   let manifest = null;
@@ -1928,6 +1929,29 @@
 
   openFolderBtn?.addEventListener('click', () => {
     if (currentTakeId) studio.openTakeFolder(currentTakeId);
+  });
+
+  exportBundleBtn?.addEventListener('click', async () => {
+    if (!currentTakeId) return;
+    try {
+      exportBundleBtn.disabled = true;
+      setStatus('Choose a folder for the export bundle…');
+      const res = await studio.exportBundle(currentTakeId);
+      if (!res) {
+        setStatus('Export bundle cancelled');
+        return;
+      }
+      const names = res.items.map((item) => item.destName).join(', ') || 'nothing';
+      if (res.missing.length) {
+        setStatus(`Export bundle → ${names} · missing: ${res.missing.join(', ')}`, 'warn');
+      } else {
+        setStatus(`Export bundle → ${names}`, 'ok');
+      }
+    } catch (e) {
+      setStatus(String(e.message || e), 'warn');
+    } finally {
+      exportBundleBtn.disabled = false;
+    }
   });
   backLibraryBtn?.addEventListener('click', () => { stopPlay(); showView('library'); });
 

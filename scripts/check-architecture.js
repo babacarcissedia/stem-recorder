@@ -54,7 +54,14 @@ for (const rel of listJs('renderer')) {
 }
 
 // 2. pure edit-model modules
-const PURE = ['lib/clip-ops.js', 'lib/undo-stack.js', 'lib/gap-chips.js'];
+const PURE = [
+  'lib/clip-ops.js',
+  'lib/undo-stack.js',
+  'lib/gap-chips.js',
+  'lib/captions.js',
+  'lib/export-presets.js',
+  'lib/export-bundle.js',
+];
 const IMPURE = new Set(['electron', 'fs', 'child_process']);
 for (const rel of PURE) {
   for (const dep of requiresIn(read(rel))) {
