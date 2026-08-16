@@ -30,6 +30,7 @@ const steps = [
   { name: 'smoke:media-url', cmd: ['npm', 'run', 'smoke:media-url'] },
   { name: 'smoke:shortcuts', cmd: ['npm', 'run', 'smoke:shortcuts'] },
   { name: 'smoke:theme', cmd: ['npm', 'run', 'smoke:theme'] },
+  { name: 'smoke:fonts', cmd: ['npm', 'run', 'smoke:fonts'] },
   { name: 'smoke:caption-integration', cmd: ['node', 'scripts/smoke-caption-integration.js'] },
   {
     name: 'smoke:apply',
