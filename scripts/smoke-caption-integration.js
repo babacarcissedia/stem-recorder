@@ -1,16 +1,6 @@
 #!/usr/bin/env node
 'use strict';
 
-/**
- * Headless smoke for the wt/integration wiring of lib/captions.js and
- * lib/export-presets.js into lib/ffmpeg-util.js:
- *   - resolveCaptionsPath: word-level ASS vs segment-level VTT selection
- *   - verticalCropScaleFilter + pipFilterGraph(verticalPreset): 9:16 export
- *     geometry and its composition with the cam PiP overlay
- * Pure assertions on filter-graph strings, generated ASS content, and fs
- * side effects — no ffmpeg binary, no node_modules, runs everywhere.
- */
-
 const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
@@ -21,12 +11,12 @@ const {
 const { buildVerticalPreset } = require('../lib/export-presets');
 
 let cases = 0;
+
 function tmpEditDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'stem-caption-integration-'));
 }
 
-// —— resolveCaptionsPath: word-level asr.json produces an ASS under edit/.cache/ ——
-{
+function testResolveCaptionsPathWordLevelAss() {
   const editDir = tmpEditDir();
   const asr = {
     segments: [{ start: 0, end: 1.1, text: 'the quick brown fox' }],
@@ -52,8 +42,7 @@ function tmpEditDir() {
   fs.rmSync(editDir, { recursive: true, force: true });
 }
 
-// —— resolveCaptionsPath: style options thread through to the generated ASS ——
-{
+function testResolveCaptionsPathStyleOptions() {
   const editDir = tmpEditDir();
   fs.writeFileSync(path.join(editDir, 'asr.json'), JSON.stringify({
     words: [{ word: 'hi', start: 0, end: 0.5 }],
@@ -68,8 +57,7 @@ function tmpEditDir() {
   fs.rmSync(editDir, { recursive: true, force: true });
 }
 
-// —— resolveCaptionsPath: no words[] on asr.json falls back to captions.vtt ——
-{
+function testResolveCaptionsPathNoWords() {
   const editDir = tmpEditDir();
   fs.writeFileSync(path.join(editDir, 'asr.json'), JSON.stringify({ segments: [] }), 'utf8');
   const vttPath = path.join(editDir, 'captions.vtt');
@@ -81,8 +69,7 @@ function tmpEditDir() {
   fs.rmSync(editDir, { recursive: true, force: true });
 }
 
-// —— resolveCaptionsPath: malformed asr.json falls back to VTT instead of throwing ——
-{
+function testResolveCaptionsPathMalformedAsr() {
   const editDir = tmpEditDir();
   fs.writeFileSync(path.join(editDir, 'asr.json'), 'not json', 'utf8');
   const vttPath = path.join(editDir, 'captions.vtt');
@@ -93,8 +80,7 @@ function tmpEditDir() {
   fs.rmSync(editDir, { recursive: true, force: true });
 }
 
-// —— resolveCaptionsPath: neither asr.json nor captions.vtt exist → null ——
-{
+function testResolveCaptionsPathNoArtifacts() {
   const editDir = tmpEditDir();
   assert.strictEqual(resolveCaptionsPath(editDir), null);
   cases += 1;
@@ -102,8 +88,7 @@ function tmpEditDir() {
   fs.rmSync(editDir, { recursive: true, force: true });
 }
 
-// —— resolveCaptionsPath: empty words[] (present but no timings) also falls back to VTT ——
-{
+function testResolveCaptionsPathEmptyWords() {
   const editDir = tmpEditDir();
   fs.writeFileSync(path.join(editDir, 'asr.json'), JSON.stringify({ words: [] }), 'utf8');
   const vttPath = path.join(editDir, 'captions.vtt');
@@ -114,8 +99,7 @@ function tmpEditDir() {
   fs.rmSync(editDir, { recursive: true, force: true });
 }
 
-// —— verticalCropScaleFilter: matches buildVerticalPreset's absolute-pixel geometry ——
-{
+function testVerticalCropScaleFilterGeometry() {
   const preset = buildVerticalPreset({ source: { width: 3024, height: 1964 } });
   const filter = verticalCropScaleFilter(preset);
   assert.strictEqual(
@@ -126,15 +110,12 @@ function tmpEditDir() {
   cases += 1;
 }
 
-// —— pipFilterGraph + verticalPreset: vertical crop/scale lands in the base
-// chain BEFORE the cam overlay, after any manual crop, and the overlay uses
-// the preset's absolute pip.x/y instead of a normalized layout fraction ——
-{
+function testPipFilterGraphVerticalOrderingWithManualCrop() {
   const manualCrop = {
     x: 0.1, y: 0.1, w: 0.8, h: 0.8,
   };
   const preset = buildVerticalPreset({
-    source: { width: 1600, height: 1600 }, // 0.8 of a 2000x2000 source, matching manualCrop above
+    source: { width: 1600, height: 1600 },
     cam: { width: 1280, height: 720 },
   });
   const graph = pipFilterGraph({
@@ -156,10 +137,7 @@ function tmpEditDir() {
   cases += 1;
 }
 
-// —— pipFilterGraph + verticalPreset: composes with captions burn and speed,
-// keeping caption burn AFTER the vertical scale (drawn on the final-resolution
-// frame) and speed last, unchanged from the non-vertical ordering ——
-{
+function testPipFilterGraphVerticalWithCaptionsAndSpeed() {
   const preset = buildVerticalPreset({ source: { width: 1920, height: 1080 }, cam: { width: 640, height: 480 } });
   const graph = pipFilterGraph({
     crop: null,
@@ -177,8 +155,7 @@ function tmpEditDir() {
   cases += 1;
 }
 
-// —— pipFilterGraph: no verticalPreset → unchanged base chain and normalized overlay (regression guard) ——
-{
+function testPipFilterGraphWithoutVerticalPreset() {
   const graph = pipFilterGraph({
     crop: { x: 0, y: 0, w: 1, h: 1 }, cam: { mirror: false, rotate: 0 }, pipWidth: 320, margin: 12,
   });
@@ -186,5 +163,16 @@ function tmpEditDir() {
   assert.ok(graph.includes('scale=w=320:h=-2'), 'pipWidth is honoured when there is no vertical preset');
   cases += 1;
 }
+
+testResolveCaptionsPathWordLevelAss();
+testResolveCaptionsPathStyleOptions();
+testResolveCaptionsPathNoWords();
+testResolveCaptionsPathMalformedAsr();
+testResolveCaptionsPathNoArtifacts();
+testResolveCaptionsPathEmptyWords();
+testVerticalCropScaleFilterGeometry();
+testPipFilterGraphVerticalOrderingWithManualCrop();
+testPipFilterGraphVerticalWithCaptionsAndSpeed();
+testPipFilterGraphWithoutVerticalPreset();
 
 console.log(JSON.stringify({ ok: true, cases }, null, 2));
