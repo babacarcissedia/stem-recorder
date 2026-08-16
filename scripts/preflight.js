@@ -15,6 +15,8 @@ const steps = [
   { name: 'check-architecture', cmd: ['node', 'scripts/check-architecture.js'] },
   { name: 'check-hex-literals', cmd: ['node', 'scripts/check-hex-literals.js'] },
   { name: 'check-style-literals', cmd: ['node', 'scripts/check-style-literals.js'] },
+  { name: 'check-theme-parity', cmd: ['node', 'scripts/check-theme-parity.js'] },
+  { name: 'check-contrast', cmd: ['node', 'scripts/check-contrast.js'] },
   { name: 'smoke:model', cmd: ['npm', 'run', 'smoke:model'] },
   { name: 'smoke:manifest', cmd: ['npm', 'run', 'smoke:manifest'] },
   { name: 'smoke:clips', cmd: ['npm', 'run', 'smoke:clips'] },
