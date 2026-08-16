@@ -75,17 +75,10 @@ function check(condition, message) {
   check(/bridge\.onChanged\(applyTheme\)/.test(applySource), 'the renderer stays subscribed to main-side theme changes');
 }
 
-// the token contract: components read aliases, only tokens.css holds literals
+// the token contract: components read aliases, only tokens.css holds literals.
+// light/dark alias parity is owned by scripts/check-theme-parity.js.
 {
   const tokens = fs.readFileSync(path.join(ROOT, 'src', 'renderer', 'src', 'tokens.css'), 'utf8');
-  const light = tokens.slice(tokens.indexOf(':root[data-theme="light"]'), tokens.indexOf(':root[data-theme="dark"]'));
-  const dark = tokens.slice(tokens.indexOf(':root[data-theme="dark"]'));
-  const aliasesIn = (block) => new Set([...block.matchAll(/^\s*(--[a-z0-9-]+):/gm)].map((match) => match[1]).filter((name) => !name.startsWith('--ramp-')));
-  const lightAliases = aliasesIn(light);
-  const darkAliases = aliasesIn(dark);
-  check(lightAliases.size > 40, 'the semantic alias layer is substantive');
-  for (const alias of lightAliases) check(darkAliases.has(alias), `${alias} is defined in the dark theme too`);
-  for (const alias of darkAliases) check(lightAliases.has(alias), `${alias} is defined in the light theme too`);
   check(!/^\s*--(?!ramp-)[a-z0-9-]+:\s*#/m.test(tokens), 'no semantic alias points at a raw hex literal');
 
   for (const relative of ['src/renderer/src/timeline.css', 'src/renderer/index.html', 'src/renderer/src/app-shell.css']) {

@@ -38,6 +38,8 @@
     "check:arch": "node scripts/check-architecture.js",
     "check:hex": "node scripts/check-hex-literals.js",
     "check:style": "node scripts/check-style-literals.js",
+    "check:theme-parity": "node scripts/check-theme-parity.js",
+    "check:contrast": "node scripts/check-contrast.js",
     "check:arch:self-test": "node scripts/check-architecture.js --self-test",
     "smoke:apply": "node scripts/smoke-apply.js",
     "smoke:clips": "node scripts/smoke-clip-ops.js",
