@@ -144,9 +144,7 @@
 
   --weight-regular: 400;
   --weight-medium: 500;
-  --weight-semibold: 550;
   --weight-bold: 600;
-  --weight-strong: 650;
   --weight-heavy: 700;
 
   --leading-none: 1;
@@ -238,6 +236,8 @@
 
 :root,
 :root[data-theme="light"] {
+  color-scheme: light;
+
   --surface-app: var(--ramp-neutral-050);
   --surface-raised: var(--ramp-neutral-000);
   --surface-subtle: var(--ramp-neutral-025);
@@ -327,6 +327,8 @@
 }
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
+
   --surface-app: var(--ramp-neutral-920);
   --surface-raised: var(--ramp-neutral-890);
   --surface-subtle: var(--ramp-neutral-880);
