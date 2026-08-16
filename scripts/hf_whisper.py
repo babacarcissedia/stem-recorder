@@ -48,8 +48,34 @@ def pick_device() -> tuple[str, object]:
     return "cpu", torch.float32
 
 
+def _chunks_to_spans(chunks: list[dict]) -> list[dict]:
+    """Shared timestamp-filling logic for both segment- and word-level chunks:
+    a None start/end (pipeline gives up on a boundary) falls back to the
+    previous span's end so downstream VTT/word timing never has a gap."""
+    spans = []
+    last_end = 0.0
+    for chunk in chunks or []:
+        start, end = chunk.get("timestamp") or (None, None)
+        start = last_end if start is None else float(start)
+        end = start if end is None else float(end)
+        last_end = end
+        text = (chunk.get("text") or "").strip()
+        if text:
+            spans.append({"start": start, "end": end, "text": text})
+    return spans
+
+
 def transcribe(audio_path: str, model: str | None = None, language: str | None = None) -> dict:
-    """Run Whisper over one audio file. Returns {text, segments, language, model}."""
+    """Run Whisper over one audio file. Returns {text, segments, words, language, model}.
+
+    Two passes: one for segment-level chunks (feeds transcript.txt/captions.vtt,
+    unchanged from before word timing existed) and one for word-level chunks
+    (feeds asr.json's `words`, which a sibling caption lane depends on). The
+    transformers ASR pipeline's return_timestamps switches its chunk grain
+    between "segment" and "word" per call — there's no single call that
+    returns both — so getting real word timing without changing the existing
+    segment output means running inference twice.
+    """
     try:
         from transformers import pipeline
     except ImportError as exc:
@@ -61,7 +87,6 @@ def transcribe(audio_path: str, model: str | None = None, language: str | None =
     device, dtype = pick_device()
     pipeline_kwargs = {
         "chunk_length_s": 30,
-        "return_timestamps": True,
         "device": device,
     }
     if dtype is not None:
@@ -74,22 +99,17 @@ def transcribe(audio_path: str, model: str | None = None, language: str | None =
     generate_kwargs = {"task": "transcribe", "condition_on_prev_tokens": False}
     if language:
         generate_kwargs["language"] = language
-    out = asr(audio_path, generate_kwargs=generate_kwargs)
 
-    segments = []
-    last_end = 0.0
-    for chunk in out.get("chunks") or []:
-        start, end = chunk.get("timestamp") or (None, None)
-        start = last_end if start is None else float(start)
-        end = start if end is None else float(end)
-        last_end = end
-        text = (chunk.get("text") or "").strip()
-        if text:
-            segments.append({"start": start, "end": end, "text": text})
+    out = asr(audio_path, return_timestamps=True, generate_kwargs=generate_kwargs)
+    segments = _chunks_to_spans(out.get("chunks"))
+
+    word_out = asr(audio_path, return_timestamps="word", generate_kwargs=generate_kwargs)
+    words = _chunks_to_spans(word_out.get("chunks"))
 
     return {
         "text": (out.get("text") or "").strip(),
         "segments": segments,
+        "words": words,
         "language": language,
         "model": model_id,
     }
@@ -130,6 +150,7 @@ def write_outputs(out_dir: str, result: dict, source_file: str, provider: str = 
         "language": result.get("language"),
         "createdAt": datetime.now(timezone.utc).isoformat(),
         "sourceFile": source_file,
+        "words": result.get("words") or [],
     }
     with open(asr_path, "w", encoding="utf-8") as fh:
         json.dump(meta, fh, indent=2)
