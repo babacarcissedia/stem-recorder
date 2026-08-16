@@ -29,7 +29,24 @@
     "lib/domain/export-bundle.ts",
     "lib/domain/export-presets.ts",
     "lib/domain/gap-chips.ts",
-    "lib/domain/undo-stack.ts"
+    "lib/domain/undo-stack.ts",
+    "lib/domain/animatable.ts",
+    "lib/domain/asr/verify.ts",
+    "lib/domain/clip.ts",
+    "lib/domain/effects.ts",
+    "lib/domain/invariant.ts",
+    "lib/domain/manifest-v2.ts",
+    "lib/domain/model.ts",
+    "lib/domain/ms.ts",
+    "lib/domain/output-target.ts",
+    "lib/domain/project.ts",
+    "lib/domain/selection.ts",
+    "lib/domain/source.ts",
+    "lib/domain/timeline.ts",
+    "lib/domain/track.ts",
+    "lib/domain/transform.ts",
+    "scripts/smoke-model.ts",
+    "scripts/smoke-manifest.ts"
   ],
   "exclude": ["scripts/fixtures/**", "out/**", "release/**"]
 }

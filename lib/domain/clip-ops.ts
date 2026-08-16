@@ -1,5 +1,7 @@
 'use strict';
 
+import type { Rect } from './effects.ts';
+
 // roundMs rounds a seconds-precision float to millisecond precision; it does
 // NOT produce the integer-ms Ms type from the v2a-domain model — this legacy
 // clip shape stores in/out as fractional seconds.
@@ -11,11 +13,6 @@ export type LegacyClip = {
   freeze?: boolean;
   crop?: Rect;
 } & Record<string, unknown>;
-
-// Matches lib/domain/effects.ts's Rect shape (normalized 0-1 crop rect) on
-// the sibling wt/v2a-domain branch — not imported cross-branch since that
-// file does not exist in this worktree yet.
-export type Rect = { x: number; y: number; w: number; h: number };
 
 export type PipLayout = { x: number; y: number; w: number };
 
