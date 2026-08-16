@@ -3,13 +3,13 @@
 .edit-layout {
   display: grid;
   grid-template-rows: auto auto auto;
-  gap: 0.65rem;
+  gap: var(--space-9);
 }
 
 .edit-preview-row {
   display: grid;
-  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
-  gap: 0.75rem;
+  grid-template-columns: minmax(var(--size-preview-min), var(--size-preview-max)) minmax(0, 1fr);
+  gap: var(--space-11);
   align-items: start;
 }
 
@@ -19,17 +19,17 @@
 
 .preview-switch {
   display: flex;
-  gap: 0.35rem;
-  margin-bottom: 0.4rem;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .preview-switch button {
   width: auto;
   margin: 0;
-  padding: 0.35rem 0.7rem;
-  font-size: 0.78rem;
+  padding: var(--space-3) var(--space-10);
+  font-size: var(--text-4);
   background: var(--surface-control);
-  border: 1px solid var(--border-strong);
+  border: var(--border-hairline) solid var(--border-strong);
   color: var(--timeline-text);
 }
 
@@ -42,25 +42,25 @@
 .tl-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: var(--space-3);
   align-items: center;
-  padding: 0.45rem 0.6rem;
+  padding: var(--space-5) var(--space-8);
   background: var(--timeline-surface);
-  border-radius: 10px;
-  border: 1px solid var(--timeline-border);
+  border-radius: var(--radius-lg);
+  border: var(--border-hairline) solid var(--timeline-border);
 }
 
 .tl-toolbar button {
   width: auto;
   margin: 0;
-  padding: 0.4rem 0.75rem;
-  min-height: 40px; /* a11y hit target (toward 44px without doubling toolbar height) */
-  border-radius: 8px;
+  padding: var(--space-4) var(--space-11);
+  min-height: var(--size-hit-target); /* a11y hit target (toward 44px without doubling toolbar height) */
+  border-radius: var(--radius-md);
   background: var(--surface-control);
-  border: 1px solid var(--border-strong);
+  border: var(--border-hairline) solid var(--border-strong);
   color: var(--timeline-text);
-  font-weight: 650;
-  font-size: 0.82rem;
+  font-weight: var(--weight-strong);
+  font-size: var(--text-6);
 }
 
 .tl-toolbar button.primary {
@@ -85,20 +85,20 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
+  gap: var(--space-3);
 }
 
 .tl-group + .tl-group,
 .tl-group + .tl-more {
-  padding-left: 0.6rem;
-  border-left: 1px solid var(--timeline-border);
+  padding-left: var(--space-8);
+  border-left: var(--border-hairline) solid var(--timeline-border);
 }
 
 .tl-toolbar .tl-time {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-5);
   color: var(--timeline-text-muted);
-  min-width: 6.5rem;
+  min-width: var(--size-time-min);
 }
 
 .tl-more { position: relative; }
@@ -110,77 +110,77 @@
 
 .tl-more-menu {
   position: absolute;
-  top: calc(100% + 0.4rem);
+  top: calc(100% + var(--space-4));
   left: 0;
-  z-index: 30;
+  z-index: var(--z-menu);
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.45rem;
-  min-width: 14rem;
-  padding: 0.55rem 0.6rem;
+  gap: var(--space-5);
+  min-width: var(--size-more-menu-min);
+  padding: var(--space-7) var(--space-8);
   background: var(--timeline-surface);
-  border: 1px solid var(--timeline-border);
-  border-radius: 10px;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  border: var(--border-hairline) solid var(--timeline-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-menu);
 }
 
 .tl-more-row {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: var(--space-3);
 }
 
 .tl-more-row label,
 .tl-more-label {
   color: var(--timeline-text-muted);
-  font-size: 0.72rem;
+  font-size: var(--text-3);
 }
 
 .tl-more-row.asr-provider {
   border: none;
-  border-radius: 0;
+  border-radius: var(--radius-none);
   overflow: visible;
 }
 
 .tl-more-row.asr-provider button {
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border: var(--border-hairline) solid var(--border-strong);
+  border-radius: var(--radius-md);
 }
 
-/* [hidden] loses to display:flex/block rules (.crop-actions, .stage video, .tl-more-menu) */
+/* [hidden] loses to display: flex/block rules (.crop-actions, .stage video, .tl-more-menu) */
 #view-edit [hidden] { display: none !important; }
 
 .tl-zoom,
 .tl-rate {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--space-2);
 }
 
 .tl-zoom input[type="range"] {
-  width: 90px;
+  width: var(--size-zoom-range);
 }
 
 .tl-rate select {
   width: auto;
   margin: 0;
-  min-height: 40px;
-  padding: 0.35rem 0.5rem;
-  border-radius: 8px;
+  min-height: var(--size-hit-target);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-md);
   background: var(--surface-control);
-  border: 1px solid var(--border-strong);
+  border: var(--border-hairline) solid var(--border-strong);
   color: var(--timeline-text);
   font: inherit;
-  font-size: 0.8rem;
+  font-size: var(--text-5);
 }
 
 .timeline-shell {
   position: relative;
   background: var(--timeline-track);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  padding: 0.4rem 0.5rem 0.7rem;
+  border: var(--border-hairline) solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4) var(--space-6) var(--space-10);
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -192,11 +192,11 @@
 
 .tl-ruler {
   position: relative;
-  height: 22px;
-  margin-left: 88px;
-  border-bottom: 1px solid var(--border-subtle);
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.62rem;
+  height: var(--size-ruler-height);
+  margin-left: var(--size-lane-gutter);
+  border-bottom: var(--border-hairline) solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--text-1);
   color: var(--timeline-text-faint);
 }
 
@@ -208,8 +208,8 @@
 
 .tl-chips {
   position: relative;
-  height: 18px;
-  margin-left: 88px;
+  height: var(--size-playhead-cap-height);
+  margin-left: var(--size-lane-gutter);
 }
 
 .tl-chips:empty { height: 0; }
@@ -217,14 +217,14 @@
 .tl-chip {
   position: absolute;
   top: 2px;
-  height: 14px;
-  min-width: 8px;
+  height: var(--size-chip-height);
+  min-width: var(--size-handle-width);
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   padding: 0 4px;
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.56rem;
-  line-height: 14px;
+  font-family: var(--font-mono);
+  font-size: var(--text-1);
+  line-height: var(--size-chip-height);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -238,33 +238,33 @@
 
 .tl-lanes {
   position: relative;
-  margin-top: 0.35rem;
+  margin-top: var(--space-3);
 }
 
 .tl-lane {
   display: grid;
-  grid-template-columns: 88px 1fr;
+  grid-template-columns: var(--size-lane-gutter) 1fr;
   gap: 0;
-  min-height: 56px;
-  margin-bottom: 0.35rem;
+  min-height: var(--size-lane-min);
+  margin-bottom: var(--space-3);
 }
 
-.tl-lane.audio { min-height: 48px; }
+.tl-lane.audio { min-height: var(--size-lane-audio-min); }
 
 .tl-lane-meta {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0.15rem;
-  padding: 0 0.4rem 0 0.15rem;
+  gap: var(--space-1);
+  padding: 0 var(--space-4) 0 var(--space-1);
   color: var(--timeline-text-muted);
-  font-size: 0.68rem;
+  font-size: var(--text-2);
 }
 
 .tl-lane-meta strong {
   color: var(--timeline-text);
-  font-size: 0.72rem;
-  font-weight: 650;
+  font-size: var(--text-3);
+  font-weight: var(--weight-strong);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -273,9 +273,9 @@
 .tl-lane-meta .icons {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--space-2);
   opacity: 0.55;
-  font-size: 0.65rem;
+  font-size: var(--text-2);
 }
 
 .tl-reveal {
@@ -283,7 +283,7 @@
   background: none;
   padding: 0;
   font-size: inherit;
-  line-height: 1;
+  line-height: var(--leading-none);
   cursor: pointer;
 }
 
@@ -292,13 +292,13 @@
 .tl-track {
   position: relative;
   height: 100%;
-  min-height: 56px;
+  min-height: var(--size-lane-min);
   background: var(--timeline-surface-sunken);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
-.tl-lane.audio .tl-track { min-height: 48px; }
+.tl-lane.audio .tl-track { min-height: var(--size-lane-audio-min); }
 
 .tl-clips {
   position: absolute;
@@ -310,14 +310,14 @@
   position: relative;
   height: 100%;
   box-sizing: border-box;
-  border: 2px solid transparent;
-  border-radius: 6px;
+  border: var(--border-thick) solid transparent;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   flex: 0 0 auto;
-  min-width: 6px;
+  min-width: var(--size-clip-min);
   color: var(--text-on-dark);
-  font-size: 0.65rem;
-  font-weight: 650;
+  font-size: var(--text-2);
+  font-weight: var(--weight-strong);
   cursor: pointer;
   background: linear-gradient(180deg, var(--clip-screen-top), var(--clip-screen-bottom));
 }
@@ -349,8 +349,8 @@
 
 .tl-clip.selected {
   border-color: var(--clip-outline);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
-  z-index: 2;
+  box-shadow: var(--ring-selected);
+  z-index: var(--z-base);
 }
 
 .tl-clip .film {
@@ -362,7 +362,7 @@
 
 .tl-clip .film i {
   flex: 1;
-  border-right: 1px solid rgba(0, 0, 0, 0.25);
+  border-right: var(--border-hairline) solid rgba(0, 0, 0, 0.25);
   background:
     repeating-linear-gradient(90deg, rgba(255,255,255,0.08) 0 8px, transparent 8px 16px),
     linear-gradient(180deg, rgba(255,255,255,0.12), transparent);
@@ -388,7 +388,7 @@
 .tl-clip .wave b {
   flex: 1;
   background: var(--focus-ring);
-  border-radius: 1px;
+  border-radius: var(--radius-hairline);
   min-height: 2px;
 }
 
@@ -404,13 +404,13 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 8px;
-  z-index: 4;
+  width: var(--size-handle-width);
+  z-index: var(--z-handle);
   cursor: ew-resize;
   background: rgba(255, 255, 255, 0.15);
 }
 
-.tl-handle:hover,
+.tl-handle: hover,
 .tl-handle.active {
   background: rgba(255, 255, 255, 0.45);
 }
@@ -422,17 +422,17 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 88px;
+  left: var(--size-lane-gutter);
   right: 0;
   pointer-events: none;
-  z-index: 8;
+  z-index: var(--z-playhead-layer);
 }
 
 .tl-playhead {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 2px;
+  width: var(--size-playhead-width);
   background: var(--surface-raised);
   transform: translateX(-1px);
 }
@@ -442,13 +442,13 @@
   top: 2px;
   left: 50%;
   transform: translate(-50%, 0);
-  width: 14px;
-  height: 18px;
-  border-radius: 6px;
+  width: var(--size-playhead-cap-width);
+  height: var(--size-playhead-cap-height);
+  border-radius: var(--radius-sm);
   background: var(--surface-raised);
   pointer-events: auto;
   cursor: ew-resize;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--elevation-xs);
 }
 
 #editStatus[data-kind="ok"] { color: var(--positive); }
@@ -457,28 +457,28 @@
    middle space (replaces the old .spacer) so Apply/skip results sit beside
    the button that produced them. */
 #editStatus {
-  flex: 1 1 10rem;
-  min-width: 8rem;
+  flex: 1 1 var(--size-status-basis);
+  min-width: var(--size-status-min);
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-8);
   color: var(--text-muted);
   text-align: right;
 }
 
 #editTimeLabel {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-6);
   color: var(--text-muted);
 }
 
 /* CapCut-like large wave preview in the right Selection panel */
 .wave-panel {
   position: relative;
-  height: 104px;
-  margin-top: 0.35rem;
+  height: var(--size-wave-panel);
+  margin-top: var(--space-3);
   background: linear-gradient(180deg, var(--wave-surface-top), var(--wave-surface-bottom));
-  border: 1px solid var(--wave-border);
-  border-radius: 10px;
+  border: var(--border-hairline) solid var(--wave-border);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: ew-resize;
   user-select: none;
@@ -498,7 +498,7 @@
   align-items: center;
   justify-content: center;
   color: var(--text-faint);
-  font-size: 0.78rem;
+  font-size: var(--text-4);
   pointer-events: none;
 }
 
@@ -511,26 +511,26 @@
 }
 
 .wave-panel-zoom button {
-  width: 32px; /* a11y hit target — 44px would cover too much of the wave */
+  width: var(--size-hit-target-compact); /* a11y hit target — 44px would cover too much of the wave */
   margin: 0;
   padding: 0;
-  height: 32px;
-  line-height: 1;
-  border-radius: 6px;
+  height: var(--size-hit-target-compact);
+  line-height: var(--leading-none);
+  border-radius: var(--radius-sm);
   background: rgba(42, 49, 64, 0.85);
-  border: 1px solid var(--border-strong);
+  border: var(--border-hairline) solid var(--border-strong);
   color: var(--timeline-text);
-  font-size: 1rem;
-  font-weight: 650;
+  font-size: var(--text-10);
+  font-weight: var(--weight-strong);
 }
 
 .wave-panel-zoom button:hover { background: var(--border-strong); }
 
 .clip-row {
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  padding: 0.4rem 0.5rem;
-  margin-bottom: 0.3rem;
+  border: var(--border-hairline) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-6);
+  margin-bottom: var(--space-3);
   background: var(--timeline-surface-sunken);
   cursor: pointer;
 }
@@ -545,16 +545,16 @@
 .clip-meta {
   display: flex;
   justify-content: space-between;
-  gap: 0.5rem;
-  font-size: 0.8rem;
+  gap: var(--space-6);
+  font-size: var(--text-5);
 }
 
 .view-header {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-14);
   align-items: baseline;
-  margin-bottom: 0.45rem;
+  margin-bottom: var(--space-5);
 }
 
 .stage video { pointer-events: none; }
@@ -562,20 +562,20 @@
 .asr-provider {
   display: inline-flex;
   gap: 0;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border: var(--border-hairline) solid var(--border-strong);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
 .asr-provider button {
   width: auto;
   margin: 0;
-  padding: 0.35rem 0.65rem;
-  border-radius: 0;
+  padding: var(--space-3) var(--space-9);
+  border-radius: var(--radius-none);
   border: none;
   background: var(--clip-gap-a);
   color: var(--timeline-text-muted);
-  font-size: 0.78rem;
+  font-size: var(--text-4);
 }
 
 .asr-provider button.active {
@@ -584,33 +584,33 @@
 }
 
 .transcript-panel {
-  max-height: 14rem;
+  max-height: var(--size-more-menu-min);
   overflow: auto;
-  margin: 0.35rem 0 0.55rem;
+  margin: var(--space-3) 0 var(--space-7);
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-2);
 }
 
 .transcript-panel .empty {
   color: var(--text-muted);
-  font-size: 0.82rem;
+  font-size: var(--text-6);
   margin: 0;
 }
 
 .cue-row {
   display: grid;
-  grid-template-columns: 4.2rem 1fr;
-  gap: 0.45rem;
+  grid-template-columns: var(--size-cue-time-col) 1fr;
+  gap: var(--space-5);
   align-items: start;
   width: 100%;
   margin: 0;
   text-align: left;
-  padding: 0.35rem 0.45rem;
+  padding: var(--space-3) var(--space-5);
   background: var(--timeline-surface-sunken);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  font-size: 0.78rem;
+  border: var(--border-hairline) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: var(--text-4);
 }
 
 .cue-row:hover {
@@ -619,14 +619,14 @@
 }
 
 .cue-time {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: var(--text-3);
 }
 
 .cue-text {
   color: var(--text-primary);
-  line-height: 1.35;
+  line-height: var(--leading-snug);
 }
 
 /* —— I.3 screen crop (drag handles on the preview, dimmed outside) —— */
@@ -634,23 +634,23 @@
 .crop-overlay {
   position: absolute;
   overflow: hidden;
-  z-index: 5;
+  z-index: var(--z-playhead);
 }
 
 .crop-rect {
   position: absolute;
-  border: 1.5px solid var(--accent);
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  border: var(--border-thin) solid var(--accent);
+  box-shadow: var(--scrim-crop);
   cursor: move;
 }
 
 .crop-rect i {
   position: absolute;
-  width: 12px;
-  height: 12px;
+  width: var(--size-crop-handle);
+  height: var(--size-crop-handle);
   background: var(--accent);
-  border: 1px solid rgba(0, 0, 0, 0.45);
-  border-radius: 3px;
+  border: var(--border-hairline) solid rgba(0, 0, 0, 0.45);
+  border-radius: var(--radius-xs);
 }
 
 .crop-rect i[data-h="nw"] { left: -6px; top: -6px; cursor: nwse-resize; }
@@ -665,18 +665,18 @@
 .crop-actions {
   position: absolute;
   left: 50%;
-  bottom: 0.55rem;
+  bottom: var(--space-7);
   transform: translateX(-50%);
   display: flex;
-  gap: 0.4rem;
-  z-index: 6;
+  gap: var(--space-4);
+  z-index: var(--z-crop-actions);
 }
 
 .crop-actions button {
   width: auto;
   margin: 0;
-  padding: 0.35rem 0.7rem;
-  font-size: 0.78rem;
+  padding: var(--space-3) var(--space-10);
+  font-size: var(--text-4);
 }
 
 .crop-actions button.primary {
@@ -694,9 +694,9 @@
 #view-edit {
   background: var(--surface-app);
   color: var(--text-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: 18px;
-  padding: 1rem 1.1rem 1.25rem;
+  border: var(--border-hairline) solid var(--border-subtle);
+  border-radius: var(--radius-3xl);
+  padding: var(--space-14) var(--space-15) var(--space-16);
 }
 
 :where(#view-edit) select,
@@ -717,9 +717,9 @@
   font: inherit;
   background: var(--surface-sunken);
   color: var(--text-primary);
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  padding: 0.45rem 0.55rem;
+  border: var(--border-hairline) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-5) var(--space-7);
 }
 
 :where(#view-edit) .cue-edit input {
@@ -728,5 +728,5 @@
 }
 
 :where(#view-edit) .panel {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  box-shadow: var(--elevation-panel-strong);
 }

@@ -6,41 +6,41 @@
   <title>Stem Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link href="https: //fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; }
     body {
       margin: 0; min-height: 100vh; background: var(--surface-app); color: var(--text-primary);
-      font-family: "IBM Plex Sans", system-ui, sans-serif;
-      padding: 1.25rem clamp(1rem, 3vw, 2rem) 2.5rem;
+      font-family: var(--font-sans);
+      padding: var(--space-16) clamp(var(--space-14), 3vw, var(--space-17)) var(--space-18);
     }
-    h1 { font-size: 1.5rem; letter-spacing: -0.03em; margin: 0 0 0.35rem; }
+    h1 { font-size: var(--text-11); letter-spacing: var(--tracking-tight); margin: 0 0 var(--space-3); }
     .kicker {
-      font-size: 0.72rem; font-weight: 650; letter-spacing: 0.12em;
-      text-transform: uppercase; color: var(--accent); margin-bottom: 0.35rem;
+      font-size: var(--text-3); font-weight: var(--weight-strong); letter-spacing: var(--tracking-widest);
+      text-transform: uppercase; color: var(--accent); margin-bottom: var(--space-3);
     }
-    p.lead { color: var(--text-muted); margin: 0 0 1rem; max-width: 56rem; line-height: 1.45; }
+    p.lead { color: var(--text-muted); margin: 0 0 var(--space-14); max-width: var(--size-measure-lead); line-height: var(--leading-normal); }
     .layout {
-      display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.7fr);
-      gap: 1.1rem; align-items: start;
+      display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(var(--size-panel-min), 0.7fr);
+      gap: var(--space-15); align-items: start;
     }
     @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
     .previews {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+      display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-11);
     }
     @media (max-width: 720px) { .previews { grid-template-columns: 1fr; } }
     .stage-wrap {
-      background: var(--surface-sunken); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 0.55rem;
+      background: var(--surface-sunken); border: var(--border-hairline) solid var(--border-subtle); border-radius: var(--radius-3xl); padding: var(--space-7);
     }
     .stage-wrap .cap {
-      font-size: 0.72rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase;
-      color: var(--text-muted); margin: 0 0 0.4rem 0.15rem;
+      font-size: var(--text-3); font-weight: var(--weight-strong); letter-spacing: var(--tracking-wider); text-transform: uppercase;
+      color: var(--text-muted); margin: 0 0 var(--space-4) var(--space-1);
     }
     .stage {
-      background: var(--surface-stage); border-radius: 12px; overflow: hidden; position: relative;
-      width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--surface-stage-border);
+      background: var(--surface-stage); border-radius: var(--radius-xl); overflow: hidden; position: relative;
+      width: 100%; aspect-ratio: 16 / 9; border: var(--border-hairline) solid var(--surface-stage-border);
     }
-    .stage.portrait { aspect-ratio: 9 / 16; max-width: 280px; margin-inline: auto; }
+    .stage.portrait { aspect-ratio: 9 / 16; max-width: var(--size-stage-portrait-max); margin-inline: auto; }
     .stage video {
       position: absolute; inset: 0; width: 100%; height: 100%;
       object-fit: contain; background: var(--surface-video); display: block;
@@ -52,166 +52,166 @@
        inline. Drag body to move, corner handle to resize (Edit-T2b). */
     .stage video.pip-preview {
       inset: auto; right: 2%; bottom: 3.5%; width: 25%; height: auto;
-      object-fit: contain; border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.35);
+      object-fit: contain; border-radius: var(--radius-sm);
+      border: var(--border-hairline) solid rgba(255, 255, 255, 0.35);
       pointer-events: auto; cursor: grab; touch-action: none;
     }
     .stage .pip-resize {
-      position: absolute; width: 14px; height: 14px; z-index: 3;
-      background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.8);
-      border-radius: 3px; cursor: nwse-resize; touch-action: none;
+      position: absolute; width: var(--size-pip-handle); height: var(--size-pip-handle); z-index: var(--z-raised);
+      background: rgba(0, 0, 0, 0.6); border: var(--border-hairline) solid rgba(255, 255, 255, 0.8);
+      border-radius: var(--radius-xs); cursor: nwse-resize; touch-action: none;
     }
     .hud {
-      position: absolute; left: 0.5rem; bottom: 0.5rem; right: 0.5rem;
-      display: flex; flex-wrap: wrap; gap: 0.35rem; pointer-events: none;
+      position: absolute; left: var(--space-6); bottom: var(--space-6); right: var(--space-6);
+      display: flex; flex-wrap: wrap; gap: var(--space-3); pointer-events: none;
     }
     .pill {
-      background: rgba(0,0,0,0.55); color: var(--surface-raised); border-radius: 999px;
-      padding: 0.22rem 0.55rem; font-size: 0.72rem; font-family: "IBM Plex Mono", monospace;
+      background: rgba(0,0,0,0.55); color: var(--surface-raised); border-radius: var(--radius-pill);
+      padding: var(--space-2) var(--space-7); font-size: var(--text-3); font-family: var(--font-mono);
     }
     .pill.live { background: rgba(47,107,79,0.9); }
     .pill.warn { background: rgba(166,90,42,0.9); }
     .pill.off { background: rgba(80,80,80,0.75); }
     .panel {
-      background: var(--surface-raised); border: 1px solid var(--border-subtle); border-radius: 16px;
-      padding: 1rem 1.05rem; box-shadow: 0 8px 24px rgba(26,31,42,0.04);
+      background: var(--surface-raised); border: var(--border-hairline) solid var(--border-subtle); border-radius: var(--radius-3xl);
+      padding: var(--space-14) var(--space-15); box-shadow: var(--elevation-panel);
     }
-    .panel h2 { font-size: 0.92rem; margin: 0 0 0.35rem; }
+    .panel h2 { font-size: var(--text-9); margin: 0 0 var(--space-3); }
     .panel h3 {
-      font-size: 0.72rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase;
-      color: var(--text-muted); margin: 0.95rem 0 0.35rem;
+      font-size: var(--text-3); font-weight: var(--weight-strong); letter-spacing: var(--tracking-wider); text-transform: uppercase;
+      color: var(--text-muted); margin: var(--space-13) 0 var(--space-3);
     }
-    label { display: block; font-size: 0.78rem; color: var(--text-muted); margin: 0.55rem 0 0.25rem; }
+    label { display: block; font-size: var(--text-4); color: var(--text-muted); margin: var(--space-7) 0 var(--space-2); }
     select, button {
-      width: 100%; font: inherit; border-radius: 10px; border: 1px solid var(--border-subtle);
-      padding: 0.52rem 0.65rem; background: var(--surface-raised); color: var(--text-primary);
+      width: 100%; font: inherit; border-radius: var(--radius-lg); border: var(--border-hairline) solid var(--border-subtle);
+      padding: var(--space-6) var(--space-9); background: var(--surface-raised); color: var(--text-primary);
     }
     button {
-      cursor: pointer; font-weight: 650; margin-top: 0.45rem;
+      cursor: pointer; font-weight: var(--weight-strong); margin-top: var(--space-5);
       background: var(--accent-soft); border-color: var(--accent-soft-border); color: var(--text-on-accent);
     }
     button.secondary { background: var(--surface-raised); color: var(--text-primary); }
     button.danger { background: var(--negative-surface); border-color: var(--negative-surface); color: var(--warn); }
     button.rec {
-      background: var(--record-surface); border-color: var(--record-border); color: var(--surface-raised); font-size: 1.02rem;
-      padding: 0.75rem 0.85rem; margin-top: 0.7rem;
+      background: var(--record-surface); border-color: var(--record-border); color: var(--surface-raised); font-size: var(--text-10);
+      padding: var(--space-11) var(--space-12); margin-top: var(--space-10);
     }
     button.rec:disabled { opacity: 0.45; cursor: not-allowed; }
-    button.rec.active { animation: pulse 1.2s ease infinite; }
+    button.rec.active { animation: pulse var(--duration-pulse) var(--ease-pulse) infinite; }
     @keyframes pulse { 50% { filter: brightness(1.08); } }
-    .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
-    .toggles { display: grid; gap: 0.4rem; margin-top: 0.35rem; }
+    .row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+    .toggles { display: grid; gap: var(--space-4); margin-top: var(--space-3); }
     .toggle {
-      display: flex; align-items: center; gap: 0.55rem;
-      border: 1px solid var(--border-subtle); border-radius: 10px; padding: 0.45rem 0.6rem; background: var(--surface-subtle);
+      display: flex; align-items: center; gap: var(--space-7);
+      border: var(--border-hairline) solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-5) var(--space-8); background: var(--surface-subtle);
     }
     .toggle input { width: auto; margin: 0; accent-color: var(--accent); }
-    .toggle span { font-size: 0.9rem; font-weight: 600; }
-    .toggle small { margin-left: auto; color: var(--text-muted); font-size: 0.75rem; }
+    .toggle span { font-size: var(--text-9); font-weight: var(--weight-bold); }
+    .toggle small { margin-left: auto; color: var(--text-muted); font-size: var(--text-4); }
     .screen-picked {
-      font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem; min-height: 1.2em;
+      font-size: var(--text-5); color: var(--text-muted); margin-top: var(--space-3); min-height: 1.2em;
     }
-    .screen-picked.on { color: var(--positive); font-weight: 600; }
-    .orient { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; margin-top: 0.35rem; }
+    .screen-picked.on { color: var(--positive); font-weight: var(--weight-bold); }
+    .orient { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-top: var(--space-3); }
     .orient button { margin-top: 0; background: var(--surface-raised); color: var(--text-primary); }
     .orient button.active { background: var(--accent-soft); border-color: var(--accent-soft-border); color: var(--text-on-accent); }
-    .takes { margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; max-height: 14rem; overflow: auto; }
+    .takes { margin-top: var(--space-11); display: flex; flex-direction: column; gap: var(--space-3); max-height: var(--size-more-menu-min); overflow: auto; }
     .takes a {
-      font-size: 0.8rem; color: var(--positive); text-decoration: none;
-      padding: 0.4rem 0.5rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-subtle);
+      font-size: var(--text-5); color: var(--positive); text-decoration: none;
+      padding: var(--space-4) var(--space-6); border: var(--border-hairline) solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--surface-subtle);
     }
-    .takes:empty::after { content: "No takes yet."; color: var(--text-muted); font-size: 0.82rem; }
-    .meter { height: 8px; background: var(--meter-track); border-radius: 999px; overflow: hidden; margin-top: 0.65rem; }
+    .takes:empty::after { content: "No takes yet."; color: var(--text-muted); font-size: var(--text-6); }
+    .meter { height: var(--size-meter-height); background: var(--meter-track); border-radius: var(--radius-pill); overflow: hidden; margin-top: var(--space-9); }
     .meter > i { display: block; height: 100%; width: 0%; background: var(--positive); }
     #log {
-      margin-top: 0.75rem; font-family: "IBM Plex Mono", monospace; font-size: 0.72rem;
-      color: var(--text-muted); white-space: pre-wrap; max-height: 9rem; overflow: auto;
+      margin-top: var(--space-11); font-family: var(--font-mono); font-size: var(--text-3);
+      color: var(--text-muted); white-space: pre-wrap; max-height: var(--size-log-max); overflow: auto;
     }
     .secure-warn {
-      display: none; margin-bottom: 0.9rem; padding: 0.7rem 0.85rem; border-radius: 12px;
-      background: var(--negative-surface); color: var(--warn); border: 1px solid var(--negative-surface); font-size: 0.9rem;
+      display: none; margin-bottom: var(--space-13); padding: var(--space-10) var(--space-12); border-radius: var(--radius-xl);
+      background: var(--negative-surface); color: var(--warn); border: var(--border-hairline) solid var(--negative-surface); font-size: var(--text-9);
     }
-    .checks { margin-top: 0.85rem; font-size: 0.84rem; color: var(--text-muted); line-height: 1.45; }
+    .checks { margin-top: var(--space-12); font-size: var(--text-7); color: var(--text-muted); line-height: var(--leading-normal); }
     .checks strong { color: var(--text-primary); }
 
     .app-nav {
-      display: flex; gap: 0.4rem; margin: 0 0 1.1rem; flex-wrap: wrap;
+      display: flex; gap: var(--space-4); margin: 0 0 var(--space-15); flex-wrap: wrap;
     }
     .app-nav button {
-      width: auto; margin: 0; padding: 0.45rem 0.9rem;
+      width: auto; margin: 0; padding: var(--space-5) var(--space-13);
       background: var(--surface-raised); color: var(--text-primary);
     }
     .app-nav button.active {
       background: var(--accent-soft); border-color: var(--accent-soft-border); color: var(--text-on-accent);
     }
     .take-row {
-      display: flex; justify-content: space-between; gap: 1rem; align-items: baseline;
-      width: 100%; text-align: left; margin: 0 0 0.4rem; background: var(--surface-raised);
+      display: flex; justify-content: space-between; gap: var(--space-14); align-items: baseline;
+      width: 100%; text-align: left; margin: 0 0 var(--space-4); background: var(--surface-raised);
     }
-    .take-row span { color: var(--text-muted); font-size: 0.78rem; font-weight: 500; }
+    .take-row span { color: var(--text-muted); font-size: var(--text-4); font-weight: var(--weight-medium); }
     .take-row:disabled { opacity: 0.45; }
     .empty { color: var(--text-muted); }
     .edit-layout {
       display: grid; grid-template-rows: auto auto auto;
-      gap: 0.75rem;
+      gap: var(--space-11);
     }
     .edit-preview-row {
-      display: grid; grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-      gap: 0.85rem; align-items: start;
+      display: grid; grid-template-columns: minmax(var(--size-inspector-min), var(--size-inspector-max)) minmax(0, 1fr);
+      gap: var(--space-12); align-items: start;
     }
     @media (max-width: 900px) { .edit-preview-row { grid-template-columns: 1fr; } }
     .tl-toolbar {
-      display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;
-      padding: 0.55rem 0.65rem; background: var(--accent-contrast); border-radius: 12px;
+      display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: center;
+      padding: var(--space-7) var(--space-9); background: var(--accent-contrast); border-radius: var(--radius-xl);
     }
     .tl-toolbar button {
-      width: auto; margin: 0; padding: 0.45rem 0.85rem; border-radius: 8px;
-      background: var(--surface-control); border-color: var(--surface-control-hover); color: var(--timeline-text); font-weight: 650;
+      width: auto; margin: 0; padding: var(--space-5) var(--space-12); border-radius: var(--radius-md);
+      background: var(--surface-control); border-color: var(--surface-control-hover); color: var(--timeline-text); font-weight: var(--weight-strong);
     }
     .tl-toolbar button.primary { background: var(--accent); border-color: var(--accent-strong); color: var(--timeline-surface-raised); }
     .tl-toolbar button.danger { background: var(--negative-surface); border-color: var(--negative-border); color: var(--negative-on-surface); }
     .tl-toolbar button:disabled { opacity: 0.4; }
     .tl-toolbar .tl-time {
-      font-family: "IBM Plex Mono", monospace; font-size: 0.82rem; color: var(--timeline-text-muted);
+      font-family: var(--font-mono); font-size: var(--text-6); color: var(--timeline-text-muted);
     }
     .timeline-shell {
-      background: var(--surface-app); border: 1px solid var(--surface-control); border-radius: 14px;
-      padding: 0.65rem 0.55rem 0.85rem; overflow: hidden;
+      background: var(--surface-app); border: var(--border-hairline) solid var(--surface-control); border-radius: var(--radius-2xl);
+      padding: var(--space-9) var(--space-7) var(--space-12); overflow: hidden;
     }
     .tl-ruler {
-      position: relative; height: 1.25rem; margin: 0 0 0.35rem 2.5rem;
-      font-family: "IBM Plex Mono", monospace; font-size: 0.65rem; color: var(--timeline-text-faint);
+      position: relative; height: var(--size-ruler-height-compact); margin: 0 0 var(--space-3) var(--space-18);
+      font-family: var(--font-mono); font-size: var(--text-2); color: var(--timeline-text-faint);
     }
     .tl-ruler span { position: absolute; transform: translateX(-50%); }
     .tl-track-row {
-      display: grid; grid-template-columns: 2.5rem 1fr; gap: 0.35rem; align-items: stretch;
+      display: grid; grid-template-columns: var(--size-lane-label-col) 1fr; gap: var(--space-3); align-items: stretch;
     }
     .tl-lane-label {
-      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      font-size: var(--text-2); font-weight: var(--weight-heavy); letter-spacing: var(--tracking-wide); text-transform: uppercase;
       color: var(--timeline-text-faint); display: flex; align-items: center; justify-content: center;
     }
     .tl-track {
-      position: relative; height: 72px; background: var(--timeline-track); border-radius: 10px;
+      position: relative; height: var(--size-track-height); background: var(--timeline-track); border-radius: var(--radius-lg);
       overflow: hidden; cursor: pointer; user-select: none;
     }
     .tl-clips { position: absolute; inset: 0; display: flex; }
     .tl-clip {
       position: relative; height: 100%; box-sizing: border-box;
-      border: 2px solid transparent; border-radius: 8px; overflow: hidden;
+      border: var(--border-thick) solid transparent; border-radius: var(--radius-md); overflow: hidden;
       background:
         repeating-linear-gradient(90deg, var(--clip-stripe-a) 0 10px, var(--clip-stripe-b) 10px 12px),
         linear-gradient(180deg, var(--clip-default-top), var(--clip-default-bottom));
-      color: var(--text-on-dark); font-size: 0.7rem; font-weight: 650;
-      display: flex; align-items: flex-end; padding: 0.35rem 0.45rem;
-      flex: 0 0 auto; min-width: 8px;
+      color: var(--text-on-dark); font-size: var(--text-3); font-weight: var(--weight-strong);
+      display: flex; align-items: flex-end; padding: var(--space-3) var(--space-5);
+      flex: 0 0 auto; min-width: var(--size-handle-width);
     }
     .tl-clip.selected {
-      border-color: var(--accent); box-shadow: inset 0 0 0 1px rgba(240,201,74,0.5);
-      z-index: 2;
+      border-color: var(--accent); box-shadow: var(--ring-selected-accent);
+      z-index: var(--z-base);
     }
     .tl-playhead {
-      position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent);
-      pointer-events: none; z-index: 5; transform: translateX(-1px);
+      position: absolute; top: 0; bottom: 0; width: var(--size-playhead-width); background: var(--accent);
+      pointer-events: none; z-index: var(--z-playhead); transform: translateX(-1px);
     }
     .tl-playhead::before {
       content: ""; position: absolute; top: -2px; left: -5px;
@@ -220,58 +220,58 @@
     }
     .clip-row.selected { border-color: var(--accent); background: var(--accent-soft); }
     .clip-row {
-      border: 1px solid var(--border-subtle); border-radius: 10px; padding: 0.45rem 0.55rem;
-      margin-bottom: 0.35rem; background: var(--surface-subtle); cursor: pointer;
+      border: var(--border-hairline) solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-5) var(--space-7);
+      margin-bottom: var(--space-3); background: var(--surface-subtle); cursor: pointer;
     }
-    .clip-meta { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.82rem; }
-    .asr-provider { display: flex; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; }
+    .clip-meta { display: flex; justify-content: space-between; gap: var(--space-6); font-size: var(--text-6); }
+    .asr-provider { display: flex; border: var(--border-hairline) solid var(--border-strong); border-radius: var(--radius-md); overflow: hidden; }
     .asr-provider button {
-      width: auto; margin: 0; padding: 0.45rem 0.7rem; border: none; border-radius: 0;
-      background: var(--clip-gap-a); color: var(--timeline-text-muted); font-weight: 650;
+      width: auto; margin: 0; padding: var(--space-5) var(--space-10); border: none; border-radius: var(--radius-none);
+      background: var(--clip-gap-a); color: var(--timeline-text-muted); font-weight: var(--weight-strong);
     }
     .asr-provider button.active { background: var(--accent); color: var(--timeline-surface-raised); }
-    .transcript-panel { max-height: 16rem; overflow: auto; }
-    .transcript-panel.flash { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 10px; }
+    .transcript-panel { max-height: var(--size-transcript-max-wide); overflow: auto; }
+    .transcript-panel.flash { outline: var(--focus-ring-width) solid var(--accent); outline-offset: var(--focus-ring-offset); border-radius: var(--radius-lg); }
     .ctx-menu {
-      position: fixed; z-index: 1000; min-width: 12rem; padding: 0.3rem;
-      background: var(--menu-surface); border: 1px solid var(--surface-control-hover); border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      position: fixed; z-index: var(--z-context-menu); min-width: var(--size-menu-min); padding: var(--space-3);
+      background: var(--menu-surface); border: var(--border-hairline) solid var(--surface-control-hover); border-radius: var(--radius-lg);
+      box-shadow: var(--elevation-overlay);
     }
     .ctx-menu button {
-      display: block; width: 100%; margin: 0; padding: 0.45rem 0.6rem; border: none;
-      border-radius: 7px; background: transparent; color: var(--menu-text); text-align: left;
-      font-size: 0.84rem; font-weight: 550; cursor: pointer;
+      display: block; width: 100%; margin: 0; padding: var(--space-5) var(--space-8); border: none;
+      border-radius: var(--radius-sm); background: transparent; color: var(--menu-text); text-align: left;
+      font-size: var(--text-7); font-weight: var(--weight-semibold); cursor: pointer;
     }
     .ctx-menu button:hover { background: var(--accent); color: var(--accent-contrast); }
     .ctx-menu button:disabled { color: var(--menu-text-disabled); cursor: default; }
     .ctx-menu button:disabled:hover { background: transparent; color: var(--menu-text-disabled); }
     .cue-row {
-      display: flex; gap: 0.5rem; align-items: baseline; width: 100%; text-align: left;
-      border: 1px solid var(--border-subtle); border-radius: 10px; padding: 0.4rem 0.55rem;
-      margin: 0 0 0.35rem; background: var(--surface-subtle); font-weight: 500;
+      display: flex; gap: var(--space-6); align-items: baseline; width: 100%; text-align: left;
+      border: var(--border-hairline) solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-7);
+      margin: 0 0 var(--space-3); background: var(--surface-subtle); font-weight: var(--weight-medium);
     }
     .cue-row:hover { border-color: var(--accent); }
     .cue-row .cue-time {
-      font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; color: var(--accent);
+      font-family: var(--font-mono); font-size: var(--text-3); color: var(--accent);
       flex: 0 0 auto;
     }
-    .cue-row .cue-text { font-size: 0.82rem; }
+    .cue-row .cue-text { font-size: var(--text-6); }
     .cue-edit input {
-      width: 100%; font-size: 0.82rem; padding: 0.35rem 0.5rem; margin: 0 0 0.35rem;
-      border: 1px solid var(--accent); border-radius: 10px; background: var(--border-subtle);
+      width: 100%; font-size: var(--text-6); padding: var(--space-3) var(--space-6); margin: 0 0 var(--space-3);
+      border: var(--border-hairline) solid var(--accent); border-radius: var(--radius-lg); background: var(--border-subtle);
     }
     .caption-overlay {
       position: absolute; left: 50%; bottom: 6%; transform: translateX(-50%);
-      max-width: 86%; padding: 0.2rem 0.6rem; border-radius: 6px;
+      max-width: 86%; padding: var(--space-2) var(--space-8); border-radius: var(--radius-sm);
       background: rgba(10, 12, 18, 0.72); color: var(--surface-raised); text-align: center;
-      font-size: 0.95rem; line-height: 1.3; pointer-events: none; white-space: pre-line;
+      font-size: var(--text-9); line-height: var(--leading-tight); pointer-events: none; white-space: pre-line;
     }
     .danger-text { color: var(--warn) !important; }
     #editStatus[data-kind="ok"] { color: var(--positive); }
     #editStatus[data-kind="warn"] { color: var(--warn); }
-    #editStatus { flex: 1 1 10rem; min-width: 8rem; font-size: 0.85rem; color: var(--text-muted); text-align: right; }
-    #editTimeLabel { font-family: "IBM Plex Mono", monospace; font-size: 0.85rem; color: var(--text-muted); }
-    .view-header { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; margin-bottom: 0.5rem; }
+    #editStatus { flex: 1 1 var(--size-status-basis); min-width: var(--size-status-min); font-size: var(--text-8); color: var(--text-muted); text-align: right; }
+    #editTimeLabel { font-family: var(--font-mono); font-size: var(--text-8); color: var(--text-muted); }
+    .view-header { display: flex; justify-content: space-between; gap: var(--space-14); align-items: baseline; margin-bottom: var(--space-6); }
     .stage video { pointer-events: none; }
   </style>
 </head>
@@ -302,7 +302,7 @@
         <div class="panel">
           <h2>Selection</h2>
           <div id="editTimeLabel">—</div>
-          <div class="row-btns" style="margin-top:0.55rem">
+          <div class="row-btns" style="margin-top:var(--space-7)">
             <div>
               <label for="clipInSec">In (s)</label>
               <input id="clipInSec" type="number" min="0" step="0.1" value="0" />
@@ -322,7 +322,7 @@
               <button type="button" id="waveZoomInBtn" title="Zoom in wave around playhead">+</button>
             </div>
           </div>
-          <div id="clipList" style="margin-top:0.55rem"></div>
+          <div id="clipList" style="margin-top:var(--space-7)"></div>
           <h3>Transcript</h3>
           <div id="transcriptPanel" class="transcript-panel"><p class="empty">No transcript yet.</p></div>
           <button type="button" class="secondary" id="openFolderBtn">Open take folder</button>
@@ -455,7 +455,7 @@
   <div id="secureWarn" class="secure-warn">
     Needs localhost or https. Serve this folder:
     <code>python3 -m http.server 8765</code> →
-    <code>http://127.0.0.1:8765/cam-preview.html</code>
+    <code>http: //127.0.0.1:8765/cam-preview.html</code>
   </div>
 
   <div class="layout">
@@ -499,7 +499,7 @@
       <button type="button" class="secondary" id="pickScreenBtn">Pick screen / window / tab…</button>
       <button type="button" class="secondary" id="openChromeBtn">Open in Chrome (needed for screen)</button>
       <div class="screen-picked" id="screenPicked">Nothing picked yet</div>
-      <div class="checks" style="margin-top:0.35rem">
+      <div class="checks" style="margin-top:var(--space-3)">
         Screen preview turns on after you pick a display. In Cursor’s built-in browser it is often blocked —
         use the desktop app (<code>recorder-app</code>) or Chrome on localhost.
       </div>

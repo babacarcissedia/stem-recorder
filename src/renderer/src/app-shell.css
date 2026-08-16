@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-family: var(--font-sans);
   color: var(--text-primary);
   background: var(--surface-app);
 }
@@ -12,25 +12,25 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.5rem 0.9rem;
-  border-bottom: 1px solid var(--border-subtle);
+  gap: var(--space-14);
+  padding: var(--space-6) var(--space-13);
+  border-bottom: var(--border-hairline) solid var(--border-subtle);
   background: var(--surface-raised);
 }
 
 .shell-top-bar-identity {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: var(--space-1);
 }
 
 .shell-top-bar-project {
-  font-weight: 650;
-  font-size: 0.9rem;
+  font-weight: var(--weight-strong);
+  font-size: var(--text-9);
 }
 
 .shell-top-bar-autosave {
-  font-size: 0.72rem;
+  font-size: var(--text-3);
   color: var(--text-muted);
 }
 
@@ -38,22 +38,22 @@
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) minmax(220px, 280px);
+  grid-template-columns: minmax(var(--size-sidebar-min), var(--size-sidebar-max)) minmax(0, 1fr) minmax(var(--size-inspector-min), var(--size-inspector-max));
   grid-template-rows: minmax(0, 1fr) auto;
   grid-template-areas:
     "left main right"
     "footer footer footer";
-  gap: 0.5rem;
-  padding: 0.5rem;
+  gap: var(--space-6);
+  padding: var(--space-6);
   min-width: 0;
 }
 
 .shell-sidebar {
   min-height: 0;
   overflow: auto;
-  padding: 0.75rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  padding: var(--space-11);
+  border: var(--border-hairline) solid var(--border-subtle);
+  border-radius: var(--radius-xl);
   background: var(--surface-raised);
 }
 
@@ -66,17 +66,17 @@
 }
 
 .shell-sidebar-title {
-  font-size: 0.78rem;
-  font-weight: 650;
-  letter-spacing: 0.06em;
+  font-size: var(--text-4);
+  font-weight: var(--weight-strong);
+  letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
   color: var(--text-muted);
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-6);
 }
 
 .shell-sidebar-empty {
   color: var(--text-muted);
-  font-size: 0.82rem;
+  font-size: var(--text-6);
 }
 
 .shell-main {
@@ -85,7 +85,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-6);
 }
 
 .shell-player-stage {
@@ -94,23 +94,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   background: var(--text-primary);
 }
 
 .shell-player-stage-empty {
   color: var(--surface-raised);
-  font-size: 0.85rem;
+  font-size: var(--text-8);
 }
 
 .shell-player-transport {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-8);
+  border: var(--border-hairline) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   background: var(--surface-raised);
 }
 
@@ -119,32 +119,32 @@
 }
 
 .shell-player-time {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-5);
   color: var(--text-muted);
 }
 
 .shell-footer {
   grid-area: footer;
   flex: 0 0 auto;
-  padding: 0.75rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  padding: var(--space-11);
+  border: var(--border-hairline) solid var(--border-subtle);
+  border-radius: var(--radius-xl);
   background: var(--surface-raised);
 }
 
 .shell-footer-empty {
   color: var(--text-muted);
-  font-size: 0.82rem;
+  font-size: var(--text-6);
   margin: 0;
 }
 
 .shell-icon-button {
   width: auto;
   margin: 0;
-  padding: 0.4rem 0.65rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-subtle);
+  padding: var(--space-4) var(--space-9);
+  border-radius: var(--radius-md);
+  border: var(--border-hairline) solid var(--border-subtle);
   background: var(--surface-raised);
   color: var(--text-primary);
   cursor: pointer;
