@@ -917,7 +917,15 @@
     try {
       const res = await studio.transcribe({ takeId: currentTakeId, provider: asrProvider });
       await loadTranscript(currentTakeId);
-      setStatus(`Transcribed (${res.provider}) → edit/captions.vtt · ${res.segments} cue${res.segments === 1 ? '' : 's'}`, 'ok');
+      const base = `Transcribed (${res.provider}) → edit/captions.vtt · ${res.segments} cue${res.segments === 1 ? '' : 's'}`;
+      // res.verification is absent on results from before this check existed
+      // (or a cached asr.json written by an older version) — treat that the
+      // same as a passing check, never as a failure.
+      if (res.verification && res.verification.ok === false) {
+        setStatus(`${base} — verification failed, check the transcript: ${res.verification.reasons.join('; ')}`, 'warn');
+      } else {
+        setStatus(base, 'ok');
+      }
     } catch (e) {
       const msg = String(e.message || e);
       const cloudHint = asrProvider === 'local' && /python|transformers|torch/i.test(msg)
