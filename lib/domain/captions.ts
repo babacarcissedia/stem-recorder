@@ -21,6 +21,10 @@ const DEFAULT_WORDS_PER_CUE = 3;
 // instead (see buildKaraokeCueText).
 const DEFAULT_MAX_GAP_SEC = 1.2;
 
+export type Word = { word: string; start: number; end: number };
+export type Cue = { words: Word[]; start: number; end: number };
+export type SrtCue = { start: number; end: number; text: string };
+
 const DEFAULT_ASS_OPTIONS = {
   resolutionX: 1080,
   resolutionY: 1920,
@@ -57,17 +61,20 @@ const DEFAULT_ASS_OPTIONS = {
  * @param {{wordsPerCue?: number, maxGapSec?: number}} [options]
  * @returns {{words: object[], start: number, end: number}[]}
  */
-function chunkWords(words, options = {}) {
+function chunkWords(
+  words: Word[] | null | undefined,
+  options: { wordsPerCue?: number; maxGapSec?: number } = {},
+): Cue[] {
   if (!Array.isArray(words) || !words.length) return [];
 
-  const wordsPerCue = Number.isInteger(options.wordsPerCue) && options.wordsPerCue > 0
-    ? options.wordsPerCue
+  const wordsPerCue = Number.isInteger(options.wordsPerCue) && options.wordsPerCue! > 0
+    ? options.wordsPerCue!
     : DEFAULT_WORDS_PER_CUE;
-  const maxGapSec = Number.isFinite(options.maxGapSec) ? options.maxGapSec : DEFAULT_MAX_GAP_SEC;
+  const maxGapSec = Number.isFinite(options.maxGapSec) ? options.maxGapSec! : DEFAULT_MAX_GAP_SEC;
 
-  const cues = [];
-  let current = [];
-  let prevEnd = null;
+  const cues: Cue[] = [];
+  let current: Word[] = [];
+  let prevEnd: number | null = null;
 
   for (const raw of words) {
     const word = String(raw && raw.word != null ? raw.word : '').trim();
@@ -91,7 +98,7 @@ function chunkWords(words, options = {}) {
   return cues;
 }
 
-function finalizeCue(cueWords) {
+function finalizeCue(cueWords: Word[]): Cue {
   return {
     words: cueWords.map((w) => ({ ...w })),
     start: cueWords[0].start,
@@ -100,7 +107,7 @@ function finalizeCue(cueWords) {
 }
 
 /** Seconds → non-negative integer centiseconds (the \k unit — get this wrong and karaoke drifts). */
-function centiseconds(seconds) {
+function centiseconds(seconds: number): number {
   const n = Math.round(Number(seconds) * 100);
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
@@ -113,7 +120,7 @@ function centiseconds(seconds) {
  * Text is always the LAST field in the Dialogue line and is greedy, so it
  * absorbs any commas in the spoken text without shifting fields.
  */
-function escapeAssText(text) {
+function escapeAssText(text: unknown): string {
   return String(text == null ? '' : text)
     .replace(/\\/g, '\\\\')
     .replace(/\{/g, '\\{')
@@ -126,7 +133,7 @@ function escapeAssText(text) {
  * NOT SRT's H:MM:SS,mmm). Built entirely in integer centisecond space so
  * there's no float-rounding carry bug at the minute/hour boundary.
  */
-function toAssTimestamp(seconds) {
+function toAssTimestamp(seconds: number): string {
   let cs = Math.max(0, Math.round((Number(seconds) || 0) * 100));
   const h = Math.floor(cs / 360000);
   cs -= h * 360000;
@@ -134,7 +141,7 @@ function toAssTimestamp(seconds) {
   cs -= m * 6000;
   const s = Math.floor(cs / 100);
   cs -= s * 100;
-  const pad = (n, w) => String(n).padStart(w, '0');
+  const pad = (n: number, w: number) => String(n).padStart(w, '0');
   return `${h}:${pad(m, 2)}:${pad(s, 2)}.${pad(cs, 2)}`;
 }
 
@@ -145,7 +152,7 @@ function toAssTimestamp(seconds) {
  * (last word end − first word start) exactly — no drift against the
  * Dialogue Start/End timestamps.
  */
-function buildKaraokeCueText(cueWords) {
+function buildKaraokeCueText(cueWords: Word[]): string {
   let text = '';
   for (let i = 0; i < cueWords.length; i += 1) {
     const word = cueWords[i];
@@ -169,7 +176,10 @@ function buildKaraokeCueText(cueWords) {
  * @param {object} [options] see DEFAULT_ASS_OPTIONS for every knob.
  * @returns {string}
  */
-function buildKaraokeAss(words, options = {}) {
+function buildKaraokeAss(
+  words: Word[] | null | undefined,
+  options: Partial<typeof DEFAULT_ASS_OPTIONS> = {},
+): string {
   const opts = { ...DEFAULT_ASS_OPTIONS, ...options };
   const cues = chunkWords(words, { wordsPerCue: opts.wordsPerCue, maxGapSec: opts.maxGapSec });
 
@@ -207,19 +217,19 @@ function buildKaraokeAss(words, options = {}) {
   return `${header.join('\n')}\n${events.join('\n')}\n`;
 }
 
-function toSrtTimestamp(seconds) {
+function toSrtTimestamp(seconds: number): string {
   const totalMs = Math.max(0, Math.round((Number(seconds) || 0) * 1000));
   const h = Math.floor(totalMs / 3600000);
   const m = Math.floor((totalMs % 3600000) / 60000);
   const s = Math.floor((totalMs % 60000) / 1000);
   const ms = totalMs % 1000;
-  const pad = (n, w) => String(n).padStart(w, '0');
+  const pad = (n: number, w: number) => String(n).padStart(w, '0');
   return `${pad(h, 2)}:${pad(m, 2)}:${pad(s, 2)},${pad(ms, 3)}`;
 }
 
-function buildSrt(cues) {
+function buildSrt(cues: SrtCue[] | null | undefined): string {
   if (!Array.isArray(cues) || !cues.length) return '';
-  const lines = [];
+  const lines: string[] = [];
   cues.forEach((cue, index) => {
     lines.push(String(index + 1));
     lines.push(`${toSrtTimestamp(cue.start)} --> ${toSrtTimestamp(cue.end)}`);

@@ -5,6 +5,16 @@
  * Chips are source-time ranges suggesting a cut: silences (waveform peaks),
  * speech gaps (VTT cue spacing), and retakes (repeated similar cue text).
  */
+import type { LegacyClip } from './clip-ops.ts';
+
+export type Interval = { start: number; end: number };
+export type VttCue = { start: number; end: number; text?: string };
+export type ChipOpts = { threshold?: number; minDur?: number; similarity?: number; lookahead?: number };
+export type Retake = { start: number; end: number; matchText: string };
+export type Chip = { kind: 'gap' | 'retake'; start: number; end: number; label: string };
+export type ChipsInput = { peaks?: number[]; peaksPerSec?: number; cues?: VttCue[]; opts?: ChipOpts };
+export type ChipOutputSpan = { start: number; end: number };
+
 const api = (() => {
   const SILENCE_THRESHOLD = 0.05;
   const MIN_GAP_SEC = 0.8;
@@ -12,23 +22,28 @@ const api = (() => {
   const RETAKE_SIMILARITY = 0.6;
   const RETAKE_LOOKAHEAD = 2;
 
-  function roundMs(t) {
+  function roundMs(t: number): number {
     return Math.round(Number(t) * 1000) / 1000;
   }
 
   /** Silence runs in the waveform → [{start, end}] (source time). */
-  function detectSilences(peaks, peaksPerSec, opts) {
-    if (!Array.isArray(peaks) || !peaks.length || !(peaksPerSec > 0)) return [];
+  function detectSilences(
+    peaks: number[] | null | undefined,
+    peaksPerSec: number | undefined,
+    opts: ChipOpts | undefined,
+  ): Interval[] {
+    const rate = Number(peaksPerSec);
+    if (!Array.isArray(peaks) || !peaks.length || !(rate > 0)) return [];
     const threshold = opts?.threshold ?? SILENCE_THRESHOLD;
     const minDur = opts?.minDur ?? MIN_GAP_SEC;
-    const runs = [];
-    let runStart = null;
+    const runs: Interval[] = [];
+    let runStart: number | null = null;
     for (let i = 0; i <= peaks.length; i += 1) {
       const quiet = i < peaks.length && peaks[i] <= threshold;
       if (quiet && runStart == null) runStart = i;
       if (!quiet && runStart != null) {
-        const start = runStart / peaksPerSec;
-        const end = i / peaksPerSec;
+        const start = runStart / rate;
+        const end = i / rate;
         if (end - start >= minDur) runs.push({ start: roundMs(start), end: roundMs(end) });
         runStart = null;
       }
@@ -37,11 +52,11 @@ const api = (() => {
   }
 
   /** Spacing between consecutive cues → [{start, end}] (source time). */
-  function detectCueGaps(cues, opts) {
+  function detectCueGaps(cues: VttCue[] | null | undefined, opts: ChipOpts | undefined): Interval[] {
     if (!Array.isArray(cues) || cues.length < 2) return [];
     const minDur = opts?.minDur ?? MIN_GAP_SEC;
     const sorted = [...cues].sort((x, y) => Number(x.start) - Number(y.start));
-    const gaps = [];
+    const gaps: Interval[] = [];
     for (let i = 1; i < sorted.length; i += 1) {
       const prevEnd = Number(sorted[i - 1].end);
       const nextStart = Number(sorted[i].start);
@@ -52,7 +67,7 @@ const api = (() => {
     return gaps;
   }
 
-  function normalizeTokens(text) {
+  function normalizeTokens(text: unknown): string[] {
     return String(text || '')
       .toLowerCase()
       .replace(/[^\p{L}\p{N}\s']/gu, ' ')
@@ -61,7 +76,7 @@ const api = (() => {
   }
 
   /** Token Jaccard similarity between two cue texts (0..1). */
-  function textSimilarity(a, b) {
+  function textSimilarity(a: unknown, b: unknown): number {
     const ta = new Set(normalizeTokens(a));
     const tb = new Set(normalizeTokens(b));
     if (!ta.size || !tb.size) return 0;
@@ -75,12 +90,12 @@ const api = (() => {
    * Returns [{start, end, matchText}] where [start, end] covers the earlier take
    * up to where the repeat begins.
    */
-  function detectRetakes(cues, opts) {
+  function detectRetakes(cues: VttCue[] | null | undefined, opts: ChipOpts | undefined): Retake[] {
     if (!Array.isArray(cues) || cues.length < 2) return [];
     const minSim = opts?.similarity ?? RETAKE_SIMILARITY;
     const lookahead = opts?.lookahead ?? RETAKE_LOOKAHEAD;
     const sorted = [...cues].sort((x, y) => Number(x.start) - Number(y.start));
-    const retakes = [];
+    const retakes: Retake[] = [];
     for (let i = 0; i < sorted.length - 1; i += 1) {
       for (let j = i + 1; j <= Math.min(i + lookahead, sorted.length - 1); j += 1) {
         if (normalizeTokens(sorted[i].text).length < 3) continue;
@@ -100,10 +115,10 @@ const api = (() => {
   }
 
   /** Union of overlapping/near-touching intervals, sorted by start. */
-  function mergeIntervals(intervals, joinWithin) {
+  function mergeIntervals(intervals: Interval[], joinWithin?: number | null): Interval[] {
     const eps = joinWithin ?? MERGE_GAP_SEC;
     const sorted = [...intervals].sort((x, y) => x.start - y.start);
-    const merged = [];
+    const merged: Interval[] = [];
     for (const iv of sorted) {
       const last = merged[merged.length - 1];
       if (last && iv.start <= last.end + eps) {
@@ -120,13 +135,13 @@ const api = (() => {
    * Gap chips merge silence + cue-gap intervals; retake chips stay separate.
    * Returns [{kind: 'gap'|'retake', start, end, label}] sorted by start.
    */
-  function buildChips({ peaks, peaksPerSec, cues, opts } = {}) {
+  function buildChips({ peaks, peaksPerSec, cues, opts }: ChipsInput = {}): Chip[] {
     const gapIntervals = [
       ...detectSilences(peaks, peaksPerSec, opts),
       ...detectCueGaps(cues, opts),
     ];
-    const chips = mergeIntervals(gapIntervals).map((iv) => ({
-      kind: 'gap',
+    const chips: Chip[] = mergeIntervals(gapIntervals).map((iv) => ({
+      kind: 'gap' as const,
       start: iv.start,
       end: iv.end,
       label: `${(iv.end - iv.start).toFixed(1)}s gap`,
@@ -147,10 +162,15 @@ const api = (() => {
    * Returns { start, end } in output time covering the kept parts, or null
    * when the whole range was already cut.
    */
-  function chipOutputSpan(clips, rangeStart, rangeEnd, fallbackDuration) {
+  function chipOutputSpan(
+    clips: LegacyClip[],
+    rangeStart: number,
+    rangeEnd: number,
+    fallbackDuration?: number | null,
+  ): ChipOutputSpan | null {
     let acc = 0;
-    let outStart = null;
-    let outEnd = null;
+    let outStart: number | null = null;
+    let outEnd: number | null = null;
     for (const c of clips) {
       const cin = Number(c.in) || 0;
       const cout = c.out != null ? Number(c.out) : (fallbackDuration != null ? Number(fallbackDuration) : null);
@@ -165,7 +185,7 @@ const api = (() => {
       }
       acc += cout - cin;
     }
-    if (outStart == null) return null;
+    if (outStart == null || outEnd == null) return null;
     return { start: roundMs(outStart), end: roundMs(outEnd) };
   }
 
