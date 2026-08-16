@@ -19,10 +19,10 @@ const {
   resolveAudio,
   runLocal,
   runCloud,
-} = require('../lib/transcribe');
-const { verifyTranscript, LOOP_RUN_THRESHOLD } = require('../lib/asr/verify');
-const registry = require('../lib/asr/registry');
-const { buildSrt } = require('../lib/captions');
+} = require('../lib/node/transcribe.js');
+const { verifyTranscript, LOOP_RUN_THRESHOLD } = require('../lib/domain/asr/verify.ts');
+const registry = require('../lib/node/asr/registry.js');
+const { buildSrt } = require('../lib/domain/captions.ts');
 
 async function main() {
   {

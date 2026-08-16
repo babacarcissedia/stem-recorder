@@ -5,15 +5,7 @@
  * Chips are source-time ranges suggesting a cut: silences (waveform peaks),
  * speech gaps (VTT cue spacing), and retakes (repeated similar cue text).
  */
-(function (root, factory) {
-  const api = factory();
-  if (typeof module === 'object' && module.exports) {
-    module.exports = api;
-  }
-  if (root) {
-    root.StemGapChips = api;
-  }
-}(typeof globalThis !== 'undefined' ? globalThis : this, () => {
+const api = (() => {
   const SILENCE_THRESHOLD = 0.05;
   const MIN_GAP_SEC = 0.8;
   const MERGE_GAP_SEC = 0.2;
@@ -188,4 +180,16 @@
     SILENCE_THRESHOLD,
     MIN_GAP_SEC,
   };
-}));
+})();
+
+export const {
+  detectSilences,
+  detectCueGaps,
+  detectRetakes,
+  textSimilarity,
+  mergeIntervals,
+  buildChips,
+  chipOutputSpan,
+  SILENCE_THRESHOLD,
+  MIN_GAP_SEC,
+} = api;

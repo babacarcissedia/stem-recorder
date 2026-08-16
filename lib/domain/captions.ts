@@ -229,7 +229,7 @@ function buildSrt(cues) {
   return lines.join('\n');
 }
 
-module.exports = {
+export {
   DEFAULT_WORDS_PER_CUE,
   DEFAULT_MAX_GAP_SEC,
   DEFAULT_ASS_OPTIONS,

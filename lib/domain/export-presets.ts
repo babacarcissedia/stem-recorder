@@ -146,7 +146,7 @@ function buildVerticalPreset({
   return { crop, scale, pip: pipRect };
 }
 
-module.exports = {
+export {
   DEFAULT_TARGET,
   DEFAULT_CAM_ASPECT,
   DEFAULT_PIP_WIDTH_FRACTION,

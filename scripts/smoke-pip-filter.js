@@ -11,7 +11,7 @@
 const assert = require('assert');
 const {
   camTransformFilters, pipOverlayPosition, pipFilterGraph, cropFilter,
-} = require('../lib/ffmpeg-util');
+} = require('../lib/node/ffmpeg-util.js');
 
 // —— camTransformFilters: hflip first, then the clockwise transpose ——
 assert.deepStrictEqual(camTransformFilters(null), []);

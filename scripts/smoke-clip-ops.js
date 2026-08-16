@@ -18,8 +18,8 @@ const {
   setCrop,
   normalizeCaptions,
   normalizeVertical,
-} = require('../lib/clip-ops');
-const { createUndoStack } = require('../lib/undo-stack');
+} = require('../lib/domain/clip-ops.ts');
+const { createUndoStack } = require('../lib/domain/undo-stack.ts');
 
 const base = [
   { id: 'a', source: 'screen.mp4', in: 0, out: 10 },

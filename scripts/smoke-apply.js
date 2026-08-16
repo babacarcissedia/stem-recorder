@@ -14,9 +14,9 @@ process.env.STEM_OUT_ROOT = process.env.STEM_OUT_ROOT || '/tmp/stem-test-takes';
 const {
   applyClips, probeDuration, probeDimensions, probeHasAudio, findFfmpeg, runFfmpeg, hasSubtitlesFilter,
   verifyOutputDuration,
-} = require('../lib/ffmpeg-util');
-const { expectedOutputDuration, durationTolerance } = require('../lib/apply-duration');
-const { writeManifest, readManifest, FINAL_NAME } = require('../lib/edit-manifest');
+} = require('../lib/node/ffmpeg-util.js');
+const { expectedOutputDuration, durationTolerance } = require('../lib/domain/apply-duration.ts');
+const { writeManifest, readManifest, FINAL_NAME } = require('../lib/node/edit-manifest.js');
 
 async function main() {
   const takeId = process.argv[2] || 'take-demo';

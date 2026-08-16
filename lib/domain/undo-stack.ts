@@ -1,15 +1,7 @@
 'use strict';
 
 /** Pure in-session undo/redo stack for Edit-T1 clip ops. Dual CJS + browser. */
-(function (root, factory) {
-  const api = factory();
-  if (typeof module === 'object' && module.exports) {
-    module.exports = api;
-  }
-  if (root) {
-    root.StemUndoStack = api;
-  }
-}(typeof globalThis !== 'undefined' ? globalThis : this, () => {
+const api = (() => {
   const DEFAULT_LIMIT = 100;
 
   function createUndoStack(limit) {
@@ -51,4 +43,9 @@
   }
 
   return { createUndoStack, DEFAULT_LIMIT };
-}));
+})();
+
+export const {
+  createUndoStack,
+  DEFAULT_LIMIT,
+} = api;

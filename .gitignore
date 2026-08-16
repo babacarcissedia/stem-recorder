@@ -7,3 +7,5 @@ dist/
 .venv-asr/
 node_modules/
 scripts/__pycache__/
+out/
+release/

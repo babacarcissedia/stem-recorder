@@ -2,7 +2,7 @@
 'use strict';
 
 const assert = require('assert');
-const { planExportBundle } = require('../lib/export-bundle');
+const { planExportBundle } = require('../lib/domain/export-bundle.ts');
 
 function completeTakeIncludesFinalVideoAudioTranscriptCaptionsAndKaraokeAss() {
   const { items, missing } = planExportBundle({

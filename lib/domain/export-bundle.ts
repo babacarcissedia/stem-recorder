@@ -1,14 +1,6 @@
 'use strict';
 
-(function (root, factory) {
-  const api = factory();
-  if (typeof module === 'object' && module.exports) {
-    module.exports = api;
-  }
-  if (root) {
-    root.StemExportBundle = api;
-  }
-}(typeof globalThis !== 'undefined' ? globalThis : this, () => {
+const api = (() => {
   const TRANSCRIBE_OUTPUT_FILES = [
     { name: 'transcript.txt', destName: 'transcript.txt', kind: 'transcript' },
     { name: 'captions.vtt', destName: 'captions.vtt', kind: 'captions-vtt' },
@@ -131,4 +123,8 @@
   return {
     planExportBundle,
   };
-}));
+})();
+
+export const {
+  planExportBundle,
+} = api;

@@ -13,10 +13,10 @@ const {
   shell,
 } = require('electron');
 
-const { outRoot } = require('./lib/paths');
+const { outRoot } = require('./lib/node/paths.js');
 const {
   findFfmpeg, runFfmpeg, applyClips, hasSubtitlesFilter, resolveCaptionsPath,
-} = require('./lib/ffmpeg-util');
+} = require('./lib/node/ffmpeg-util.js');
 const {
   listTakes,
   readManifest,
@@ -25,8 +25,8 @@ const {
   takeDirFor,
   FINAL_NAME,
   PRE_BURN_FINAL_NAME,
-} = require('./lib/edit-manifest');
-const { getFilmstrip, getWaveformPeaks } = require('./lib/media-cache');
+} = require('./lib/node/edit-manifest.js');
+const { getFilmstrip, getWaveformPeaks } = require('./lib/node/media-cache.js');
 const {
   runLocal: runLocalAsr,
   runCloud: runCloudAsr,
@@ -34,8 +34,8 @@ const {
   asrStatus,
   resolveBurn,
   updateCueText,
-} = require('./lib/transcribe');
-const { planExportBundle } = require('./lib/export-bundle');
+} = require('./lib/node/transcribe.js');
+const { planExportBundle } = require('./lib/domain/export-bundle.ts');
 
 const APP_NAME = 'Stem Studio';
 const ICON = path.join(__dirname, 'build', 'icon.png');

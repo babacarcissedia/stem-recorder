@@ -3,7 +3,7 @@
   "productName": "Stem Studio",
   "version": "0.2.0",
   "private": false,
-  "description": "Record screen/cam/mic stems and edit locally (timeline clips \u2192 ffmpeg apply).",
+  "description": "Record screen/cam/mic stems and edit locally (timeline clips → ffmpeg apply).",
   "license": "MIT",
   "author": {
     "name": "Babacar Cisse Dia",
@@ -46,6 +46,18 @@
     "smoke:export-presets": "node scripts/smoke-export-presets.js"
   },
   "devDependencies": {
-    "electron": "^41.10.5"
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^41.10.5",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.6"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   }
 }

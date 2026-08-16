@@ -1,15 +1,7 @@
 'use strict';
 
 /** Pure clip-list ops for Edit-T1 (select / split / cut). Dual CJS + browser. */
-(function (root, factory) {
-  const api = factory();
-  if (typeof module === 'object' && module.exports) {
-    module.exports = api;
-  }
-  if (root) {
-    root.StemClipOps = api;
-  }
-}(typeof globalThis !== 'undefined' ? globalThis : this, () => {
+const api = (() => {
   function roundMs(t) {
     return Math.round(Number(t) * 1000) / 1000;
   }
@@ -354,4 +346,31 @@
     outputToSource,
     sourceToOutput,
   };
-}));
+})();
+
+export const {
+  roundMs,
+  newClipId,
+  clipEnd,
+  findClipAtTime,
+  splitAt,
+  cutClip,
+  cutRange,
+  copySlice,
+  pasteAfter,
+  insertFreezeAfter,
+  trimClip,
+  normalizeCrop,
+  normalizeCam,
+  normalizePipLayout,
+  normalizeExportRate,
+  normalizeMusic,
+  normalizeCaptions,
+  normalizeVertical,
+  cropsEqual,
+  setCrop,
+  clipDuration,
+  totalOutputDuration,
+  outputToSource,
+  sourceToOutput,
+} = api;

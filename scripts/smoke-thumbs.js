@@ -12,8 +12,8 @@ const path = require('path');
 
 process.env.STEM_OUT_ROOT = process.env.STEM_OUT_ROOT || '/tmp/stem-thumbs-smoke';
 
-const { findFfmpeg, runFfmpeg } = require('../lib/ffmpeg-util');
-const { getFilmstrip, getWaveformPeaks, CACHE_DIR } = require('../lib/media-cache');
+const { findFfmpeg, runFfmpeg } = require('../lib/node/ffmpeg-util.js');
+const { getFilmstrip, getWaveformPeaks, CACHE_DIR } = require('../lib/node/media-cache.js');
 
 async function main() {
   const ffmpeg = findFfmpeg();

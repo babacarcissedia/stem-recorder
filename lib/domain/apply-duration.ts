@@ -1,6 +1,6 @@
 'use strict';
 
-const { totalOutputDuration } = require('./clip-ops');
+import { totalOutputDuration } from './clip-ops.ts';
 
 /**
  * Expected Apply output duration for a clip list (Edit-T1 timeline math),
@@ -33,4 +33,4 @@ function durationTolerance(expectedSec) {
   return Math.max(DURATION_TOLERANCE_FLOOR_SEC, Math.abs(expectedSec) * DURATION_TOLERANCE_RATIO);
 }
 
-module.exports = { expectedOutputDuration, durationTolerance };
+export { expectedOutputDuration, durationTolerance };

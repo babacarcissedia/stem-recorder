@@ -102,7 +102,7 @@ function verifyTranscript(cues, audioDurationSec) {
   };
 }
 
-module.exports = {
+export {
   verifyTranscript,
   coverageStats,
   repetitionStats,
