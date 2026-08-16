@@ -49,7 +49,9 @@
     "smoke:captions-karaoke": "node scripts/smoke-captions-karaoke.js",
     "smoke:export-presets": "node scripts/smoke-export-presets.js",
     "smoke:export-bundle": "node scripts/smoke-export-bundle.js",
-    "smoke:media-url": "node scripts/smoke-media-url.js"
+    "smoke:media-url": "node scripts/smoke-media-url.js",
+    "smoke:model": "node scripts/smoke-model.ts",
+    "smoke:manifest": "node scripts/smoke-manifest.ts"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

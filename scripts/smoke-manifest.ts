@@ -5,19 +5,19 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 
-import { InvariantError } from './invariant.ts';
-import { Project } from './project.ts';
-import type { V1Manifest } from './manifest-v2.ts';
+import { InvariantError } from '../lib/domain/invariant.ts';
+import { Project } from '../lib/domain/project.ts';
+import type { V1Manifest } from '../lib/domain/manifest-v2.ts';
 import {
   MANIFEST_SCHEMA_VERSION,
   detectSchemaVersion,
   migrateV1ToV2,
   readManifestV2,
   toV1Compat,
-} from './manifest-v2.ts';
+} from '../lib/domain/manifest-v2.ts';
 
 const require_ = createRequire(import.meta.url);
-const store = require_('../node/manifest-store.js');
+const store = require_('../lib/node/manifest-store.js');
 
 let cases = 0;
 function group(name: string, body: () => void): void {
