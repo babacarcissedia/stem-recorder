@@ -25,7 +25,7 @@
 }
 
 .shell-top-bar-project {
-  font-weight: var(--weight-strong);
+  font-weight: var(--weight-heavy);
   font-size: var(--text-9);
 }
 
@@ -67,7 +67,7 @@
 
 .shell-sidebar-title {
   font-size: var(--text-4);
-  font-weight: var(--weight-strong);
+  font-weight: var(--weight-heavy);
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
   color: var(--text-muted);

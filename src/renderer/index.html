@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
   <title>Stem Studio</title>
   <style>
     * { box-sizing: border-box; }
@@ -13,7 +14,7 @@
     }
     h1 { font-size: var(--text-11); letter-spacing: var(--tracking-tight); margin: 0 0 var(--space-3); }
     .kicker {
-      font-size: var(--text-3); font-weight: var(--weight-strong); letter-spacing: var(--tracking-widest);
+      font-size: var(--text-3); font-weight: var(--weight-heavy); letter-spacing: var(--tracking-widest);
       text-transform: uppercase; color: var(--accent); margin-bottom: var(--space-3);
     }
     p.lead { color: var(--text-muted); margin: 0 0 var(--space-14); max-width: var(--size-measure-lead); line-height: var(--leading-normal); }
@@ -30,7 +31,7 @@
       background: var(--surface-sunken); border: var(--border-hairline) solid var(--border-subtle); border-radius: var(--radius-3xl); padding: var(--space-7);
     }
     .stage-wrap .cap {
-      font-size: var(--text-3); font-weight: var(--weight-strong); letter-spacing: var(--tracking-wider); text-transform: uppercase;
+      font-size: var(--text-3); font-weight: var(--weight-heavy); letter-spacing: var(--tracking-wider); text-transform: uppercase;
       color: var(--text-muted); margin: 0 0 var(--space-4) var(--space-1);
     }
     .stage {
@@ -75,7 +76,7 @@
     }
     .panel h2 { font-size: var(--text-9); margin: 0 0 var(--space-3); }
     .panel h3 {
-      font-size: var(--text-3); font-weight: var(--weight-strong); letter-spacing: var(--tracking-wider); text-transform: uppercase;
+      font-size: var(--text-3); font-weight: var(--weight-heavy); letter-spacing: var(--tracking-wider); text-transform: uppercase;
       color: var(--text-muted); margin: var(--space-13) 0 var(--space-3);
     }
     label { display: block; font-size: var(--text-4); color: var(--text-muted); margin: var(--space-7) 0 var(--space-2); }
@@ -84,7 +85,7 @@
       padding: var(--space-6) var(--space-9); background: var(--surface-raised); color: var(--text-primary);
     }
     button {
-      cursor: pointer; font-weight: var(--weight-strong); margin-top: var(--space-5);
+      cursor: pointer; font-weight: var(--weight-heavy); margin-top: var(--space-5);
       background: var(--accent-soft); border-color: var(--accent-soft-border); color: var(--text-on-accent);
     }
     button.secondary { background: var(--surface-raised); color: var(--text-primary); }
@@ -163,7 +164,7 @@
     }
     .tl-toolbar button {
       width: auto; margin: 0; padding: var(--space-5) var(--space-12); border-radius: var(--radius-md);
-      background: var(--surface-control); border-color: var(--surface-control-hover); color: var(--timeline-text); font-weight: var(--weight-strong);
+      background: var(--surface-control); border-color: var(--surface-control-hover); color: var(--timeline-text); font-weight: var(--weight-heavy);
     }
     .tl-toolbar button.primary { background: var(--accent); border-color: var(--accent-strong); color: var(--timeline-surface-raised); }
     .tl-toolbar button.danger { background: var(--negative-surface); border-color: var(--negative-border); color: var(--negative-on-surface); }
@@ -198,7 +199,7 @@
       background:
         repeating-linear-gradient(90deg, var(--clip-stripe-a) 0 10px, var(--clip-stripe-b) 10px 12px),
         linear-gradient(180deg, var(--clip-default-top), var(--clip-default-bottom));
-      color: var(--text-on-dark); font-size: var(--text-3); font-weight: var(--weight-strong);
+      color: var(--text-on-dark); font-size: var(--text-3); font-weight: var(--weight-heavy);
       display: flex; align-items: flex-end; padding: var(--space-3) var(--space-5);
       flex: 0 0 auto; min-width: var(--size-handle-width);
     }
@@ -224,7 +225,7 @@
     .asr-provider { display: flex; border: var(--border-hairline) solid var(--border-strong); border-radius: var(--radius-md); overflow: hidden; }
     .asr-provider button {
       width: auto; margin: 0; padding: var(--space-5) var(--space-10); border: none; border-radius: var(--radius-none);
-      background: var(--clip-gap-a); color: var(--timeline-text-muted); font-weight: var(--weight-strong);
+      background: var(--clip-gap-a); color: var(--timeline-text-muted); font-weight: var(--weight-heavy);
     }
     .asr-provider button.active { background: var(--accent); color: var(--timeline-surface-raised); }
     .transcript-panel { max-height: var(--size-transcript-max-wide); overflow: auto; }
@@ -237,7 +238,7 @@
     .ctx-menu button {
       display: block; width: 100%; margin: 0; padding: var(--space-5) var(--space-8); border: none;
       border-radius: var(--radius-sm); background: transparent; color: var(--menu-text); text-align: left;
-      font-size: var(--text-7); font-weight: var(--weight-semibold); cursor: pointer;
+      font-size: var(--text-7); font-weight: var(--weight-bold); cursor: pointer;
     }
     .ctx-menu button:hover { background: var(--accent); color: var(--accent-contrast); }
     .ctx-menu button:disabled { color: var(--menu-text-disabled); cursor: default; }
