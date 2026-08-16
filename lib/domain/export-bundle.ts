@@ -1,5 +1,7 @@
 'use strict';
 
+export type ExportItem = { source: string; destName: string; kind: string };
+
 const api = (() => {
   const TRANSCRIBE_OUTPUT_FILES = [
     { name: 'transcript.txt', destName: 'transcript.txt', kind: 'transcript' },
@@ -7,7 +9,7 @@ const api = (() => {
     { name: 'asr.json', destName: 'word-timings.json', kind: 'word-timings' },
   ];
 
-  function dedupeDestName(destName, usedDestNames) {
+  function dedupeDestName(destName: string, usedDestNames: Set<string>): string {
     if (!usedDestNames.has(destName)) {
       usedDestNames.add(destName);
       return destName;
@@ -25,7 +27,11 @@ const api = (() => {
     return candidate;
   }
 
-  function planVideoItems(takeFileSet, editFileSet, usedDestNames) {
+  function planVideoItems(
+    takeFileSet: Set<string>,
+    editFileSet: Set<string>,
+    usedDestNames: Set<string>,
+  ): { items: ExportItem[]; missingKind: string | null } {
     if (editFileSet.has('final.mp4') && editFileSet.has('final-no-captions.mp4')) {
       return {
         items: [
@@ -64,16 +70,19 @@ const api = (() => {
     return { items: [], missingKind: 'video' };
   }
 
-  function planAudioItem(takeFileSet, usedDestNames) {
+  function planAudioItem(takeFileSet: Set<string>, usedDestNames: Set<string>): ExportItem | null {
     if (!takeFileSet.has('audio.mp3')) return null;
     return { source: 'audio.mp3', destName: dedupeDestName('audio.mp3', usedDestNames), kind: 'audio' };
   }
 
-  function planTranscribeOutputItems(editFileSet, usedDestNames) {
+  function planTranscribeOutputItems(
+    editFileSet: Set<string>,
+    usedDestNames: Set<string>,
+  ): { items: ExportItem[]; missingNames: string[] } {
     const anyTranscribeOutputPresent = TRANSCRIBE_OUTPUT_FILES.some((f) => editFileSet.has(f.name));
     if (!anyTranscribeOutputPresent) return { items: [], missingNames: [] };
-    const items = [];
-    const missingNames = [];
+    const items: ExportItem[] = [];
+    const missingNames: string[] = [];
     for (const f of TRANSCRIBE_OUTPUT_FILES) {
       if (editFileSet.has(f.name)) {
         items.push({ source: `edit/${f.name}`, destName: dedupeDestName(f.destName, usedDestNames), kind: f.kind });
@@ -84,7 +93,7 @@ const api = (() => {
     return { items, missingNames };
   }
 
-  function planKaraokeAssItems(editFileSet, usedDestNames) {
+  function planKaraokeAssItems(editFileSet: Set<string>, usedDestNames: Set<string>): ExportItem[] {
     return [...editFileSet]
       .filter((name) => /\.ass$/i.test(name))
       .sort()
@@ -95,14 +104,16 @@ const api = (() => {
       }));
   }
 
-  function planExportBundle({ takeFiles, editFiles, takeId } = {}) {
+  function planExportBundle(
+    { takeFiles, editFiles, takeId }: { takeFiles?: string[]; editFiles?: string[]; takeId?: string } = {},
+  ): { items: ExportItem[]; missing: string[] } {
     if (!takeId || typeof takeId !== 'string') throw new Error('planExportBundle: takeId is required');
     const takeFileSet = new Set(Array.isArray(takeFiles) ? takeFiles : []);
     const editFileSet = new Set(Array.isArray(editFiles) ? editFiles : []);
-    const usedDestNames = new Set();
+    const usedDestNames = new Set<string>();
 
-    const items = [];
-    const missing = [];
+    const items: ExportItem[] = [];
+    const missing: string[] = [];
 
     const video = planVideoItems(takeFileSet, editFileSet, usedDestNames);
     items.push(...video.items);
