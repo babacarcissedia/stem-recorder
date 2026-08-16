@@ -15,8 +15,11 @@ const path = require('path');
 const {
   subtitlesFilter, pipFilterGraph, freezeStillChain, hasSubtitlesFilter, findFfmpeg,
 } = require('../lib/ffmpeg-util');
-const { resolveBurn, updateCueText, writeOutputs, readTranscript } = require('../lib/transcribe');
+const {
+  resolveBurn, updateCueText, writeOutputs, readTranscript, buildVtt,
+} = require('../lib/transcribe');
 const { normalizeManifest } = require('../lib/edit-manifest');
+const { buildSrt, toSrtTimestamp } = require('../lib/captions');
 
 // —— subtitlesFilter: quoted filename, libavfilter specials escaped ——
 assert.strictEqual(
@@ -62,6 +65,44 @@ assert.strictEqual(normalizeManifest({ captions: { burn: true } }, 't', 10).capt
 assert.strictEqual('captions' in normalizeManifest({ captions: { burn: false } }, 't', 10), false);
 assert.strictEqual('captions' in normalizeManifest({}, 't', 10), false);
 
+const srtCues = [
+  { start: 0.5, end: 2, text: 'Hello world.' },
+  { start: 3, end: 4.5, text: 'Second cue.' },
+];
+assert.strictEqual(
+  buildSrt(srtCues),
+  '1\n00:00:00,500 --> 00:00:02,000\nHello world.\n\n'
+  + '2\n00:00:03,000 --> 00:00:04,500\nSecond cue.\n'
+);
+
+assert.strictEqual(
+  buildSrt([{ start: 3599.25, end: 3601.75, text: 'Over the top.' }]),
+  '1\n00:59:59,250 --> 01:00:01,750\nOver the top.\n'
+);
+
+assert.strictEqual(buildSrt([]), '');
+assert.strictEqual(buildSrt(undefined), '');
+
+assert.strictEqual(toSrtTimestamp(0), '00:00:00,000');
+assert.strictEqual(toSrtTimestamp(3661.001), '01:01:01,001');
+
+const agreementCues = [
+  { start: 0, end: 1.234, text: 'One.' },
+  { start: 3599.5, end: 3600.5, text: 'Two.' },
+];
+const vttOut = buildVtt(agreementCues);
+const srtOut = buildSrt(agreementCues);
+const vttTimeLines = vttOut.split('\n').filter((line) => line.includes('-->'));
+const srtTimeLines = srtOut.split('\n').filter((line) => line.includes('-->'));
+assert.strictEqual(vttTimeLines.length, srtTimeLines.length);
+vttTimeLines.forEach((vttLine, index) => {
+  const srtLine = srtTimeLines[index].replace(/,/g, '.');
+  assert.strictEqual(vttLine, srtLine);
+});
+const vttTexts = agreementCues.map((cue) => cue.text);
+const srtTexts = srtOut.trimEnd().split('\n\n').map((block) => block.split('\n').slice(2).join('\n'));
+assert.deepStrictEqual(srtTexts, vttTexts);
+
 async function main() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'stem-captions-smoke-'));
   try {
@@ -70,11 +111,17 @@ async function main() {
 
     // —— resolveBurn: default OFF · ON without a VTT skips · ON with a VTT burns ——
     assert.deepStrictEqual(resolveBurn(takeDir, { clips: [] }), { burn: false, requested: false });
+    assert.deepStrictEqual(resolveBurn(takeDir, {}), { burn: false, requested: false });
+    assert.deepStrictEqual(resolveBurn(takeDir, null), { burn: false, requested: false });
+    assert.deepStrictEqual(
+      resolveBurn(takeDir, { captions: { burn: false } }),
+      { burn: false, requested: false }
+    );
     const skipped = resolveBurn(takeDir, { captions: { burn: true } });
     assert.strictEqual(skipped.burn, false);
     assert.ok(/no captions\.vtt/.test(skipped.skipped));
 
-    writeOutputs(takeDir, {
+    const written = writeOutputs(takeDir, {
       provider: 'local',
       model: 'whisper-base',
       language: 'en',
@@ -85,14 +132,25 @@ async function main() {
         { start: 3, end: 4.5, text: 'Second cue.' },
       ],
     });
+    assert.strictEqual(written.captionsSrt, path.join(takeDir, 'edit', 'captions.srt'));
+    assert.strictEqual(
+      fs.readFileSync(written.captionsSrt, 'utf8'),
+      '1\n00:00:00,500 --> 00:00:02,000\nHello world.\n\n'
+      + '2\n00:00:03,000 --> 00:00:04,500\nSecond cue.\n'
+    );
     const live = resolveBurn(takeDir, { captions: { burn: true } });
     assert.strictEqual(live.burn, true);
     assert.strictEqual(live.vtt, path.join(takeDir, 'edit', 'captions.vtt'));
 
-    // —— updateCueText: rewrites the VTT cue + transcript, keeps timing ——
     const res = updateCueText(takeDir, 1, '  Second cue, fixed.  ');
     assert.strictEqual(res.segments, 2);
     assert.deepStrictEqual(res.cue, { start: 3, end: 4.5, text: 'Second cue, fixed.' });
+    assert.strictEqual(res.captionsSrt, path.join(takeDir, 'edit', 'captions.srt'));
+    assert.strictEqual(
+      fs.readFileSync(res.captionsSrt, 'utf8'),
+      '1\n00:00:00,500 --> 00:00:02,000\nHello world.\n\n'
+      + '2\n00:00:03,000 --> 00:00:04,500\nSecond cue, fixed.\n'
+    );
     const read = readTranscript(takeDir);
     assert.deepStrictEqual(read.cues, [
       { start: 0.5, end: 2, text: 'Hello world.' },
@@ -111,7 +169,7 @@ async function main() {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 
-  console.log(JSON.stringify({ ok: true, cases: 20 }));
+  console.log(JSON.stringify({ ok: true, cases: 32 }));
 }
 
 main().catch((err) => {
