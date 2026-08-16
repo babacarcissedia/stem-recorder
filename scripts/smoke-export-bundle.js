@@ -99,6 +99,35 @@ function camOnlyTakeWithNoFinalFallsBackToCamAsVideoSource() {
   });
 }
 
+function burnedTakeWithRetainedCleanCopyOffersBothVideosDistinguishably() {
+  const { items, missing } = planExportBundle({
+    takeId: 'take-10',
+    takeFiles: ['screen.mp4'],
+    editFiles: ['final.mp4', 'final-no-captions.mp4'],
+  });
+  assert.deepStrictEqual(missing, []);
+  const byKind = Object.fromEntries(items.map((i) => [i.kind, i]));
+  assert.deepStrictEqual(byKind['video-final-captions-burned'], {
+    source: 'edit/final.mp4', destName: 'video-captions-burned.mp4', kind: 'video-final-captions-burned',
+  });
+  assert.deepStrictEqual(byKind['video-final-no-captions'], {
+    source: 'edit/final-no-captions.mp4', destName: 'video-no-captions.mp4', kind: 'video-final-no-captions',
+  });
+  assert.ok(!items.some((i) => i.kind === 'video-final'), 'single generic video-final item must not also appear');
+}
+
+function cleanCopyWithoutFinalIsIgnoredNoDualVideoItems() {
+  const { items } = planExportBundle({
+    takeId: 'take-11',
+    takeFiles: ['screen.mp4'],
+    editFiles: ['final-no-captions.mp4'],
+  });
+  assert.deepStrictEqual(items.find((i) => i.kind === 'video-raw'), {
+    source: 'screen.mp4', destName: 'video-unedited.mp4', kind: 'video-raw',
+  });
+  assert.ok(!items.some((i) => i.kind.startsWith('video-final')));
+}
+
 function blankOrMissingTakeIdThrowsInsteadOfSilentlyPlanning() {
   assert.throws(() => planExportBundle({ takeFiles: [], editFiles: [] }), /takeId is required/);
   assert.throws(() => planExportBundle({ takeId: '', takeFiles: [], editFiles: [] }), /takeId is required/);
@@ -119,6 +148,8 @@ const cases = [
   partiallyTranscribedTakeReportsOnlyTheAbsentTranscribeOutputsAsMissing,
   twoAssFilesAtOnceDisambiguateDestNamesInsteadOfColliding,
   camOnlyTakeWithNoFinalFallsBackToCamAsVideoSource,
+  burnedTakeWithRetainedCleanCopyOffersBothVideosDistinguishably,
+  cleanCopyWithoutFinalIsIgnoredNoDualVideoItems,
   blankOrMissingTakeIdThrowsInsteadOfSilentlyPlanning,
   emptyTakeReportsOnlyVideoAsMissing,
 ];

@@ -98,20 +98,37 @@ async function main() {
   // the frame, not around it). Auto-skips on ffmpeg builds without libass.
   let captionsOk = true;
   let captionsSkipped = null;
+  let preBurnOk = true;
+  let preBurnSkipped = null;
   if (hasSubtitlesFilter(findFfmpeg())) {
     const vtt = path.join(takeDir, 'edit', 'captions.vtt');
     if (!fs.existsSync(vtt)) {
       fs.writeFileSync(vtt, 'WEBVTT\n\n00:00:03.000 --> 00:00:05.000\nSmoke cue.\n', 'utf8');
     }
     const burnOut = path.join(takeDir, 'edit', 'final-captions.mp4');
-    await applyClips(src, doc.clips, burnOut, work, { subtitles: vtt });
+    const preBurnOut = path.join(takeDir, 'edit', 'final-no-captions.mp4');
+    await applyClips(src, doc.clips, burnOut, work, { subtitles: vtt, preBurnOutPath: preBurnOut });
     const burnDim = probeDimensions(burnOut);
     const burnDur = probeDuration(burnOut);
     captionsOk = Boolean(srcDim && burnDim)
       && burnDim.width === srcDim.width && burnDim.height === srcDim.height
       && burnDur != null && Math.abs(burnDur - 4) < 0.35;
+
+    const preBurnDim = probeDimensions(preBurnOut);
+    const preBurnDur = probeDuration(preBurnOut);
+    const preBurnMatchesPlainTrim = Buffer.compare(fs.readFileSync(preBurnOut), fs.readFileSync(out)) === 0;
+    preBurnOk = Boolean(srcDim && preBurnDim)
+      && preBurnDim.width === srcDim.width && preBurnDim.height === srcDim.height
+      && preBurnDur != null && Math.abs(preBurnDur - 4) < 0.35
+      && preBurnMatchesPlainTrim;
+
+    const noSubtitlesOut = path.join(takeDir, 'edit', 'final-no-subtitles-opt.mp4');
+    const preBurnIgnoredWhenNoSubtitles = path.join(takeDir, 'edit', 'final-no-captions-ignored.mp4');
+    await applyClips(src, doc.clips, noSubtitlesOut, work, { preBurnOutPath: preBurnIgnoredWhenNoSubtitles });
+    preBurnOk = preBurnOk && !fs.existsSync(preBurnIgnoredWhenNoSubtitles);
   } else {
     captionsSkipped = 'ffmpeg build lacks the subtitles filter (libass)';
+    preBurnSkipped = captionsSkipped;
   }
   // Edit-T2e: a constant 2× export halves the [2,6] trim to ≈2s; with the
   // 1.5s freeze appended the hold shrinks by the same factor → ≈2.75s.
@@ -223,14 +240,14 @@ async function main() {
 
   fs.rmSync(work, { recursive: true, force: true });
 
-  const ok = trimOk && cropKept && cropOk && pipOk && freezeOk && captionsOk && rateOk && musicOk
+  const ok = trimOk && cropKept && cropOk && pipOk && freezeOk && captionsOk && preBurnOk && rateOk && musicOk
     && durationGuardOk && cacheOk;
   console.log(JSON.stringify({
     takeId, out, expected: 4, duration: dur, trimOk,
     crop, cropKept, srcDim, outDim, cropOk,
     pipDim, pipDur, pipOk,
     frzDur, frzDim, frzPipDur, frzPipDim, freezeOk,
-    captionsOk, captionsSkipped,
+    captionsOk, captionsSkipped, preBurnOk, preBurnSkipped,
     rateDur, rateFrzDur, rateOk,
     musicDur, musicRateDur, musicOk,
     durationMathOk, mismatchThrew, mismatchMessageOk, mismatchDeletedFile, matchOk, outStillThere, durationGuardOk,
