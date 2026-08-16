@@ -142,7 +142,6 @@ async function main() {
     assert.strictEqual(live.burn, true);
     assert.strictEqual(live.vtt, path.join(takeDir, 'edit', 'captions.vtt'));
 
-    // —— updateCueText: rewrites the VTT + SRT cue + transcript, keeps timing ——
     const res = updateCueText(takeDir, 1, '  Second cue, fixed.  ');
     assert.strictEqual(res.segments, 2);
     assert.deepStrictEqual(res.cue, { start: 3, end: 4.5, text: 'Second cue, fixed.' });
