@@ -22,7 +22,14 @@
     "src/preload/index.ts",
     "src/preload/api.ts",
     "src/renderer/src/app-shell.tsx",
-    "src/renderer/src/global.d.ts"
+    "src/renderer/src/global.d.ts",
+    "lib/domain/clip-ops.ts",
+    "lib/domain/captions.ts",
+    "lib/domain/apply-duration.ts",
+    "lib/domain/export-bundle.ts",
+    "lib/domain/export-presets.ts",
+    "lib/domain/gap-chips.ts",
+    "lib/domain/undo-stack.ts"
   ],
   "exclude": ["scripts/fixtures/**", "out/**", "release/**"]
 }
