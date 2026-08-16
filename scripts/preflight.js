@@ -22,6 +22,9 @@ const steps = [
   { name: 'smoke:transcribe', cmd: ['npm', 'run', 'smoke:transcribe'] },
   { name: 'smoke:captions', cmd: ['npm', 'run', 'smoke:captions'] },
   { name: 'smoke:export', cmd: ['npm', 'run', 'smoke:export'] },
+  { name: 'smoke:captions-karaoke', cmd: ['npm', 'run', 'smoke:captions-karaoke'] },
+  { name: 'smoke:export-presets', cmd: ['npm', 'run', 'smoke:export-presets'] },
+  { name: 'smoke:caption-integration', cmd: ['node', 'scripts/smoke-caption-integration.js'] },
   {
     name: 'smoke:apply',
     cmd: ['npm', 'run', 'smoke:apply'],
