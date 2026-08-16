@@ -35,6 +35,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "preflight": "node scripts/preflight.js",
     "check:arch": "node scripts/check-architecture.js",
+    "check:hex": "node scripts/check-hex-literals.js",
     "check:arch:self-test": "node scripts/check-architecture.js --self-test",
     "smoke:apply": "node scripts/smoke-apply.js",
     "smoke:clips": "node scripts/smoke-clip-ops.js",
@@ -46,7 +47,9 @@
     "smoke:captions": "node scripts/smoke-captions.js",
     "smoke:export": "node scripts/smoke-export.js",
     "smoke:captions-karaoke": "node scripts/smoke-captions-karaoke.js",
-    "smoke:export-presets": "node scripts/smoke-export-presets.js"
+    "smoke:export-presets": "node scripts/smoke-export-presets.js",
+    "smoke:export-bundle": "node scripts/smoke-export-bundle.js",
+    "smoke:media-url": "node scripts/smoke-media-url.js"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

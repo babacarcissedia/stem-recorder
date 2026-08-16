@@ -1,0 +1,7 @@
+{
+  "name": "arch-fixture-baseline",
+  "private": true,
+  "scripts": {
+    "build": "electron-vite build"
+  }
+}
