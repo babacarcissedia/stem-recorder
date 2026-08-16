@@ -6,6 +6,10 @@ export interface BatchRecorderBridge {
   openTake(takeDir: string): Promise<void>;
 }
 
+export interface MenuBridge {
+  onCommand(listener: (command: string) => void): () => void;
+}
+
 export interface StemStudioBridge {
   listTakes(): Promise<any>;
   getTake(takeId: string): Promise<any>;
