@@ -39,10 +39,10 @@ const light = aliasesIn(source.slice(lightStart, darkStart));
 const dark = aliasesIn(source.slice(darkStart));
 
 for (const alias of light) {
-  if (!dark.has(alias)) failures.push(`${alias}: defined in light, missing in dark — dark inherits the light value through :root`);
+  if (!dark.has(alias)) failures.push(`${alias}: defined in light, missing in dark, dark inherits the light value through :root`);
 }
 for (const alias of dark) {
-  if (!light.has(alias)) failures.push(`${alias}: defined in dark, missing in light — light has no value at all`);
+  if (!light.has(alias)) failures.push(`${alias}: defined in dark, missing in light, light has no value at all`);
 }
 
 if (failures.length) {

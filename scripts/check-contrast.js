@@ -11,10 +11,6 @@
  * co-located color/background in one rule, or as a color whose nearest
  * background-bearing ancestor is named in `where`.
  *
- * ALLOWLIST is a ratchet: a listed pair that now passes must be deleted, and an
- * unlisted failure fails the build. Both directions are enforced, so the count
- * can only go down.
- *
  * rgba() literals (overlays over user video) are excluded: they composite over
  * user content, not a themed surface, and have no token to measure against.
  */
@@ -198,9 +194,9 @@ for (const [name, theme] of Object.entries(themes)) {
     measured += 1;
     if (ratio < threshold) {
       if (listed) allowed += 1;
-      else failures.push(`${key}: ${ratio.toFixed(2)}:1, needs ${threshold}:1 (${size}) — ${where}`);
+      else failures.push(`${key}: ${ratio.toFixed(2)}:1, needs ${threshold}:1 (${size}), ${where}`);
     } else if (listed) {
-      stale.push(`${key}: now ${ratio.toFixed(2)}:1, clears ${threshold}:1 — delete it from ALLOWLIST in scripts/check-contrast.js`);
+      stale.push(`${key}: now ${ratio.toFixed(2)}:1, clears ${threshold}:1, delete it from ALLOWLIST in scripts/check-contrast.js`);
     }
   }
 }
