@@ -1,0 +1,55 @@
+/* R8. Selectors here match roles, never components: adding a button anywhere
+   earns the affordance without an edit to this file. */
+
+button,
+summary,
+select,
+label[for],
+a[href],
+[role="button"],
+[role="link"],
+[role="menuitem"],
+[role="option"],
+[role="tab"],
+[role="switch"],
+[role="checkbox"],
+[role="radio"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+input[type="checkbox"],
+input[type="radio"],
+input[type="color"],
+input[type="file"],
+input[type="range"] {
+  cursor: pointer;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="search"],
+textarea,
+[contenteditable="true"] {
+  cursor: text;
+}
+
+[draggable="true"] {
+  cursor: grab;
+}
+
+[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+button:disabled,
+select:disabled,
+input:disabled,
+[aria-disabled="true"],
+[data-disabled="true"] {
+  cursor: not-allowed;
+}
+
+:where(button, [role="button"], [role="menuitem"], [role="tab"], a[href]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

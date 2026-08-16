@@ -8,8 +8,11 @@ const ROOT = path.join(__dirname, '..');
 const HEX_PATTERN = /#[0-9a-fA-F]{3,8}\b/g;
 
 const LEDGER = {
-  'src/renderer/src/timeline.css': 102,
-  'src/renderer/index.html': 72,
+  'src/renderer/src/timeline.css': 0,
+  'src/renderer/index.html': 0,
+  'src/renderer/src/app-shell.css': 0,
+  'src/renderer/src/affordance.css': 0,
+  'src/renderer/src/tokens.css': 81,
 };
 
 function countHexLiterals(relative) {
