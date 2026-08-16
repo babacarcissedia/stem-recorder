@@ -42,6 +42,7 @@ import { planExportBundle } from '../../lib/domain/export-bundle.ts';
 import { toMediaUrl, MEDIA_SCHEME, BUNDLE_HOST } from '../../lib/node/media-url.js';
 import { registerAppScheme, handleAppScheme } from './protocol.ts';
 import { contentSecurityPolicy } from './csp.ts';
+import { installAppMenu } from './menu.ts';
 
 const APP_NAME = 'Stem Studio';
 const DEV_RENDERER_URL = process.env.ELECTRON_RENDERER_URL;
@@ -423,6 +424,8 @@ ipcMain.handle('studio:exportBundle', async (evt, takeId) => {
 });
 
 app.whenReady().then(() => {
+  installAppMenu(APP_NAME);
+
   handleAppScheme({
     bundleDir: path.resolve(BUNDLE_DIR),
     mediaRoots: () => [outRoot()],
