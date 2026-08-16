@@ -41,7 +41,9 @@
     "smoke:gaps": "node scripts/smoke-gap-chips.js",
     "smoke:transcribe": "node scripts/smoke-transcribe.js",
     "smoke:captions": "node scripts/smoke-captions.js",
-    "smoke:export": "node scripts/smoke-export.js"
+    "smoke:export": "node scripts/smoke-export.js",
+    "smoke:captions-karaoke": "node scripts/smoke-captions-karaoke.js",
+    "smoke:export-presets": "node scripts/smoke-export-presets.js"
   },
   "devDependencies": {
     "electron": "^41.10.5"
