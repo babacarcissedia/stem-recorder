@@ -34,11 +34,11 @@ const RULES = [
 ];
 
 const SPECIFIER_PATTERNS = [
-  /\bimport\s+[\s\S]*?\bfrom\s*['"]([^'"]+)['"]/g,
-  /\bexport\s+[\s\S]*?\bfrom\s*['"]([^'"]+)['"]/g,
-  /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
-  /\bimport\s*['"]([^'"]+)['"]/g,
-  /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+  /(?<!['"])\bimport\s+[\s\S]*?\bfrom\s*['"]([^'"]+)['"]/g,
+  /(?<!['"])\bexport\s+[\s\S]*?\bfrom\s*['"]([^'"]+)['"]/g,
+  /(?<!['"])\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+  /(?<!['"])\bimport\s*['"]([^'"]+)['"]/g,
+  /(?<!['"])\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
 ];
 
 function listSourceFiles(root, relativeDir) {

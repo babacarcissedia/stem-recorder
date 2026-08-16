@@ -179,7 +179,6 @@ group('nonintegral speed mappings preserve selected source boundaries', () => {
   assert.strictEqual(onePointTwoFiveFourPoint.duration, 2);
   assert.strictEqual(onePointTwoFiveFourPoint.sourceOut, 5);
 });
-
 group('freeze is an effect holding one source frame', () => {
   const stack = new EffectStack([{ id: 'fx-f', type: 'freeze', enabled: true, params: {} }]);
   const c = new Clip({
