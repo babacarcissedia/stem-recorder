@@ -922,7 +922,7 @@
       // (or a cached asr.json written by an older version) — treat that the
       // same as a passing check, never as a failure.
       if (res.verification && res.verification.ok === false) {
-        setStatus(`${base} — possible decoder loop, check the transcript: ${res.verification.reasons.join('; ')}`, 'warn');
+        setStatus(`${base} — verification failed, check the transcript: ${res.verification.reasons.join('; ')}`, 'warn');
       } else {
         setStatus(base, 'ok');
       }
