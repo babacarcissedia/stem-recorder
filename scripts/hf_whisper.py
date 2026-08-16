@@ -9,7 +9,7 @@ import json
 import os
 from datetime import datetime, timezone
 
-DEFAULT_MODEL = "openai/whisper-base"
+DEFAULT_MODEL = "openai/whisper-large-v3"
 
 ALIASES = {
     "tiny": "openai/whisper-tiny",
@@ -30,6 +30,24 @@ def resolve_model(name: str | None) -> str:
     return f"openai/whisper-{name}"
 
 
+def pick_device() -> tuple[str, object]:
+    """Fastest available torch device for Whisper, with a dtype that suits it.
+
+    large-v3 on CPU runs slower than realtime, so the default model is only
+    usable if we actually reach the GPU when one exists.
+    """
+    try:
+        import torch
+    except ImportError:
+        return "cpu", None
+
+    if torch.backends.mps.is_available():
+        return "mps", torch.float16
+    if torch.cuda.is_available():
+        return "cuda:0", torch.float16
+    return "cpu", torch.float32
+
+
 def transcribe(audio_path: str, model: str | None = None, language: str | None = None) -> dict:
     """Run Whisper over one audio file. Returns {text, segments, language, model}."""
     try:
@@ -40,13 +58,20 @@ def transcribe(audio_path: str, model: str | None = None, language: str | None =
         ) from exc
 
     model_id = resolve_model(model)
-    asr = pipeline(
-        "automatic-speech-recognition",
-        model=model_id,
-        chunk_length_s=30,
-        return_timestamps=True,
-    )
-    generate_kwargs = {"task": "transcribe"}
+    device, dtype = pick_device()
+    pipeline_kwargs = {
+        "chunk_length_s": 30,
+        "return_timestamps": True,
+        "device": device,
+    }
+    if dtype is not None:
+        pipeline_kwargs["torch_dtype"] = dtype
+    asr = pipeline("automatic-speech-recognition", model=model_id, **pipeline_kwargs)
+    # condition_on_prev_tokens=False is the loop guard: conditioning each window
+    # on its own previous output lets the decoder lock onto a filler phrase and
+    # emit it for the rest of the file. That failure exits 0 and writes a
+    # complete-looking transcript, so it has to be prevented, not detected.
+    generate_kwargs = {"task": "transcribe", "condition_on_prev_tokens": False}
     if language:
         generate_kwargs["language"] = language
     out = asr(audio_path, generate_kwargs=generate_kwargs)

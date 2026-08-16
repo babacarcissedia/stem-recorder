@@ -68,7 +68,10 @@ seek the playhead. No burn-in, no translation.
 
 - **Local** — Hugging Face Whisper via Python (`scripts/hf-whisper-transcribe.py`).
   Prefer project venv: `python3 -m venv .venv-asr && .venv-asr/bin/pip install transformers torch` (app looks for `.venv-asr/bin/python`). Model via `STEM_ASR_WHISPER_MODEL`
-  (default `openai/whisper-base`; aliases `base`/`small`/… work).
+  (default `openai/whisper-large-v3`; aliases `base`/`small`/`turbo`/… work). The
+  pipeline picks MPS or CUDA when available and falls back to CPU — on a CPU-only
+  box set `STEM_ASR_WHISPER_MODEL=turbo` or `small`, since large-v3 there runs
+  slower than realtime.
 - **Cloud** — `POST $STEM_ASR_URL` (default `https://asr.traxelio.com/transcribe`)
   with `Bearer $STEM_ASR_TOKEN`. Never used as a silent fallback — if local deps
   are missing you get a clear error and can switch to Cloud explicitly.
