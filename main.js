@@ -22,6 +22,7 @@ const {
   mediaUrls,
   takeDirFor,
   FINAL_NAME,
+  PRE_BURN_FINAL_NAME,
 } = require('./lib/edit-manifest');
 const { getFilmstrip, getWaveformPeaks } = require('./lib/media-cache');
 const {
@@ -209,6 +210,7 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
   const editDir = path.join(takeDir, 'edit');
   ensureDir(editDir);
   const out = path.join(takeDir, FINAL_NAME);
+  const preBurnOut = path.join(takeDir, PRE_BURN_FINAL_NAME);
   const work = path.join(editDir, '.work');
   if (fs.existsSync(work)) fs.rmSync(work, { recursive: true, force: true });
   ensureDir(work);
@@ -258,10 +260,11 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
           layout: camSettings.pipLayout || null,
         },
       } : {}),
-      ...(burn.burn ? { subtitles: burn.vtt } : {}),
+      ...(burn.burn ? { subtitles: burn.vtt, preBurnOutPath: preBurnOut } : {}),
       ...(rate ? { rate } : {}),
       ...(music ? { music } : {}),
     });
+    if (!burn.burn) fs.rmSync(preBurnOut, { force: true });
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
   }
@@ -274,6 +277,7 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
     pip,
     captions: burn.burn,
     captionsSkipped: burn.skipped || null,
+    preBurnFinal: burn.burn ? preBurnOut : null,
     rate: rate || 1,
     music: Boolean(music),
     musicSkipped,
