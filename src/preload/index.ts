@@ -1,8 +1,8 @@
-'use strict';
+import { contextBridge, ipcRenderer } from 'electron';
 
-const { contextBridge, ipcRenderer } = require('electron');
+import type { BatchRecorderBridge, StemStudioBridge } from './api.ts';
 
-const recorder = {
+const recorder: BatchRecorderBridge = {
   isDesktop: true,
   outRoot: () => ipcRenderer.invoke('recorder:outRoot'),
   beginTake: (stamp) => ipcRenderer.invoke('recorder:beginTake', stamp),
@@ -10,7 +10,7 @@ const recorder = {
   openTake: (takeDir) => ipcRenderer.invoke('recorder:openTake', takeDir),
 };
 
-const studio = {
+const studio: StemStudioBridge = {
   listTakes: () => ipcRenderer.invoke('studio:listTakes'),
   getTake: (takeId) => ipcRenderer.invoke('studio:getTake', takeId),
   saveManifest: (takeId, doc) => ipcRenderer.invoke('studio:saveManifest', takeId, doc),

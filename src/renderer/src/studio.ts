@@ -1,14 +1,14 @@
-'use strict';
-
 /**
  * CapCut-like Edit-T1: multi-stem tracks (cam/screen/audio), full-height playhead,
  * split / delete (ripple), edge resize, preview rate. Linked stems share clips[].
  */
+import * as ops from '../../../lib/domain/clip-ops.ts';
+import * as gapChips from '../../../lib/domain/gap-chips.ts';
+import { createUndoStack } from '../../../lib/domain/undo-stack.ts';
+
 (function studioUi() {
   const studio = window.stemStudio;
-  const ops = window.StemClipOps;
-  const gapChips = window.StemGapChips;
-  if (!studio || !ops) return;
+  if (!studio) return;
 
   const LANES = [
     { id: 'cam', file: 'cam.mp4', kind: 'video', label: 'cam.mp4' },
@@ -123,7 +123,7 @@
   let cropMode = false;
   let cropDraft = null;
   /** In-session undo/redo over clip-list snapshots (not persisted to disk). */
-  const undoStack = window.StemUndoStack ? window.StemUndoStack.createUndoStack(100) : null;
+  const undoStack = createUndoStack(100);
   /** I.6 in-memory clip clipboard — per take (cleared on openEdit: clips reference this take's media). */
   let clipClipboard = null;
 

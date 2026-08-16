@@ -1,9 +1,6 @@
-'use strict';
-
-const fs = require('fs');
-const path = require('path');
-const { pathToFileURL } = require('url');
-const {
+import fs from 'node:fs';
+import path from 'node:path';
+import {
   app,
   BrowserWindow,
   dialog,
@@ -11,13 +8,13 @@ const {
   desktopCapturer,
   ipcMain,
   shell,
-} = require('electron');
+} from 'electron';
 
-const { outRoot } = require('./lib/node/paths.js');
-const {
+import { outRoot } from '../../lib/node/paths.js';
+import {
   findFfmpeg, runFfmpeg, applyClips, hasSubtitlesFilter, resolveCaptionsPath,
-} = require('./lib/node/ffmpeg-util.js');
-const {
+} from '../../lib/node/ffmpeg-util.js';
+import {
   listTakes,
   readManifest,
   writeManifest,
@@ -25,20 +22,31 @@ const {
   takeDirFor,
   FINAL_NAME,
   PRE_BURN_FINAL_NAME,
-} = require('./lib/node/edit-manifest.js');
-const { getFilmstrip, getWaveformPeaks } = require('./lib/node/media-cache.js');
-const {
-  runLocal: runLocalAsr,
-  runCloud: runCloudAsr,
+} from '../../lib/node/edit-manifest.js';
+import { getFilmstrip, getWaveformPeaks } from '../../lib/node/media-cache.js';
+import {
+  runLocal as runLocalAsr,
+  runCloud as runCloudAsr,
   readTranscript,
   asrStatus,
   resolveBurn,
   updateCueText,
-} = require('./lib/node/transcribe.js');
-const { planExportBundle } = require('./lib/domain/export-bundle.ts');
+} from '../../lib/node/transcribe.js';
+import { planExportBundle } from '../../lib/domain/export-bundle.ts';
+import { toMediaUrl, MEDIA_SCHEME, BUNDLE_HOST } from '../../lib/node/media-url.js';
+import { registerAppScheme, handleAppScheme } from './protocol.ts';
+import { contentSecurityPolicy } from './csp.ts';
 
 const APP_NAME = 'Stem Studio';
-const ICON = path.join(__dirname, 'build', 'icon.png');
+const DEV_RENDERER_URL = process.env.ELECTRON_RENDERER_URL;
+const IS_DEVELOPMENT = Boolean(DEV_RENDERER_URL);
+const BUNDLE_DIR = path.join(__dirname, '../renderer');
+const APP_ROOT = app.getAppPath();
+const ICON = path.join(APP_ROOT, 'build', 'icon.png');
+
+process.env.STEM_APP_ROOT = APP_ROOT;
+
+registerAppScheme();
 
 if (process.platform === 'darwin' && app.dock && fs.existsSync(ICON)) {
   app.dock.setIcon(ICON);
@@ -100,7 +108,7 @@ function createWindow() {
     backgroundColor: '#f6f4ef',
     icon: fs.existsSync(ICON) ? ICON : undefined,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -134,7 +142,11 @@ function createWindow() {
     }, { useSystemPicker: true });
   }
 
-  win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  if (DEV_RENDERER_URL) {
+    win.loadURL(DEV_RENDERER_URL);
+  } else {
+    win.loadURL(`${MEDIA_SCHEME}://${BUNDLE_HOST}/index.html`);
+  }
   win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
@@ -277,7 +289,7 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
 
   return {
     final: out,
-    url: pathToFileURL(out).href,
+    url: toMediaUrl(out),
     clips: manifest.clips.length,
     freeze: manifest.clips.filter((c) => c.freeze).length,
     pip,
@@ -371,6 +383,21 @@ ipcMain.handle('studio:exportBundle', async (evt, takeId) => {
 });
 
 app.whenReady().then(() => {
+  handleAppScheme({
+    bundleDir: path.resolve(BUNDLE_DIR),
+    mediaRoots: () => [outRoot()],
+    documentHeaders: { 'content-security-policy': contentSecurityPolicy(IS_DEVELOPMENT) },
+  });
+
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [contentSecurityPolicy(IS_DEVELOPMENT)],
+      },
+    });
+  });
+
   if (process.platform === 'darwin' && typeof app.setAboutPanelParameters === 'function') {
     app.setAboutPanelParameters({
       applicationName: APP_NAME,

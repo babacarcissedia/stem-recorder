@@ -3,7 +3,7 @@
   "productName": "Stem Studio",
   "version": "0.2.0",
   "private": false,
-  "description": "Record screen/cam/mic stems and edit locally (timeline clips → ffmpeg apply).",
+  "description": "Record screen/cam/mic stems and edit locally (timeline clips \u2192 ffmpeg apply).",
   "license": "MIT",
   "author": {
     "name": "Babacar Cisse Dia",
@@ -27,12 +27,15 @@
     "editor",
     "timeline"
   ],
-  "main": "main.js",
+  "main": "out/main/index.js",
   "scripts": {
-    "start": "electron .",
-    "dev": "electron .",
+    "start": "electron-vite preview",
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "preflight": "node scripts/preflight.js",
     "check:arch": "node scripts/check-architecture.js",
+    "check:arch:self-test": "node scripts/check-architecture.js --self-test",
     "smoke:apply": "node scripts/smoke-apply.js",
     "smoke:clips": "node scripts/smoke-clip-ops.js",
     "smoke:pip": "node scripts/smoke-pip-filter.js",
@@ -59,5 +62,30 @@
   "dependencies": {
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
+  },
+  "build": {
+    "appId": "dev.bcd.stem-studio",
+    "productName": "Stem Studio",
+    "directories": {
+      "buildResources": "build",
+      "output": "release"
+    },
+    "files": [
+      "out/**",
+      "build/icon.png",
+      "scripts/hf-whisper-transcribe.py",
+      "scripts/hf_whisper.py"
+    ],
+    "mac": {
+      "category": "public.app-category.video",
+      "icon": "build/icon.png"
+    },
+    "win": {
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "AudioVideo"
+    }
   }
 }

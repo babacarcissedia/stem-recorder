@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "checkJs": false,
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "verbatimModuleSyntax": false
+  },
+  "include": [
+    "electron.vite.config.ts",
+    "src/main/protocol.ts",
+    "src/main/csp.ts",
+    "src/preload/index.ts",
+    "src/preload/api.ts",
+    "src/renderer/src/app-shell.tsx",
+    "src/renderer/src/global.d.ts"
+  ],
+  "exclude": ["scripts/fixtures/**", "out/**", "release/**"]
+}
