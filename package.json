@@ -56,7 +56,8 @@
     "smoke:media-url": "node scripts/smoke-media-url.js",
     "smoke:manifest": "node scripts/smoke-manifest.ts",
     "smoke:shortcuts": "node scripts/smoke-shortcuts.js",
-    "smoke:theme": "node scripts/smoke-theme.js"
+    "smoke:theme": "node scripts/smoke-theme.js",
+    "smoke:fonts": "node scripts/smoke-fonts.js"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
