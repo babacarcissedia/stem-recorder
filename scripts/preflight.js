@@ -35,6 +35,7 @@ const steps = [
   { name: 'smoke:shortcuts', cmd: ['npm', 'run', 'smoke:shortcuts'] },
   { name: 'smoke:theme', cmd: ['npm', 'run', 'smoke:theme'] },
   { name: 'smoke:fonts', cmd: ['npm', 'run', 'smoke:fonts'] },
+  { name: 'smoke:color-range', cmd: ['npm', 'run', 'smoke:color-range'] },
   { name: 'smoke:caption-integration', cmd: ['node', 'scripts/smoke-caption-integration.js'] },
   {
     name: 'smoke:apply',
