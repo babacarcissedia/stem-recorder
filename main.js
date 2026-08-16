@@ -32,6 +32,7 @@ const {
   resolveBurn,
   updateCueText,
 } = require('./lib/transcribe');
+const { planExportBundle } = require('./lib/export-bundle');
 
 const APP_NAME = 'Stem Studio';
 const ICON = path.join(__dirname, 'build', 'icon.png');
@@ -325,6 +326,37 @@ ipcMain.handle('studio:setCueText', (_evt, takeId, index, text) => {
 });
 
 ipcMain.handle('studio:asrStatus', () => asrStatus());
+
+ipcMain.handle('studio:exportBundle', async (evt, takeId) => {
+  const takeDir = takeDirFor(takeId);
+  const editDir = path.join(takeDir, 'edit');
+
+  const win = BrowserWindow.fromWebContents(evt.sender);
+  const res = await dialog.showOpenDialog(win, {
+    title: 'Choose a folder for the export bundle',
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  if (res.canceled || !res.filePaths.length) return null;
+  const destDir = res.filePaths[0];
+
+  const takeFiles = fs.readdirSync(takeDir, { withFileTypes: true })
+    .filter((e) => e.isFile())
+    .map((e) => e.name);
+  const editFiles = fs.existsSync(editDir)
+    ? fs.readdirSync(editDir, { withFileTypes: true }).filter((e) => e.isFile()).map((e) => e.name)
+    : [];
+
+  const { items, missing } = planExportBundle({ takeFiles, editFiles, takeId });
+
+  ensureDir(destDir);
+  for (const item of items) {
+    fs.copyFileSync(path.join(takeDir, item.source), path.join(destDir, item.destName));
+  }
+
+  shell.openPath(destDir);
+
+  return { destDir, items, missing };
+});
 
 app.whenReady().then(() => {
   if (process.platform === 'darwin' && typeof app.setAboutPanelParameters === 'function') {
