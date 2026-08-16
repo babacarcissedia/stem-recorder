@@ -41,6 +41,19 @@ export interface BatchRecorderBridge {
   openTake(takeDir: string): Promise<void>;
 }
 
+import type { ThemePreference } from '../../lib/domain/theme.ts';
+
+export interface ThemeState {
+  preference: ThemePreference;
+  resolved: 'light' | 'dark';
+}
+
+export interface ThemeBridge {
+  get(): Promise<ThemeState>;
+  set(preference: ThemePreference): Promise<ThemeState>;
+  onChanged(listener: (state: ThemeState) => void): () => void;
+}
+
 export interface MenuBridge {
   onCommand(listener: (command: MenuCommand) => void): () => void;
   setEditorCommandsEnabled(enabled: boolean): void;

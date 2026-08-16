@@ -1,7 +1,9 @@
 import { app, shell, BrowserWindow, Menu, type MenuItemConstructorOptions } from 'electron';
 
 import { SHORTCUT_REGISTRY, type ShortcutCommandId } from '../../lib/domain/shortcuts.ts';
-import { canDispatchMenuCommand } from '../preload/api.ts';
+import { THEME_PREFERENCES, themeCommandId, type ThemePreference } from '../../lib/domain/theme.ts';
+import { canDispatchMenuCommand, isMenuCommand } from '../preload/api.ts';
+import { setThemePreference, themeState } from './theme.ts';
 
 export type MenuCommand = ShortcutCommandId;
 
@@ -17,8 +19,26 @@ function commandItem(id: ShortcutCommandId, editorCommandsEnabled: boolean): Men
   return {
     label: binding.label,
     accelerator: binding.accelerator,
-    enabled: canDispatchMenuCommand(binding.id, editorCommandsEnabled),
+    enabled: !isMenuCommand(binding.id) || canDispatchMenuCommand(binding.id, editorCommandsEnabled),
     click: () => sendCommand(binding.id),
+  };
+}
+
+function themeItem(
+  preference: ThemePreference,
+  appName: string,
+  editorCommandsEnabled: boolean,
+): MenuItemConstructorOptions {
+  const item = commandItem(themeCommandId(preference), editorCommandsEnabled);
+
+  return {
+    ...item,
+    type: 'radio',
+    checked: themeState().preference === preference,
+    click: () => {
+      setThemePreference(preference);
+      installAppMenu(appName, editorCommandsEnabled);
+    },
   };
 }
 
@@ -66,6 +86,11 @@ export function buildAppMenu(appName: string, editorCommandsEnabled: boolean = f
         { role: 'zoomOut' },
         { type: 'separator' },
         { role: 'togglefullscreen' },
+        { type: 'separator' },
+        {
+          label: 'Theme',
+          submenu: THEME_PREFERENCES.map((preference) => themeItem(preference, appName, editorCommandsEnabled)),
+        },
       ],
     },
     {
