@@ -12,6 +12,7 @@ const {
   findBindingForChord,
   isTypingTarget,
 } = require('../lib/domain/shortcuts.ts');
+const { THEME_PREFERENCES, themeCommandId } = require('../lib/domain/theme.ts');
 
 let cases = 0;
 function check(condition, message) {
@@ -21,12 +22,13 @@ function check(condition, message) {
 
 // no accelerator is registered twice
 {
-  const chords = SHORTCUT_REGISTRY.map((binding) => parseAccelerator(binding.accelerator));
+  const bound = SHORTCUT_REGISTRY.filter((binding) => binding.accelerator !== undefined);
+  const chords = bound.map((binding) => parseAccelerator(binding.accelerator));
   for (let i = 0; i < chords.length; i += 1) {
     for (let j = i + 1; j < chords.length; j += 1) {
       check(
         !chordsEqual(chords[i], chords[j]),
-        `'${SHORTCUT_REGISTRY[i].id}' and '${SHORTCUT_REGISTRY[j].id}' share accelerator '${SHORTCUT_REGISTRY[i].accelerator}'`
+        `'${bound[i].id}' and '${bound[j].id}' share accelerator '${bound[i].accelerator}'`
       );
     }
   }
@@ -38,6 +40,11 @@ function check(condition, message) {
 {
   const menuSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'main', 'menu.ts'), 'utf8');
   const referencedIds = new Set([...menuSource.matchAll(/commandItem\('([^']+)'\)/g)].map((match) => match[1]));
+  // themeItem() builds its commandItem id from themeCommandId(preference), so the
+  // literal-call scan cannot see it; the theme smoke asserts that mapping instead.
+  if (/commandItem\(themeCommandId\(preference\)\)/.test(menuSource)) {
+    for (const preference of THEME_PREFERENCES) referencedIds.add(themeCommandId(preference));
+  }
 
   for (const binding of SHORTCUT_REGISTRY) {
     check(referencedIds.has(binding.id), `registry entry '${binding.id}' is never referenced by a commandItem() call in menu.ts`);

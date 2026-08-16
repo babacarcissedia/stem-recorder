@@ -1,6 +1,8 @@
 import { app, shell, BrowserWindow, Menu, type MenuItemConstructorOptions } from 'electron';
 
 import { SHORTCUT_REGISTRY, type ShortcutCommandId } from '../../lib/domain/shortcuts.ts';
+import { THEME_PREFERENCES, themeCommandId, type ThemePreference } from '../../lib/domain/theme.ts';
+import { setThemePreference, themeState } from './theme.ts';
 
 export type MenuCommand = ShortcutCommandId;
 
@@ -13,6 +15,11 @@ function commandItem(id: ShortcutCommandId): MenuItemConstructorOptions {
   const binding = SHORTCUT_REGISTRY.find((entry) => entry.id === id);
   if (!binding) throw new Error(`menu.ts: no SHORTCUT_REGISTRY entry for command '${id}'`);
   return { label: binding.label, accelerator: binding.accelerator, click: () => sendCommand(binding.id) };
+}
+
+function themeItem(preference: ThemePreference): MenuItemConstructorOptions {
+  const item = commandItem(themeCommandId(preference));
+  return { ...item, type: 'radio', checked: themeState().preference === preference, click: () => { setThemePreference(preference); installAppMenu(); } };
 }
 
 export function buildAppMenu(appName: string): Menu {
@@ -60,6 +67,8 @@ export function buildAppMenu(appName: string): Menu {
         { role: 'zoomOut' },
         { type: 'separator' },
         { role: 'togglefullscreen' },
+        { type: 'separator' },
+        { label: 'Theme', submenu: THEME_PREFERENCES.map(themeItem) },
       ],
     },
     {
