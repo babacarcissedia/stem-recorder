@@ -6,7 +6,7 @@
   <title>Stem Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https: //fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; }
     body {
@@ -453,7 +453,9 @@
     Desktop app writes to <code>Movies/stem-recorder/take-…/</code> (ffmpeg transcode after capture).
   </p>
   <div id="secureWarn" class="secure-warn">
-    Use the Stem Studio desktop app. Browser previews require HTTPS or localhost.
+    Needs localhost or https. Serve this folder:
+    <code>python3 -m http.server 8765</code> →
+    <code>http://127.0.0.1:8765/cam-preview.html</code>
   </div>
 
   <div class="layout">
