@@ -22,6 +22,7 @@ const {
 } = require('../lib/transcribe');
 const { verifyTranscript, LOOP_RUN_THRESHOLD } = require('../lib/asr/verify');
 const registry = require('../lib/asr/registry');
+const { buildSrt } = require('../lib/captions');
 
 async function main() {
   {
@@ -211,12 +212,21 @@ async function main() {
       findPython: () => '/usr/bin/python3',
       asrStatus: () => ({ localPythonOk: true, hasTransformers: true, python: '/usr/bin/python3' }),
       async invoke({ editDir }) {
-        const files = writeOutputs(localTakeDir, {
-          provider: 'local', model: 'mock/whisper', language: 'en', sourceFile: 'audio.mp3', text: 'Hello there.\nGoodbye now.', cues: cleanCues,
-        });
-        assert.strictEqual(path.dirname(files.transcript), editDir);
+        // Real scripts/hf_whisper.py#write_outputs writes only transcript.txt /
+        // captions.vtt / asr.json — no captions.srt. Mirror that here (rather
+        // than reusing lib/transcribe.js#writeOutputs, which does write SRT)
+        // so this smoke can only pass if runLocal() itself generates the SRT.
+        const transcriptPath = path.join(editDir, 'transcript.txt');
+        const captionsPath = path.join(editDir, 'captions.vtt');
+        const asrPath = path.join(editDir, 'asr.json');
+        fs.writeFileSync(transcriptPath, 'Hello there.\nGoodbye now.\n', 'utf8');
+        fs.writeFileSync(captionsPath, buildVtt(cleanCues), 'utf8');
+        fs.writeFileSync(asrPath, `${JSON.stringify({
+          provider: 'local', model: 'mock/whisper', language: 'en', createdAt: new Date().toISOString(), sourceFile: 'audio.mp3',
+        }, null, 2)}\n`, 'utf8');
+        assert.strictEqual(fs.existsSync(path.join(editDir, 'captions.srt')), false);
         return {
-          ok: true, model: 'mock/whisper', language: 'en', ...files,
+          ok: true, model: 'mock/whisper', language: 'en', transcript: transcriptPath, captions: captionsPath, asr: asrPath, segments: cleanCues.length,
         };
       },
     });
@@ -229,6 +239,9 @@ async function main() {
     assert.strictEqual(localResult.provider, 'local');
     assert.strictEqual(localResult.verification.ok, true);
     assert.strictEqual(localResult.segments, 2);
+    assert.strictEqual(localResult.captionsSrt, path.join(localTakeDir, 'edit', 'captions.srt'));
+    assert.strictEqual(fs.existsSync(localResult.captionsSrt), true);
+    assert.strictEqual(fs.readFileSync(localResult.captionsSrt, 'utf8'), buildSrt(cleanCues));
   } finally {
     fs.rmSync(tmp2, { recursive: true, force: true });
   }
