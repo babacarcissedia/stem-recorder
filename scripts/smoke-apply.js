@@ -13,7 +13,9 @@ process.env.STEM_OUT_ROOT = process.env.STEM_OUT_ROOT || '/tmp/stem-test-takes';
 
 const {
   applyClips, probeDuration, probeDimensions, probeHasAudio, findFfmpeg, runFfmpeg, hasSubtitlesFilter,
+  verifyOutputDuration,
 } = require('../lib/ffmpeg-util');
+const { expectedOutputDuration, durationTolerance } = require('../lib/apply-duration');
 const { writeManifest, readManifest, FINAL_NAME } = require('../lib/edit-manifest');
 
 async function main() {
@@ -148,9 +150,81 @@ async function main() {
     && musicRateDur != null && Math.abs(musicRateDur - 2) < 0.35
     && probeHasAudio(musicRateOut);
 
+  // A1: expectedOutputDuration pure math — freeze (Edit-T2c) holds are
+  // wall-clock and export rate (Edit-T2e) scales the whole thing by 1/rate,
+  // so a [2,6] trim + a 1.5s freeze at 2x must land at (4 + 1.5) / 2 = 2.75s.
+  const durationMathOk = Math.abs(expectedOutputDuration(doc.clips, {}) - 4) < 1e-9
+    && Math.abs(expectedOutputDuration(freezeClips, {}) - 5.5) < 1e-9
+    && Math.abs(expectedOutputDuration(doc.clips, { rate: 2 }) - 2) < 1e-9
+    && Math.abs(expectedOutputDuration(freezeClips, { rate: 2 }) - 2.75) < 1e-9;
+
+  // A1: verifyOutputDuration must pass on a correct render and FAIL LOUDLY —
+  // with both the expected and actual number in the message — on a mismatch,
+  // and must delete the file it flagged rather than leave it on disk.
+  const mismatchProbe = path.join(takeDir, 'edit', 'mismatch-probe.mp4');
+  fs.copyFileSync(out, mismatchProbe); // `out` is a real 4s render from the trim test above
+  let mismatchThrew = false;
+  let mismatchMessageOk = false;
+  try {
+    verifyOutputDuration(mismatchProbe, 40); // 4s file asserted against a wildly wrong 40s expectation
+  } catch (e) {
+    mismatchThrew = true;
+    mismatchMessageOk = /40\.00s/.test(e.message) && /4\.00s/.test(e.message);
+  }
+  const mismatchDeletedFile = !fs.existsSync(mismatchProbe);
+  let matchOk = true;
+  try {
+    verifyOutputDuration(out, 4); // same file, correct expectation — must not throw or delete
+  } catch {
+    matchOk = false;
+  }
+  const outStillThere = fs.existsSync(out);
+  const durationGuardOk = durationMathOk && mismatchThrew && mismatchMessageOk && mismatchDeletedFile && matchOk && outStillThere;
+
+  // A2: per-clip render cache. Re-running the exact same Apply must reuse
+  // the cached clip-part instead of re-rendering (part count unchanged),
+  // and must produce a byte-for-byte identical output — this is only safe
+  // because the cache key can never collide across different render params
+  // (checked next).
+  const cacheDir = path.join(takeDir, 'edit', '.cache', 'clip-parts');
+  const countCacheFiles = () => (fs.existsSync(cacheDir) ? fs.readdirSync(cacheDir).filter((f) => f.endsWith('.mp4')).length : 0);
+  const cacheOut1 = path.join(takeDir, 'edit', 'final-cache-1.mp4');
+  await applyClips(src, doc.clips, cacheOut1, work);
+  const cacheCountAfterFirst = countCacheFiles();
+  const cacheOut2 = path.join(takeDir, 'edit', 'final-cache-2.mp4');
+  await applyClips(src, doc.clips, cacheOut2, work);
+  const cacheCountAfterSecond = countCacheFiles();
+  const cacheHitOk = cacheCountAfterFirst > 0 && cacheCountAfterSecond === cacheCountAfterFirst
+    && Buffer.compare(fs.readFileSync(cacheOut1), fs.readFileSync(cacheOut2)) === 0;
+
+  // A2: a stale key can never hit — same in/out but a different rate (a
+  // render-affecting param) must produce a different-duration output, not a
+  // reused segment from the 1x render above (that would come out ~4s, not
+  // ~2s). The rate:2 key may already be warm from the Edit-T2e section
+  // above, so this checks correctness of what got served, not file count.
+  const cacheOut3 = path.join(takeDir, 'edit', 'final-cache-3.mp4');
+  await applyClips(src, doc.clips, cacheOut3, work, { rate: 2 });
+  const cacheCountAfterRate = countCacheFiles();
+  const cache3Dur = probeDuration(cacheOut3);
+  const staleKeyRateOk = cache3Dur != null && Math.abs(cache3Dur - 2) < 0.35;
+
+  // A2: touching the source file's mtime (a re-record over the same path)
+  // must also miss the cache — the same clip params render again rather
+  // than serving a segment from before the source changed.
+  const srcStatBefore = fs.statSync(src);
+  fs.utimesSync(src, new Date(), new Date(Date.now() + 5000));
+  const cacheOut4 = path.join(takeDir, 'edit', 'final-cache-4.mp4');
+  await applyClips(src, doc.clips, cacheOut4, work);
+  const cacheCountAfterTouch = countCacheFiles();
+  fs.utimesSync(src, srcStatBefore.atime, srcStatBefore.mtime); // restore, so later reruns of this smoke stay stable
+  const staleKeySourceOk = cacheCountAfterTouch > cacheCountAfterRate;
+
+  const cacheOk = cacheHitOk && staleKeyRateOk && staleKeySourceOk;
+
   fs.rmSync(work, { recursive: true, force: true });
 
-  const ok = trimOk && cropKept && cropOk && pipOk && freezeOk && captionsOk && rateOk && musicOk;
+  const ok = trimOk && cropKept && cropOk && pipOk && freezeOk && captionsOk && rateOk && musicOk
+    && durationGuardOk && cacheOk;
   console.log(JSON.stringify({
     takeId, out, expected: 4, duration: dur, trimOk,
     crop, cropKept, srcDim, outDim, cropOk,
@@ -158,7 +232,12 @@ async function main() {
     frzDur, frzDim, frzPipDur, frzPipDim, freezeOk,
     captionsOk, captionsSkipped,
     rateDur, rateFrzDur, rateOk,
-    musicDur, musicRateDur, musicOk, ok,
+    musicDur, musicRateDur, musicOk,
+    durationMathOk, mismatchThrew, mismatchMessageOk, mismatchDeletedFile, matchOk, outStillThere, durationGuardOk,
+    cacheCountAfterFirst, cacheCountAfterSecond, cacheHitOk,
+    cacheCountAfterRate, cache3Dur, staleKeyRateOk,
+    cacheCountAfterTouch, staleKeySourceOk, cacheOk,
+    ok,
   }, null, 2));
   if (!ok) process.exit(1);
 }
