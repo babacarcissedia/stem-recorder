@@ -1,5 +1,6 @@
 'use strict';
 
+import type { LegacyClip } from './clip-ops.ts';
 import { totalOutputDuration } from './clip-ops.ts';
 
 /**
@@ -12,7 +13,10 @@ import { totalOutputDuration } from './clip-ops.ts';
  * (Edit-T2e) never change duration — the mix is amix duration=first against
  * the video — so they are not a parameter here.
  */
-function expectedOutputDuration(clips, { rate, fallbackDuration } = {}) {
+function expectedOutputDuration(
+  clips: LegacyClip[],
+  { rate, fallbackDuration }: { rate?: number | null; fallbackDuration?: number | null } = {},
+): number {
   const raw = totalOutputDuration(clips, fallbackDuration);
   const factor = rate && rate !== 1 ? Number(rate) : 1;
   return raw / factor;
@@ -29,7 +33,7 @@ function expectedOutputDuration(clips, { rate, fallbackDuration } = {}) {
 const DURATION_TOLERANCE_FLOOR_SEC = 0.5;
 const DURATION_TOLERANCE_RATIO = 0.03;
 
-function durationTolerance(expectedSec) {
+function durationTolerance(expectedSec: number): number {
   return Math.max(DURATION_TOLERANCE_FLOOR_SEC, Math.abs(expectedSec) * DURATION_TOLERANCE_RATIO);
 }
 
