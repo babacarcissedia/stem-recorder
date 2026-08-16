@@ -387,7 +387,7 @@
 
 .tl-clip .wave b {
   flex: 1;
-  background: var(--focus-ring);
+  background: var(--clip-wave);
   border-radius: var(--radius-hairline);
   min-height: 2px;
 }
