@@ -14,7 +14,9 @@ const {
 } = require('electron');
 
 const { outRoot } = require('./lib/paths');
-const { findFfmpeg, runFfmpeg, applyClips, hasSubtitlesFilter } = require('./lib/ffmpeg-util');
+const {
+  findFfmpeg, runFfmpeg, applyClips, hasSubtitlesFilter, resolveCaptionsPath,
+} = require('./lib/ffmpeg-util');
 const {
   listTakes,
   readManifest,
@@ -224,9 +226,6 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
     && fs.existsSync(camPath)
     && camSettings.pip !== false;
 
-  // Edit-T2d: burn captions.vtt when the take opted in; a missing VTT or an
-  // ffmpeg built without libass skips the burn (reported in the result)
-  // rather than failing Apply.
   let burn = resolveBurn(takeDir, manifest);
   if (burn.burn) {
     const ffmpeg = findFfmpeg();
@@ -238,10 +237,12 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
       };
     }
   }
+  const captionStyle = manifest.captions && manifest.captions.style === 'karaoke' ? 'karaoke' : 'segment';
+  const karaokeRequested = burn.burn && captionStyle === 'karaoke';
+  const subtitlesPath = burn.burn
+    ? (karaokeRequested ? resolveCaptionsPath(editDir, {}) : burn.vtt)
+    : null;
 
-  // Edit-T2e: constant export speed + music bed, both normalized by the
-  // manifest read. A music file that vanished since it was attached skips
-  // the bed (reported) rather than failing Apply.
   const rate = manifest.exportRate || null;
   let music = manifest.music || null;
   let musicSkipped = null;
@@ -249,6 +250,9 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
     musicSkipped = `music file missing: ${music.path}`;
     music = null;
   }
+
+  const verticalRequested = manifest.vertical === true;
+  const vertical = verticalRequested ? {} : null;
 
   try {
     await applyClips(src, manifest.clips, out, work, {
@@ -260,9 +264,10 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
           layout: camSettings.pipLayout || null,
         },
       } : {}),
-      ...(burn.burn ? { subtitles: burn.vtt, preBurnOutPath: preBurnOut } : {}),
+      ...(burn.burn ? { subtitles: subtitlesPath, preBurnOutPath: preBurnOut } : {}),
       ...(rate ? { rate } : {}),
       ...(music ? { music } : {}),
+      ...(vertical ? { vertical } : {}),
     });
     if (!burn.burn) fs.rmSync(preBurnOut, { force: true });
   } finally {
@@ -276,11 +281,13 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
     freeze: manifest.clips.filter((c) => c.freeze).length,
     pip,
     captions: burn.burn,
+    captionStyle: burn.burn ? captionStyle : null,
     captionsSkipped: burn.skipped || null,
     preBurnFinal: burn.burn ? preBurnOut : null,
     rate: rate || 1,
     music: Boolean(music),
     musicSkipped,
+    vertical: Boolean(vertical),
   };
 });
 

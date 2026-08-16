@@ -70,22 +70,39 @@ Record (renderer MediaRecorder)
                           height from the cam aspect; absent = the T2a
                           bottom-right ~25% default. Drag the PiP preview to
                           move, corner handle to resize.
-      captions: { burn? }  take-level (Edit-T2d), opt-in — only burn: true is
-                          stored. Apply burns edit/captions.vtt into
-                          final.mp4 via the subtitles filter, appended last
-                          in the chain (after crop, PiP overlay and freeze)
-                          so cues draw on the composed frame. Clips seek
-                          output-side, so the filter sees source-timeline
-                          PTS and cues land at their recorded times without
-                          re-timing; freeze segments skip the burn (they
-                          input-seek and carry silence — no cue belongs
-                          there). Burn requested with no captions.vtt on
-                          disk, or an ffmpeg built without libass (no
-                          subtitles filter) → Apply proceeds without
-                          captions and reports the skip. Preview shows a cheap DOM cue overlay
-                          (same source-time lookup); the transcript panel's
-                          double-click cue edit rewrites captions.vtt +
-                          transcript.txt (text only, timing untouched).
+      captions: { burn?, style? }  take-level (Edit-T2d/T2f), opt-in — only
+                          burn: true is stored, and only alongside an
+                          explicit style: 'karaoke' (any other value,
+                          including an unknown string, is the default
+                          'segment' and is not stored). Apply resolves the
+                          subtitles file through resolveCaptionsPath: style
+                          'segment' always burns edit/captions.vtt; style
+                          'karaoke' burns a word-level ASS generated into
+                          edit/.cache/captions-karaoke.ass from asr.json's
+                          words[] (lib/captions.js buildKaraokeAss) — and
+                          falls back to captions.vtt when asr.json has no
+                          word timings, so a take transcribed before
+                          word-level ASR support still burns segment cues.
+                          The subtitles filter is appended in the chain
+                          after crop, PiP overlay and freeze, and BEFORE the
+                          exportRate speed stage (see exportRate below) —
+                          the filter reads source-timeline PTS, so burning
+                          after a speed change would desync every cue at any
+                          rate other than 1. Clips seek output-side, so cues
+                          land at their recorded times without re-timing;
+                          freeze segments skip the burn (they input-seek and
+                          carry silence — no cue belongs there). Burn
+                          requested with no caption file resolved, or an
+                          ffmpeg built without libass (no subtitles filter)
+                          → Apply proceeds without captions and reports the
+                          skip; edit/final-no-captions.mp4 (the same render
+                          minus the burn) is retained alongside final.mp4
+                          whenever the burn succeeds, which costs a second
+                          full render pass. Preview shows a cheap DOM cue
+                          overlay (same source-time lookup, segment cues
+                          only); the transcript panel's double-click cue
+                          edit rewrites captions.vtt + transcript.txt (text
+                          only, timing untouched).
       exportRate: 1.25     take-level (Edit-T2e), optional — constant export
                           speed, clamped 0.25–4 (1× stored as absent). Apply
                           renders every trimmed clip with setpts=PTS/rate on
@@ -111,6 +128,18 @@ Record (renderer MediaRecorder)
                           not sped by exportRate — it scores the final
                           timeline. A missing music file skips the bed and
                           reports it, like a missing captions.vtt.
+      vertical: true        take-level (Edit-T2f), opt-in — off by default,
+                          only the explicit boolean true is stored. Apply
+                          passes { vertical: {} } to applyClips, which
+                          builds a 1080x1920 preset via
+                          export-presets.buildVerticalPreset (crop the
+                          source to the target aspect, scale to the target
+                          dims, place the cam PiP inside the resulting
+                          frame) and renders that instead of the source
+                          aspect. Composes with crop, PiP, captions and
+                          exportRate — the vertical crop/scale stage runs
+                          right after the manual crop, before PiP overlay,
+                          caption burn and speed.
   → preview (renderer reads media via file URLs from main; edits are
       model-only: clip-ops + undo-stack mutate clips[] in memory)
   → Apply (separate path: main → ffmpeg-util.applyClips → edit/final.mp4)
@@ -143,7 +172,10 @@ All caches are per-take, regenerable, and keyed on source mtime.
   (`scripts/hf-whisper-transcribe.py`, venv at `.venv-asr/`).
 - **Cloud**: `https://asr.traxelio.com/transcribe`.
 - Never falls back silently between the two. Outputs in `<take>/edit/`:
-  `transcript.txt`, `captions.vtt`, `asr.json`.
+  `transcript.txt`, `captions.vtt`, `captions.srt` (same cues as the VTT, for
+  editors like Premiere/Resolve), `asr.json` (segments plus a `words[]`
+  array of word-level `{ word, start, end }` timings when the provider
+  returns them).
 
 ## Sequenced (deliberately NOT in this repo yet)
 

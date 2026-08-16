@@ -16,6 +16,8 @@ const {
   normalizePipLayout,
   cropsEqual,
   setCrop,
+  normalizeCaptions,
+  normalizeVertical,
 } = require('../lib/clip-ops');
 const { createUndoStack } = require('../lib/undo-stack');
 
@@ -259,4 +261,28 @@ const base = [
   assert.strictEqual(threw, true);
 }
 
-console.log(JSON.stringify({ ok: true, cases: 14 }));
+{
+  assert.strictEqual(normalizeCaptions(null), null);
+  assert.strictEqual(normalizeCaptions(undefined), null);
+  assert.strictEqual(normalizeCaptions('burn'), null);
+  assert.strictEqual(normalizeCaptions({}), null);
+  assert.strictEqual(normalizeCaptions({ burn: false }), null);
+  assert.strictEqual(normalizeCaptions({ burn: 'yes' }), null);
+  assert.deepStrictEqual(normalizeCaptions({ burn: true }), { burn: true });
+  assert.deepStrictEqual(normalizeCaptions({ burn: true, style: 'segment' }), { burn: true });
+  assert.deepStrictEqual(normalizeCaptions({ burn: true, style: 'karaoke' }), { burn: true, style: 'karaoke' });
+  assert.deepStrictEqual(normalizeCaptions({ burn: true, style: 'bogus' }), { burn: true });
+  assert.deepStrictEqual(normalizeCaptions({ burn: true, style: 'Karaoke' }), { burn: true });
+  assert.deepStrictEqual(normalizeCaptions({ burn: true, style: 42 }), { burn: true });
+  assert.strictEqual(normalizeCaptions({ burn: false, style: 'karaoke' }), null);
+
+  assert.strictEqual(normalizeVertical(true), true);
+  assert.strictEqual(normalizeVertical(false), null);
+  assert.strictEqual(normalizeVertical(null), null);
+  assert.strictEqual(normalizeVertical(undefined), null);
+  assert.strictEqual(normalizeVertical('true'), null);
+  assert.strictEqual(normalizeVertical(1), null);
+  assert.strictEqual(normalizeVertical({}), null);
+}
+
+console.log(JSON.stringify({ ok: true, cases: 15 }));

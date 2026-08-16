@@ -90,4 +90,38 @@ assert.deepStrictEqual(doc.music, { path: '/m/bed.mp3', gainDb: -18 });
 const bare = normalizeManifest({ clips: [{ id: 'clip-1', in: 0, out: 4 }], exportRate: 1 }, 'take-x', 8);
 assert.ok(!('exportRate' in bare) && !('music' in bare));
 
-console.log(JSON.stringify({ ok: true, cases: 28 }, null, 2));
+const karaokeOn = normalizeManifest({
+  clips: [{ id: 'clip-1', in: 0, out: 4 }],
+  captions: { burn: true, style: 'karaoke' },
+  vertical: true,
+}, 'take-x', 8);
+assert.deepStrictEqual(karaokeOn.captions, { burn: true, style: 'karaoke' });
+assert.strictEqual(karaokeOn.vertical, true);
+
+const segmentDefault = normalizeManifest({
+  clips: [{ id: 'clip-1', in: 0, out: 4 }],
+  captions: { burn: true },
+}, 'take-x', 8);
+assert.deepStrictEqual(segmentDefault.captions, { burn: true });
+assert.ok(!('vertical' in segmentDefault));
+
+const badStyleAndVertical = normalizeManifest({
+  clips: [{ id: 'clip-1', in: 0, out: 4 }],
+  captions: { burn: true, style: 'unknown-style' },
+  vertical: 'yes',
+}, 'take-x', 8);
+assert.deepStrictEqual(badStyleAndVertical.captions, { burn: true });
+assert.ok(!('vertical' in badStyleAndVertical));
+
+const styleWithoutBurn = normalizeManifest({
+  clips: [{ id: 'clip-1', in: 0, out: 4 }],
+  captions: { style: 'karaoke' },
+}, 'take-x', 8);
+assert.ok(!('captions' in styleWithoutBurn));
+
+const defaultsUnchanged = normalizeManifest({
+  clips: [{ id: 'clip-1', in: 0, out: 4 }],
+}, 'take-x', 8);
+assert.ok(!('captions' in defaultsUnchanged) && !('vertical' in defaultsUnchanged));
+
+console.log(JSON.stringify({ ok: true, cases: 33 }, null, 2));

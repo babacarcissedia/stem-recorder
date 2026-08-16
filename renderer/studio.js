@@ -81,15 +81,18 @@
   const pipVideo = document.getElementById('pipVideo');
   const pipHandle = document.getElementById('pipHandle');
   const captionsBtn = document.getElementById('captionsBtn');
+  const captionStyleBtn = document.getElementById('captionStyleBtn');
   const captionOverlay = document.getElementById('captionOverlay');
   const exportRateSelect = document.getElementById('exportRateSelect');
   const musicBtn = document.getElementById('musicBtn');
+  const verticalBtn = document.getElementById('verticalBtn');
   const exportBundleBtn = document.getElementById('exportBundleBtn');
 
   let currentTakeId = null;
   let manifest = null;
   let duration = null;
   let urls = {};
+  let transcriptHasWordTimings = false;
   let selectedIdx = 0;
   let outputTime = 0;
   let playing = false;
@@ -719,6 +722,7 @@
     draggingWave = null;
     chips = [];
     transcriptCues = [];
+    transcriptHasWordTimings = false;
     undoStack?.clear();
     updateUndoUi();
     clipClipboard = null;
@@ -752,9 +756,10 @@
 
   function renderTranscript(data) {
     transcriptCues = data?.cues || [];
+    transcriptHasWordTimings = Array.isArray(data?.asr?.words) && data.asr.words.length > 0;
     recomputeChips();
     renderChipsRow();
-    updateCaptionOverlay();
+    updateCaptionsUi();
     if (!transcriptPanel) return;
     transcriptPanel.innerHTML = '';
     if (!data || !data.cues?.length) {
@@ -827,8 +832,20 @@
     return manifest?.captions?.burn === true;
   }
 
+  function captionStyleKaraoke() {
+    return manifest?.captions?.style === 'karaoke';
+  }
+
   function updateCaptionsUi() {
     captionsBtn?.classList.toggle('on', captionsBurnEnabled());
+    if (captionStyleBtn) {
+      const karaokeAvailable = captionsBurnEnabled() && transcriptHasWordTimings;
+      captionStyleBtn.disabled = !karaokeAvailable;
+      captionStyleBtn.classList.toggle('on', captionStyleKaraoke());
+      captionStyleBtn.title = transcriptHasWordTimings
+        ? 'Word-level karaoke captions on Apply — each word highlights as it is read; off = whole-cue segment captions'
+        : 'Karaoke captions need word-level timings — run Transcribe first';
+    }
     updateCaptionOverlay();
   }
 
@@ -850,8 +867,12 @@
   function doToggleCaptions() {
     if (!manifest) return;
     const next = !captionsBurnEnabled();
-    if (next) manifest.captions = { burn: true };
-    else delete manifest.captions;
+    if (next) {
+      const keepStyle = captionStyleKaraoke() ? 'karaoke' : null;
+      manifest.captions = { burn: true, ...(keepStyle ? { style: keepStyle } : {}) };
+    } else {
+      delete manifest.captions;
+    }
     updateCaptionsUi();
     setStatus(next
       ? (transcriptCues.length
@@ -860,11 +881,26 @@
       : 'Captions off — Apply renders without subtitles', next ? 'ok' : '');
   }
 
+  function doToggleCaptionStyle() {
+    if (!manifest || !captionsBurnEnabled() || !transcriptHasWordTimings) return;
+    const next = !captionStyleKaraoke();
+    manifest.captions = { burn: true, ...(next ? { style: 'karaoke' } : {}) };
+    updateCaptionsUi();
+    setStatus(next
+      ? 'Caption style: karaoke — Apply burns word-level highlighted captions'
+      : 'Caption style: segment — Apply burns whole-cue captions', 'ok');
+  }
+
   captionsBtn?.addEventListener('click', doToggleCaptions);
+  captionStyleBtn?.addEventListener('click', doToggleCaptionStyle);
   editVideo?.addEventListener('timeupdate', updateCaptionOverlay);
   editVideo?.addEventListener('seeked', updateCaptionOverlay);
 
   /* —— Edit-T2e: constant export speed + music bed (take-level) —— */
+
+  function verticalEnabled() {
+    return manifest?.vertical === true;
+  }
 
   function updateExportUi() {
     if (exportRateSelect) exportRateSelect.value = String(manifest?.exportRate || 1);
@@ -875,7 +911,21 @@
         ? `Music bed: ${music.path.split(/[\\/]/).pop()} @ ${music.gainDb} dB — click to remove`
         : 'Add a music bed — mixed under the dialogue at −18 dB for the whole export on Apply; saved on the take';
     }
+    verticalBtn?.classList.toggle('on', verticalEnabled());
   }
+
+  function doToggleVertical() {
+    if (!manifest) return;
+    const next = !verticalEnabled();
+    if (next) manifest.vertical = true;
+    else delete manifest.vertical;
+    updateExportUi();
+    setStatus(next
+      ? 'Vertical 9:16 on — Apply renders 1080×1920'
+      : 'Vertical off — Apply renders the source aspect', next ? 'ok' : '');
+  }
+
+  verticalBtn?.addEventListener('click', doToggleVertical);
 
   exportRateSelect?.addEventListener('change', () => {
     if (!manifest) return;
@@ -1913,13 +1963,14 @@
       await studio.saveManifest(currentTakeId, manifest);
       const res = await studio.apply(currentTakeId);
       const captionNote = res.captions
-        ? ' · captions burned'
+        ? ` · captions burned${res.captionStyle === 'karaoke' ? ' (karaoke)' : ''}`
         : (res.captionsSkipped ? ` · captions skipped: ${res.captionsSkipped}` : '');
       const rateNote = res.rate && res.rate !== 1 ? ` · ${res.rate}×` : '';
       const musicNote = res.music
         ? ' · music bed'
         : (res.musicSkipped ? ` · music skipped: ${res.musicSkipped}` : '');
-      setStatus(`Applied → edit/final.mp4 (${res.clips} clip${res.clips === 1 ? '' : 's'}${res.freeze ? ` · ${res.freeze} freeze` : ''}${res.pip ? ' · cam PiP' : ''}${captionNote}${rateNote}${musicNote})`, (res.captionsSkipped || res.musicSkipped) ? 'warn' : 'ok');
+      const verticalNote = res.vertical ? ' · 9:16' : '';
+      setStatus(`Applied → edit/final.mp4 (${res.clips} clip${res.clips === 1 ? '' : 's'}${res.freeze ? ` · ${res.freeze} freeze` : ''}${res.pip ? ' · cam PiP' : ''}${captionNote}${rateNote}${musicNote}${verticalNote})`, (res.captionsSkipped || res.musicSkipped) ? 'warn' : 'ok');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     } finally {
