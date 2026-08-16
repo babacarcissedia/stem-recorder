@@ -9,14 +9,17 @@ export type ShortcutCommandId =
   | 'timeline:delete-lift'
   | 'timeline:mark-in'
   | 'timeline:mark-out'
-  | 'timeline:play-pause';
+  | 'timeline:play-pause'
+  | 'view:theme-system'
+  | 'view:theme-light'
+  | 'view:theme-dark';
 
-export type ShortcutMenuGroup = 'File' | 'Timeline';
+export type ShortcutMenuGroup = 'File' | 'Timeline' | 'View';
 
 export interface ShortcutBinding {
   id: ShortcutCommandId;
   label: string;
-  accelerator: string;
+  accelerator?: string;
   menuGroup: ShortcutMenuGroup;
   guardTyping: boolean;
   enabled: boolean;
@@ -34,6 +37,9 @@ export const SHORTCUT_REGISTRY: ShortcutBinding[] = [
   { id: 'timeline:mark-in', label: 'Mark In', accelerator: 'I', menuGroup: 'Timeline', guardTyping: true, enabled: true },
   { id: 'timeline:mark-out', label: 'Mark Out', accelerator: 'O', menuGroup: 'Timeline', guardTyping: true, enabled: true },
   { id: 'timeline:play-pause', label: 'Play/Pause', accelerator: 'Space', menuGroup: 'Timeline', guardTyping: true, enabled: true },
+  { id: 'view:theme-system', label: 'Match System', menuGroup: 'View', guardTyping: true, enabled: true },
+  { id: 'view:theme-light', label: 'Light', menuGroup: 'View', guardTyping: true, enabled: true },
+  { id: 'view:theme-dark', label: 'Dark', menuGroup: 'View', guardTyping: true, enabled: true },
 ];
 
 export interface KeyChord {
@@ -82,7 +88,9 @@ export function chordsEqual(a: KeyChord, b: KeyChord): boolean {
 }
 
 export function findBindingForChord(chord: KeyChord): ShortcutBinding | undefined {
-  return SHORTCUT_REGISTRY.find((binding) => chordsEqual(parseAccelerator(binding.accelerator), chord));
+  return SHORTCUT_REGISTRY.find(
+    (binding) => binding.accelerator !== undefined && chordsEqual(parseAccelerator(binding.accelerator), chord)
+  );
 }
 
 export interface TypingTargetDescriptor {
