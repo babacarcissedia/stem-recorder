@@ -1,18 +1,10 @@
 #!/usr/bin/env node
 'use strict';
 
-/**
- * Headless smoke for lib/export-bundle.js (pure — no ffmpeg binary, no
- * node_modules). Locks the planner contract: which assets are included,
- * what they are named in the destination, and the missing-vs-not-applicable
- * rule for the ASR triplet, the video fallback, and karaoke .ass files.
- */
-
 const assert = require('assert');
 const { planExportBundle } = require('../lib/export-bundle');
 
-// —— a complete take: final.mp4 + full ASR triplet + one karaoke .ass ——
-{
+function completeTakeIncludesFinalVideoAudioTranscriptCaptionsAndKaraokeAss() {
   const { items, missing } = planExportBundle({
     takeId: 'take-1',
     takeFiles: ['screen.mp4', 'cam.mp4', 'audio.mp3'],
@@ -29,9 +21,7 @@ const { planExportBundle } = require('../lib/export-bundle');
   assert.strictEqual(items.length, 6);
 }
 
-// —— take missing final.mp4: Apply hasn't run — falls back to the raw
-// source, no "missing" entry (that's a normal state, not a defect) ——
-{
+function takeWithoutAppliedFinalFallsBackToRawScreenSourceWithoutBeingReportedMissing() {
   const { items, missing } = planExportBundle({
     takeId: 'take-2',
     takeFiles: ['screen.mp4', 'audio.mp3'],
@@ -44,9 +34,7 @@ const { planExportBundle } = require('../lib/export-bundle');
   assert.ok(!items.some((i) => i.kind === 'video-final'));
 }
 
-// —— take with no video stem at all: genuinely broken for a screen
-// recorder — this IS flagged missing ——
-{
+function takeWithNoVideoStemAtAllIsReportedMissingVideo() {
   const { items, missing } = planExportBundle({
     takeId: 'take-3',
     takeFiles: ['audio.mp3'],
@@ -56,8 +44,7 @@ const { planExportBundle } = require('../lib/export-bundle');
   assert.ok(!items.some((i) => i.kind.startsWith('video')));
 }
 
-// —— no karaoke .ass anywhere: not applicable, never reported as missing ——
-{
+function absentKaraokeAssIsNotApplicableNeverMissing() {
   const { items, missing } = planExportBundle({
     takeId: 'take-4',
     takeFiles: ['screen.mp4'],
@@ -67,8 +54,7 @@ const { planExportBundle } = require('../lib/export-bundle');
   assert.ok(!items.some((i) => i.kind === 'captions-ass'));
 }
 
-// —— transcribe never run (no ASR triplet member present): not applicable ——
-{
+function neverTranscribedTakeIsNotApplicableNeverMissing() {
   const { items, missing } = planExportBundle({
     takeId: 'take-5',
     takeFiles: ['screen.mp4'],
@@ -78,9 +64,7 @@ const { planExportBundle } = require('../lib/export-bundle');
   assert.ok(!items.some((i) => ['transcript', 'captions-vtt', 'word-timings'].includes(i.kind)));
 }
 
-// —— transcribe partially run (interrupted / hand-edited): the absent
-// members of the triplet ARE flagged missing, the present ones still ship ——
-{
+function partiallyTranscribedTakeReportsOnlyTheAbsentTranscribeOutputsAsMissing() {
   const { items, missing } = planExportBundle({
     takeId: 'take-6',
     takeFiles: ['screen.mp4'],
@@ -90,9 +74,7 @@ const { planExportBundle } = require('../lib/export-bundle');
   assert.ok(items.some((i) => i.kind === 'transcript'));
 }
 
-// —— destination-name collision: two .ass files present at once disambiguate
-// instead of one clobbering the other ——
-{
+function twoAssFilesAtOnceDisambiguateDestNamesInsteadOfColliding() {
   const { items } = planExportBundle({
     takeId: 'take-7',
     takeFiles: ['screen.mp4'],
@@ -105,8 +87,7 @@ const { planExportBundle } = require('../lib/export-bundle');
   assert.strictEqual(new Set(names).size, 2);
 }
 
-// —— cam.mp4-only take with no final.mp4: video falls back to cam.mp4 ——
-{
+function camOnlyTakeWithNoFinalFallsBackToCamAsVideoSource() {
   const { items, missing } = planExportBundle({
     takeId: 'take-8',
     takeFiles: ['cam.mp4'],
@@ -118,15 +99,29 @@ const { planExportBundle } = require('../lib/export-bundle');
   });
 }
 
-// —— guards: missing/blank takeId throws rather than silently planning ——
-assert.throws(() => planExportBundle({ takeFiles: [], editFiles: [] }), /takeId is required/);
-assert.throws(() => planExportBundle({ takeId: '', takeFiles: [], editFiles: [] }), /takeId is required/);
+function blankOrMissingTakeIdThrowsInsteadOfSilentlyPlanning() {
+  assert.throws(() => planExportBundle({ takeFiles: [], editFiles: [] }), /takeId is required/);
+  assert.throws(() => planExportBundle({ takeId: '', takeFiles: [], editFiles: [] }), /takeId is required/);
+}
 
-// —— empty take: nothing present anywhere → only "video" is missing ——
-{
+function emptyTakeReportsOnlyVideoAsMissing() {
   const { items, missing } = planExportBundle({ takeId: 'take-9', takeFiles: [], editFiles: [] });
   assert.deepStrictEqual(items, []);
   assert.deepStrictEqual(missing, ['video']);
 }
 
-console.log(JSON.stringify({ ok: true, cases: 10 }, null, 2));
+const cases = [
+  completeTakeIncludesFinalVideoAudioTranscriptCaptionsAndKaraokeAss,
+  takeWithoutAppliedFinalFallsBackToRawScreenSourceWithoutBeingReportedMissing,
+  takeWithNoVideoStemAtAllIsReportedMissingVideo,
+  absentKaraokeAssIsNotApplicableNeverMissing,
+  neverTranscribedTakeIsNotApplicableNeverMissing,
+  partiallyTranscribedTakeReportsOnlyTheAbsentTranscribeOutputsAsMissing,
+  twoAssFilesAtOnceDisambiguateDestNamesInsteadOfColliding,
+  camOnlyTakeWithNoFinalFallsBackToCamAsVideoSource,
+  blankOrMissingTakeIdThrowsInsteadOfSilentlyPlanning,
+  emptyTakeReportsOnlyVideoAsMissing,
+];
+cases.forEach((testCase) => testCase());
+
+console.log(JSON.stringify({ ok: true, cases: cases.length }, null, 2));
