@@ -81,7 +81,8 @@ async function finalizeStem(takeDir, kind, rawPath) {
   await runFfmpeg(ffmpeg, [
     '-hide_banner', '-y', '-i', rawPath,
     '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
-    '-pix_fmt', 'yuv420p', '-an',
+    '-pix_fmt', 'yuv420p',
+    '-c:a', 'aac', '-b:a', '160k',
     '-movflags', '+faststart',
     out,
   ]);
