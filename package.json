@@ -51,7 +51,8 @@
     "smoke:export-bundle": "node scripts/smoke-export-bundle.js",
     "smoke:media-url": "node scripts/smoke-media-url.js",
     "smoke:model": "node scripts/smoke-model.ts",
-    "smoke:manifest": "node scripts/smoke-manifest.ts"
+    "smoke:manifest": "node scripts/smoke-manifest.ts",
+    "smoke:shortcuts": "node scripts/smoke-shortcuts.js"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
