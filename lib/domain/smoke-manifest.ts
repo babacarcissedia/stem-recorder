@@ -221,6 +221,16 @@ group('a failed atomic write leaves the previous document complete and no tmp be
   fs.rmSync(takeDir, { recursive: true, force: true });
 });
 
+group('a rename that fails removes the staged tmp file instead of leaking it', () => {
+  const takeDir = tmpTake();
+  const target = path.join(takeDir, 'edit', 'occupied.json');
+  fs.mkdirSync(target, { recursive: true });
+
+  assert.throws(() => store.writeAtomicJson(target, migrateV1ToV2(v1, DURATIONS)));
+  assert.strictEqual(fs.existsSync(`${target}.tmp`), false, 'staged tmp file leaked after a failed rename');
+  fs.rmSync(takeDir, { recursive: true, force: true });
+});
+
 group('a successful atomic write replaces the target and clears the tmp file', () => {
   const takeDir = tmpTake();
   const doc = migrateV1ToV2(v1, DURATIONS);
