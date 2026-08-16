@@ -3,8 +3,8 @@
   flex-direction: column;
   height: 100vh;
   font-family: "IBM Plex Sans", system-ui, sans-serif;
-  color: var(--fg);
-  background: var(--bg);
+  color: var(--text-primary);
+  background: var(--surface-app);
 }
 
 .shell-top-bar {
@@ -14,8 +14,8 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.5rem 0.9rem;
-  border-bottom: 1px solid var(--line);
-  background: var(--card);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-raised);
 }
 
 .shell-top-bar-identity {
@@ -31,7 +31,7 @@
 
 .shell-top-bar-autosave {
   font-size: 0.72rem;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .shell-body {
@@ -52,9 +52,9 @@
   min-height: 0;
   overflow: auto;
   padding: 0.75rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border-subtle);
   border-radius: 12px;
-  background: var(--card);
+  background: var(--surface-raised);
 }
 
 .shell-sidebar-media {
@@ -70,12 +70,12 @@
   font-weight: 650;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-muted);
   margin: 0 0 0.5rem;
 }
 
 .shell-sidebar-empty {
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.82rem;
 }
 
@@ -95,11 +95,11 @@
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: var(--fg);
+  background: var(--text-primary);
 }
 
 .shell-player-stage-empty {
-  color: var(--card);
+  color: var(--surface-raised);
   font-size: 0.85rem;
 }
 
@@ -109,9 +109,9 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 0.6rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
-  background: var(--card);
+  background: var(--surface-raised);
 }
 
 .shell-player-transport-spacer {
@@ -121,20 +121,20 @@
 .shell-player-time {
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.8rem;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .shell-footer {
   grid-area: footer;
   flex: 0 0 auto;
   padding: 0.75rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border-subtle);
   border-radius: 12px;
-  background: var(--card);
+  background: var(--surface-raised);
 }
 
 .shell-footer-empty {
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.82rem;
   margin: 0;
 }
@@ -144,9 +144,9 @@
   margin: 0;
   padding: 0.4rem 0.65rem;
   border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--card);
-  color: var(--fg);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-raised);
+  color: var(--text-primary);
   cursor: pointer;
 }
 

@@ -28,15 +28,15 @@
   margin: 0;
   padding: 0.35rem 0.7rem;
   font-size: 0.78rem;
-  background: #2a3140;
-  border: 1px solid #3a4254;
-  color: #c8d4de;
+  background: var(--surface-control);
+  border: 1px solid var(--border-strong);
+  color: var(--timeline-text);
 }
 
 .preview-switch button.active {
   background: var(--accent);
-  border-color: #d4ad2e;
-  color: #1a1f2a;
+  border-color: var(--accent-strong);
+  color: var(--accent-contrast);
 }
 
 .tl-toolbar {
@@ -45,9 +45,9 @@
   gap: 0.35rem;
   align-items: center;
   padding: 0.45rem 0.6rem;
-  background: #1b1f27;
+  background: var(--timeline-surface);
   border-radius: 10px;
-  border: 1px solid #2c3340;
+  border: 1px solid var(--timeline-border);
 }
 
 .tl-toolbar button {
@@ -56,29 +56,29 @@
   padding: 0.4rem 0.75rem;
   min-height: 40px; /* a11y hit target (toward 44px without doubling toolbar height) */
   border-radius: 8px;
-  background: #2a3140;
-  border: 1px solid #3a4254;
-  color: #f2efe8;
+  background: var(--surface-control);
+  border: 1px solid var(--border-strong);
+  color: var(--timeline-text);
   font-weight: 650;
   font-size: 0.82rem;
 }
 
 .tl-toolbar button.primary {
-  background: #f0c94a;
-  border-color: #d4ad2e;
-  color: #1a1f2a;
+  background: var(--accent);
+  border-color: var(--accent-strong);
+  color: var(--accent-contrast);
 }
 
 .tl-toolbar button.danger {
-  background: #4a2424;
-  border-color: #6a3434;
-  color: #ffd0d0;
+  background: var(--negative-surface);
+  border-color: var(--negative-border);
+  color: var(--negative-on-surface);
 }
 
 .tl-toolbar button.on {
-  background: #2f4a3a;
-  border-color: #3f6a50;
-  color: #b8f0c8;
+  background: var(--positive-surface);
+  border-color: var(--positive-border);
+  color: var(--positive-text);
 }
 
 .tl-group {
@@ -91,21 +91,21 @@
 .tl-group + .tl-group,
 .tl-group + .tl-more {
   padding-left: 0.6rem;
-  border-left: 1px solid #2c3340;
+  border-left: 1px solid var(--timeline-border);
 }
 
 .tl-toolbar .tl-time {
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.8rem;
-  color: #c8c2b4;
+  color: var(--timeline-text-muted);
   min-width: 6.5rem;
 }
 
 .tl-more { position: relative; }
 
 #tlMoreBtn[aria-expanded="true"] {
-  background: #3a4254;
-  border-color: #4a5468;
+  background: var(--surface-control-hover);
+  border-color: var(--border-strong);
 }
 
 .tl-more-menu {
@@ -119,8 +119,8 @@
   gap: 0.45rem;
   min-width: 14rem;
   padding: 0.55rem 0.6rem;
-  background: #1b1f27;
-  border: 1px solid #2c3340;
+  background: var(--timeline-surface);
+  border: 1px solid var(--timeline-border);
   border-radius: 10px;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
 }
@@ -133,7 +133,7 @@
 
 .tl-more-row label,
 .tl-more-label {
-  color: #9aa3b5;
+  color: var(--timeline-text-muted);
   font-size: 0.72rem;
 }
 
@@ -144,7 +144,7 @@
 }
 
 .tl-more-row.asr-provider button {
-  border: 1px solid #3a4254;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
 }
 
@@ -168,17 +168,17 @@
   min-height: 40px;
   padding: 0.35rem 0.5rem;
   border-radius: 8px;
-  background: #2a3140;
-  border: 1px solid #3a4254;
-  color: #f2efe8;
+  background: var(--surface-control);
+  border: 1px solid var(--border-strong);
+  color: var(--timeline-text);
   font: inherit;
   font-size: 0.8rem;
 }
 
 .timeline-shell {
   position: relative;
-  background: #0e1118;
-  border: 1px solid #2a3140;
+  background: var(--timeline-track);
+  border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 0.4rem 0.5rem 0.7rem;
   overflow-x: auto;
@@ -194,10 +194,10 @@
   position: relative;
   height: 22px;
   margin-left: 88px;
-  border-bottom: 1px solid #2a3140;
+  border-bottom: 1px solid var(--border-subtle);
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.62rem;
-  color: #8a8490;
+  color: var(--timeline-text-faint);
 }
 
 .tl-ruler span {
@@ -229,11 +229,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
-  color: #0f1218;
+  color: var(--chip-text);
 }
 
-.tl-chip.gap { background: #d7a94a; }
-.tl-chip.retake { background: #b48ce8; }
+.tl-chip.gap { background: var(--chip-gap); }
+.tl-chip.retake { background: var(--chip-retake); }
 .tl-chip:hover { filter: brightness(1.15); }
 
 .tl-lanes {
@@ -257,12 +257,12 @@
   justify-content: center;
   gap: 0.15rem;
   padding: 0 0.4rem 0 0.15rem;
-  color: #9aa3b5;
+  color: var(--timeline-text-muted);
   font-size: 0.68rem;
 }
 
 .tl-lane-meta strong {
-  color: #e8e4da;
+  color: var(--timeline-text);
   font-size: 0.72rem;
   font-weight: 650;
   white-space: nowrap;
@@ -293,7 +293,7 @@
   position: relative;
   height: 100%;
   min-height: 56px;
-  background: #161a22;
+  background: var(--timeline-surface-sunken);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -315,40 +315,40 @@
   overflow: hidden;
   flex: 0 0 auto;
   min-width: 6px;
-  color: #fff;
+  color: var(--text-on-dark);
   font-size: 0.65rem;
   font-weight: 650;
   cursor: pointer;
-  background: linear-gradient(180deg, #3d5a78, #2a3d55);
+  background: linear-gradient(180deg, var(--clip-screen-top), var(--clip-screen-bottom));
 }
 
 .tl-clip.cam {
-  background: linear-gradient(180deg, #3a6a6a, #2a4848);
+  background: linear-gradient(180deg, var(--clip-cam-top), var(--clip-cam-bottom));
 }
 
 .tl-clip.audio {
-  background: linear-gradient(180deg, #2a3f6a, #1c2a48);
+  background: linear-gradient(180deg, var(--clip-audio-top), var(--clip-audio-bottom));
 }
 
 .tl-clip.missing {
   opacity: 0.35;
   background: repeating-linear-gradient(
     45deg,
-    #2a3140,
-    #2a3140 6px,
-    #1c222c 6px,
-    #1c222c 12px
+    var(--clip-gap-a),
+    var(--clip-gap-a) 6px,
+    var(--clip-gap-b) 6px,
+    var(--clip-gap-b) 12px
   );
 }
 
 .tl-clip.freeze {
-  background: linear-gradient(180deg, #4a5a8f, #33406b);
+  background: linear-gradient(180deg, var(--clip-selected-top), var(--clip-selected-bottom));
   border-style: dashed;
   border-color: rgba(156, 200, 255, 0.45);
 }
 
 .tl-clip.selected {
-  border-color: #ffffff;
+  border-color: var(--clip-outline);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
   z-index: 2;
 }
@@ -371,7 +371,7 @@
 }
 
 .tl-clip .film i.thumb {
-  background-color: #10141c;
+  background-color: var(--timeline-track);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -387,7 +387,7 @@
 
 .tl-clip .wave b {
   flex: 1;
-  background: #6ea8ff;
+  background: var(--focus-ring);
   border-radius: 1px;
   min-height: 2px;
 }
@@ -433,7 +433,7 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #ffffff;
+  background: var(--surface-raised);
   transform: translateX(-1px);
 }
 
@@ -445,13 +445,13 @@
   width: 14px;
   height: 18px;
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--surface-raised);
   pointer-events: auto;
   cursor: ew-resize;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
 }
 
-#editStatus[data-kind="ok"] { color: var(--ok); }
+#editStatus[data-kind="ok"] { color: var(--positive); }
 #editStatus[data-kind="warn"] { color: var(--warn); }
 /* Lives in the timeline toolbar next to Save/Apply — flexes into the free
    middle space (replaces the old .spacer) so Apply/skip results sit beside
@@ -461,14 +461,14 @@
   min-width: 8rem;
   margin: 0;
   font-size: 0.85rem;
-  color: var(--muted);
+  color: var(--text-muted);
   text-align: right;
 }
 
 #editTimeLabel {
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.82rem;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 /* CapCut-like large wave preview in the right Selection panel */
@@ -476,8 +476,8 @@
   position: relative;
   height: 104px;
   margin-top: 0.35rem;
-  background: linear-gradient(180deg, #10181d, #0c1216);
-  border: 1px solid #24313a;
+  background: linear-gradient(180deg, var(--wave-surface-top), var(--wave-surface-bottom));
+  border: 1px solid var(--wave-border);
   border-radius: 10px;
   overflow: hidden;
   cursor: ew-resize;
@@ -497,7 +497,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b7b88;
+  color: var(--text-faint);
   font-size: 0.78rem;
   pointer-events: none;
 }
@@ -518,20 +518,20 @@
   line-height: 1;
   border-radius: 6px;
   background: rgba(42, 49, 64, 0.85);
-  border: 1px solid #3a4254;
-  color: #c8d4de;
+  border: 1px solid var(--border-strong);
+  color: var(--timeline-text);
   font-size: 1rem;
   font-weight: 650;
 }
 
-.wave-panel-zoom button:hover { background: #3a4254; }
+.wave-panel-zoom button:hover { background: var(--border-strong); }
 
 .clip-row {
-  border: 1px solid var(--line);
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
   padding: 0.4rem 0.5rem;
   margin-bottom: 0.3rem;
-  background: #141a26;
+  background: var(--timeline-surface-sunken);
   cursor: pointer;
 }
 
@@ -540,7 +540,7 @@
   background: var(--accent-soft);
 }
 
-.clip-meta span { color: var(--muted); }
+.clip-meta span { color: var(--text-muted); }
 
 .clip-meta {
   display: flex;
@@ -562,7 +562,7 @@
 .asr-provider {
   display: inline-flex;
   gap: 0;
-  border: 1px solid #3a4254;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -573,14 +573,14 @@
   padding: 0.35rem 0.65rem;
   border-radius: 0;
   border: none;
-  background: #2a3140;
-  color: #c8c2b4;
+  background: var(--clip-gap-a);
+  color: var(--timeline-text-muted);
   font-size: 0.78rem;
 }
 
 .asr-provider button.active {
-  background: #2f4a3a;
-  color: #b8f0c8;
+  background: var(--positive-surface);
+  color: var(--positive-text);
 }
 
 .transcript-panel {
@@ -593,7 +593,7 @@
 }
 
 .transcript-panel .empty {
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.82rem;
   margin: 0;
 }
@@ -607,25 +607,25 @@
   margin: 0;
   text-align: left;
   padding: 0.35rem 0.45rem;
-  background: #141a26;
-  border: 1px solid var(--line);
+  background: var(--timeline-surface-sunken);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   font-size: 0.78rem;
 }
 
 .cue-row:hover {
-  border-color: #6a5a20;
+  border-color: var(--accent-muted-border);
   background: var(--accent-soft);
 }
 
 .cue-time {
   font-family: "IBM Plex Mono", monospace;
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.72rem;
 }
 
 .cue-text {
-  color: var(--fg);
+  color: var(--text-primary);
   line-height: 1.35;
 }
 
@@ -639,7 +639,7 @@
 
 .crop-rect {
   position: absolute;
-  border: 1.5px solid var(--accent, #f5c34d);
+  border: 1.5px solid var(--accent);
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
   cursor: move;
 }
@@ -648,7 +648,7 @@
   position: absolute;
   width: 12px;
   height: 12px;
-  background: var(--accent, #f5c34d);
+  background: var(--accent);
   border: 1px solid rgba(0, 0, 0, 0.45);
   border-radius: 3px;
 }
@@ -680,71 +680,51 @@
 }
 
 .crop-actions button.primary {
-  background: var(--accent, #f0c94a);
-  border-color: #d4ad2e;
-  color: #1a1f2a;
+  background: var(--accent);
+  border-color: var(--accent-strong);
+  color: var(--accent-contrast);
 }
 
 #cropBtn.on {
-  background: #4a3d16;
-  border-color: #7a681f;
-  color: #f0c94a;
+  background: var(--accent-muted-surface);
+  border-color: var(--accent-muted-border);
+  color: var(--accent);
 }
 
-/* —— Edit dark shell ————————————————————————————————————————————
-   One CapCut-like dark chrome for the whole Edit view. The theme variables
-   are re-scoped on #view-edit so every rule that reads them (panels, labels,
-   status, cue/clip accents) resolves dark without touching Record/Library.
-   :where() keeps the overrides at the same specificity as the light base
-   rules in index.html, so toolbar/wave/crop styling above still wins. */
-
 #view-edit {
-  --fg: #f2efe8;
-  --muted: #9aa3b5;
-  --accent: #f0c94a;
-  --accent-soft: #332b12;
-  --card: #1a1f2a;
-  --line: #2a3140;
-  --ok: #7fd6a4;
-  --warn: #f0a075;
-  background: #12161f;
-  color: var(--fg);
-  border: 1px solid #2a3140;
+  background: var(--surface-app);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: 18px;
   padding: 1rem 1.1rem 1.25rem;
 }
 
 :where(#view-edit) select,
-:where(#view-edit) button {
-  background: #2a3140;
-  border-color: #3a4254;
-  color: #f2efe8;
-}
-
+:where(#view-edit) button,
 :where(#view-edit) button.secondary {
-  background: #2a3140;
-  border-color: #3a4254;
-  color: #f2efe8;
+  background: var(--surface-control);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
 
 :where(#view-edit) .stage-wrap {
-  background: #0c0f16;
-  border-color: #2a3140;
+  background: var(--surface-sunken);
+  border-color: var(--border-subtle);
 }
 
 :where(#view-edit) input[type="number"] {
   width: 100%;
   font: inherit;
-  background: #0c0f16;
-  color: var(--fg);
-  border: 1px solid #3a4254;
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   padding: 0.45rem 0.55rem;
 }
 
 :where(#view-edit) .cue-edit input {
-  background: #0c0f16;
-  color: var(--fg);
+  background: var(--surface-sunken);
+  color: var(--text-primary);
 }
 
 :where(#view-edit) .panel {
