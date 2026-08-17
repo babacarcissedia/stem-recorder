@@ -44,10 +44,12 @@
     "lib/domain/selection.ts",
     "lib/domain/source.ts",
     "lib/domain/timeline.ts",
+    "lib/domain/timeline-interaction.ts",
     "lib/domain/track.ts",
     "lib/domain/transform.ts",
     "scripts/smoke-model.ts",
     "scripts/smoke-manifest.ts",
+    "scripts/smoke-timeline-interaction.ts",
     "src/renderer/src/components/**/*.tsx",
     "src/renderer/src/components/**/*.ts"
   ],

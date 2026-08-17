@@ -21,6 +21,15 @@ export type { TrackId, TrackInit, TrackJson, TrackKind } from './track.ts';
 export { Track } from './track.ts';
 export type { ClipRef } from './selection.ts';
 export { Selection } from './selection.ts';
+export type { PointerModifiers, SelectIntent } from './timeline-interaction.ts';
+export {
+  EMPTY_TIMELINE_WINDOW,
+  intentFor,
+  seekTarget,
+  selectOnPointer,
+  tracksWithSelection,
+  visibleDuration,
+} from './timeline-interaction.ts';
 export type { AudioRoute, Source, SourceKind, SourceOrigin } from './source.ts';
 export { makeSource, resolveAudioRoute } from './source.ts';
 export type { OutputId, OutputTarget } from './output-target.ts';
