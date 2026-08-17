@@ -268,10 +268,17 @@ export function migrateV1ToV2(doc: V1Manifest, durationsSeconds: StemDurations):
 }
 
 export function readManifestV2(doc: ManifestV2): { project: Project; settings: ManifestSettings } {
+  const schemaVersion = detectSchemaVersion(doc);
+  if (schemaVersion > MANIFEST_SCHEMA_VERSION) {
+    throw new InvariantError(
+      'FROM_THE_FUTURE',
+      `manifest schemaVersion ${schemaVersion} exceeds supported version ${MANIFEST_SCHEMA_VERSION}`,
+    );
+  }
   invariant(
-    detectSchemaVersion(doc) === MANIFEST_SCHEMA_VERSION,
+    schemaVersion === MANIFEST_SCHEMA_VERSION,
     'SCHEMA_VERSION_UNSUPPORTED',
-    String(detectSchemaVersion(doc)),
+    String(schemaVersion),
   );
   return { project: Project.fromJSON(doc.project), settings: doc.settings };
 }
