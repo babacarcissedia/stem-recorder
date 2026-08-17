@@ -1,4 +1,9 @@
+let recorderPanelMounted = false;
+
 window.mountRecorderPanel = function mountRecorderPanel() {
+  if (recorderPanelMounted) return;
+  recorderPanelMounted = true;
+
   const camEl = document.getElementById('camPreview');
   const screenEl = document.getElementById('screenPreview');
   const camStage = document.getElementById('camStage');
