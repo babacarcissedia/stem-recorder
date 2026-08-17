@@ -174,7 +174,7 @@ ipcMain.handle('recorder:beginTake', (_evt, stamp) => {
       `started_at=${new Date().toISOString()}`,
       `dir=${takeDir}`,
       `ffmpeg=${ffmpeg || 'missing'}`,
-      `targets=screen.mp4,cam.mp4,audio.mp3`,
+      `targets=screen.mp4(video only),cam.mp4(muxed a/v),audio.mp3(mic solo)`,
       '',
     ].join('\n'),
     'utf8'
@@ -251,6 +251,7 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
   // cam.pip === false is the stored opt-out. No PiP when the cam itself is
   // the primary source.
   const camPath = path.join(takeDir, 'cam.mp4');
+  const micPath = path.join(takeDir, 'audio.mp3');
   const camSettings = manifest.cam || {};
   const pip = sourceName !== 'cam.mp4'
     && fs.existsSync(camPath)
@@ -286,6 +287,10 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
 
   try {
     await applyClips(src, manifest.clips, out, work, {
+      stems: {
+        cam: fs.existsSync(camPath) ? camPath : null,
+        mic: fs.existsSync(micPath) ? micPath : null,
+      },
       ...(pip ? {
         cam: {
           path: camPath,
