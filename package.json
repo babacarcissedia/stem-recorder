@@ -54,6 +54,7 @@
     "smoke:export-bundle": "node scripts/smoke-export-bundle.js",
     "smoke:media-url": "node scripts/smoke-media-url.js",
     "smoke:color-range": "node scripts/smoke-color-range.js",
+    "smoke:render-audio": "node scripts/smoke-render-audio.js",
     "smoke:model": "node scripts/smoke-model.ts",
     "smoke:timeline-interaction": "node scripts/smoke-timeline-interaction.ts",
     "smoke:manifest": "node scripts/smoke-manifest.ts",

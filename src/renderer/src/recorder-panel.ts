@@ -335,6 +335,12 @@
     return camStream;
   }
 
+  function camMuxedStream() {
+    const mic = audioStream ? audioStream.getAudioTracks() : [];
+    if (!mic.length) return camStream;
+    return new MediaStream([...camStream.getVideoTracks(), ...mic]);
+  }
+
   async function ensureAudio() {
     const audioId = audioSel.value;
     if (!audioId) throw new Error('Pick a microphone for audio track');
@@ -365,7 +371,7 @@
     // Screen picker first (requires user gesture chain)
     if (wantScreen && !screenStream) await ensureScreen();
     if (wantCam) await ensureCam();
-    if (wantAudio) await ensureAudio();
+    if (wantAudio || (wantCam && audioSel.value)) await ensureAudio();
 
     takeN += 1;
     recStamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -387,7 +393,8 @@
       started.push('screen');
     }
     if (wantCam) {
-      makeRecorder(await ensureCam(), 'cam', videoMime);
+      await ensureCam();
+      makeRecorder(camMuxedStream(), 'cam', videoMime);
       started.push('cam');
     }
     if (wantAudio) {

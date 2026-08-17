@@ -37,6 +37,7 @@ const steps = [
   { name: 'smoke:theme', cmd: ['npm', 'run', 'smoke:theme'] },
   { name: 'smoke:fonts', cmd: ['npm', 'run', 'smoke:fonts'] },
   { name: 'smoke:color-range', cmd: ['npm', 'run', 'smoke:color-range'] },
+  { name: 'smoke:render-audio', cmd: ['npm', 'run', 'smoke:render-audio'] },
   { name: 'smoke:caption-integration', cmd: ['node', 'scripts/smoke-caption-integration.js'] },
   {
     name: 'smoke:apply',
