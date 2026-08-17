@@ -146,18 +146,18 @@ group('every v1 clip boundary survives the v1 to v2 to v1 round trip', () => {
   );
 });
 
-group('freeze clips keep a positive duration and re-emit the v1 freeze flag', () => {
+group('freeze clips preserve their non-zero v1 hold duration through compat', () => {
   const frozen: V1Manifest = {
     ...v1,
-    clips: [{ id: 'clip-1', source: 'screen.mp4', in: 2, out: 2, freeze: true }],
+    clips: [{ id: 'clip-1', source: 'screen.mp4', in: 10, out: 11.5, freeze: true }],
   };
   const doc = migrateV1ToV2(frozen, DURATIONS);
   const clip = doc.project.timeline.tracks[0]!.clips[0]!;
-  assert.strictEqual(clip.duration, 100);
+  assert.strictEqual(clip.duration, 1_500);
   const back = toV1Compat(doc);
   assert.strictEqual(back.clips[0]!.freeze, true);
-  assert.strictEqual(back.clips[0]!.in, 2);
-  assert.strictEqual(back.clips[0]!.out, 2);
+  assert.strictEqual(back.clips[0]!.in, 10);
+  assert.strictEqual(back.clips[0]!.out, 11.5);
 });
 
 group('schema version detection separates v1 from v2 and rejects the unknown', () => {
@@ -218,6 +218,82 @@ group('a failed atomic write leaves the previous document complete and no tmp be
   const reparsed = JSON.parse(after);
   assert.strictEqual(reparsed.takeId, 'take-001');
   assert.strictEqual(reparsed.schemaVersion, 2);
+  fs.rmSync(takeDir, { recursive: true, force: true });
+});
+
+group('a write failure after staging removes only the operation tmp file', () => {
+  const takeDir = tmpTake();
+  const target = path.join(takeDir, 'edit', 'write-failure.json');
+  const originalWriteFileSync = fs.writeFileSync;
+  fs.writeFileSync = () => { throw new Error('injected write failure'); };
+  try {
+    assert.throws(() => store.writeAtomicJson(target, migrateV1ToV2(v1, DURATIONS)));
+  } finally {
+    fs.writeFileSync = originalWriteFileSync;
+  }
+  assert.strictEqual(fs.existsSync(`${target}.tmp`), false, 'staged tmp file leaked after a write failure');
+  fs.rmSync(takeDir, { recursive: true, force: true });
+});
+
+group('an fsync failure after staging removes the operation tmp file', () => {
+  const takeDir = tmpTake();
+  const target = path.join(takeDir, 'edit', 'fsync-failure.json');
+  const originalFsyncSync = fs.fsyncSync;
+  fs.fsyncSync = () => { throw new Error('injected fsync failure'); };
+  try {
+    assert.throws(() => store.writeAtomicJson(target, migrateV1ToV2(v1, DURATIONS)));
+  } finally {
+    fs.fsyncSync = originalFsyncSync;
+  }
+  assert.strictEqual(fs.existsSync(`${target}.tmp`), false, 'staged tmp file leaked after an fsync failure');
+  fs.rmSync(takeDir, { recursive: true, force: true });
+});
+
+group('a close failure after staging removes the operation tmp file', () => {
+  const takeDir = tmpTake();
+  const target = path.join(takeDir, 'edit', 'close-failure.json');
+  const originalCloseSync = fs.closeSync;
+  let closeCalls = 0;
+  fs.closeSync = (fd) => {
+    closeCalls += 1;
+    if (closeCalls === 1) throw new Error('injected close failure');
+    return originalCloseSync(fd);
+  };
+  try {
+    assert.throws(() => store.writeAtomicJson(target, migrateV1ToV2(v1, DURATIONS)));
+  } finally {
+    fs.closeSync = originalCloseSync;
+  }
+  assert.strictEqual(fs.existsSync(`${target}.tmp`), false, 'staged tmp file leaked after a close failure');
+  fs.rmSync(takeDir, { recursive: true, force: true });
+});
+
+group('a backup write failure after staging removes its operation tmp file', () => {
+  const takeDir = tmpTake();
+  const source = path.join(takeDir, store.MANIFEST_NAME);
+  fs.writeFileSync(source, JSON.stringify(v1), 'utf8');
+  const target = path.join(takeDir, store.backupName(1));
+  const originalWriteFileSync = fs.writeFileSync;
+  fs.writeFileSync = () => { throw new Error('injected backup write failure'); };
+  try {
+    assert.throws(() => store.snapshotBeforeMigration(takeDir, 1));
+  } finally {
+    fs.writeFileSync = originalWriteFileSync;
+  }
+  assert.strictEqual(fs.existsSync(`${target}.tmp`), false, 'backup tmp file leaked after a write failure');
+  assert.strictEqual(fs.existsSync(target), false);
+  assert.deepStrictEqual(JSON.parse(fs.readFileSync(source, 'utf8')), v1);
+  fs.rmSync(takeDir, { recursive: true, force: true });
+});
+
+group('a pre-existing tmp file is never replaced or removed by another operation', () => {
+  const takeDir = tmpTake();
+  const target = path.join(takeDir, 'edit', 'occupied.json');
+  const temp = `${target}.tmp`;
+  fs.writeFileSync(temp, 'unrelated', 'utf8');
+
+  assert.throws(() => store.writeAtomicJson(target, migrateV1ToV2(v1, DURATIONS)));
+  assert.strictEqual(fs.readFileSync(temp, 'utf8'), 'unrelated');
   fs.rmSync(takeDir, { recursive: true, force: true });
 });
 

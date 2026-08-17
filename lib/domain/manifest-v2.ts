@@ -207,7 +207,7 @@ export function toV1Compat(doc: ManifestV2): V1Manifest {
       id: clip.id,
       source: fileForSourceId(project.timeline, clip.sourceId),
       in: msToSeconds(clip.sourceIn),
-      out: msToSeconds(clip.sourceOut),
+      out: msToSeconds(clip.effects.isFreeze ? clip.sourceIn + clip.duration : clip.sourceOut),
       ...(rect ? { crop: rect } : {}),
       ...(clip.effects.isFreeze ? { freeze: true } : {}),
     });
