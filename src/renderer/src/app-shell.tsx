@@ -60,7 +60,7 @@ function LegacyStudioHost() {
 
   useShellCommandLifecycle('studio', legacyHostReady ? legacyStudioLifecycle : null);
 
-  return <div ref={hostRef} className="legacy-studio-host" />;
+  return <div ref={hostRef} className="legacy-studio-host" role="region" aria-label="Studio compatibility host" />;
 }
 
 function renderShellView(view: ShellView) {
@@ -74,8 +74,10 @@ export function AppShell() {
   const [shellView] = useState<ShellView>(DEFAULT_SHELL_VIEW);
 
   return (
-    <div className="shell-root" data-shell-view={shellView}>
-      {renderShellView(shellView)}
+    <div className="shell-root" data-shell-view={shellView} aria-label="Stem Studio shell">
+      <main className="shell-route" data-shell-route={shellView} aria-label="Studio workspace">
+        {renderShellView(shellView)}
+      </main>
     </div>
   );
 }

@@ -86,6 +86,10 @@ function check(condition, message) {
     check(!/var\(--ramp-/.test(source), `${relative} references semantic aliases, never raw ramp steps`);
     check(!/#[0-9a-fA-F]{3,8}\b/.test(source), `${relative} holds no raw hex literal`);
   }
+
+  const appShellCss = fs.readFileSync(path.join(ROOT, 'src', 'renderer', 'src', 'app-shell.css'), 'utf8');
+  check(/\.shell-root \{[\s\S]*color:\s*var\(--text-primary\);[\s\S]*background:\s*var\(--surface-app\);/.test(appShellCss), 'AppShell root uses semantic text and surface aliases');
+  check(/\.legacy-studio-host \{[\s\S]*background:\s*var\(--surface-raised\);/.test(appShellCss), 'LegacyStudioHost participates in the raised surface theme alias');
 }
 
 {

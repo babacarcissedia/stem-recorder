@@ -146,6 +146,12 @@ function check(condition, message) {
     'AppShell routes the default studio view through the LegacyStudioHost compatibility lifecycle'
   );
   check(
+    /className=['"]shell-root['"][^>]*data-shell-view=\{shellView\}[^>]*aria-label=['"]Stem Studio shell['"]/.test(appShellSource)
+      && /<main\s+className=['"]shell-route['"]\s+data-shell-route=\{shellView\}\s+aria-label=['"]Studio workspace['"]>/.test(appShellSource)
+      && /className=['"]legacy-studio-host['"]\s+role=['"]region['"]\s+aria-label=['"]Studio compatibility host['"]/.test(appShellSource),
+    'AppShell exposes labelled shell, route, and legacy compatibility landmarks'
+  );
+  check(
     (appShellSource.match(/<LegacyStudioHost\s*\/>/g) ?? []).length === 1,
     'AppShell has one routed LegacyStudioHost render path'
   );

@@ -24,7 +24,7 @@ const TOKENS = path.join(ROOT, 'src/renderer/src/tokens.css');
 const THRESHOLDS = { normal: 4.5, large: 3, ui: 3 };
 
 const PAIRS = [
-  ['text-primary', 'surface-app', 'normal', 'index.html:10 body'],
+  ['text-primary', 'surface-app', 'normal', 'index.html:10 body, app-shell.css:1 .shell-root'],
   ['text-muted', 'surface-app', 'normal', 'index.html:19 p.lead in body'],
   ['text-primary', 'surface-raised', 'normal', 'index.html:90 button.secondary'],
   ['text-muted', 'surface-raised', 'normal', 'index.html:82 label in .panel:74'],
@@ -85,7 +85,7 @@ const PAIRS = [
   ['wave-border', 'wave-surface-top', 'ui', 'timeline.css:480 .wave-panel border over gradient top'],
   ['wave-border', 'wave-surface-bottom', 'ui', 'timeline.css:480 .wave-panel border over gradient bottom'],
   ['focus-ring', 'surface-app', 'ui', 'affordance.css:53 :focus-visible outline, offset 2px onto the page'],
-  ['focus-ring', 'surface-raised', 'ui', 'affordance.css:53 outline on panel-hosted controls'],
+  ['focus-ring', 'surface-raised', 'ui', 'affordance.css:53 outline on panel-hosted controls and app-shell.css:10 .shell-route'],
   ['focus-ring', 'timeline-surface', 'ui', 'affordance.css:53 outline on .tl-toolbar:48 controls'],
   ['focus-ring', 'timeline-track', 'ui', 'affordance.css:53 outline on timeline chips and reveal controls over timeline.css:180'],
   ['focus-ring', 'wave-surface-top', 'ui', 'affordance.css:53 outline on timeline.css:513 wave zoom controls'],
