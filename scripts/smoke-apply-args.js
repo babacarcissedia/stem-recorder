@@ -2,8 +2,11 @@
 'use strict';
 
 const assert = require('assert');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const {
-  buildMediaInputPlan, clipArgs, freezeArgs, clipCacheKey,
+  buildClipRenderPlan, resolveTakeLocalDialoguePath, clipArgs, freezeArgs, clipCacheKey,
   cropFilter, freezeStillChain, subtitlesFilter, pipFilterGraph,
 } = require('../lib/node/ffmpeg-util.js');
 
@@ -38,19 +41,68 @@ function basePlan(overrides = {}) {
   };
 }
 
-function testDialogueInputPlanMapsAudioSeparatelyFromVideoOnlyScreen() {
-  const plan = buildMediaInputPlan({ srcPath: SRC_PATH, dialoguePath: DIALOGUE_PATH, camPath: CAM_PATH });
-  assert.deepStrictEqual(plan.inputArgs, ['-i', SRC_PATH, '-i', DIALOGUE_PATH, '-i', CAM_PATH]);
-  assert.strictEqual(plan.camInputIndex, 2);
-  assert.ok(
-    pipFilterGraph({ crop: null, cam: {}, pipWidth: 480, margin: 24, camInputIndex: plan.camInputIndex }).startsWith('[0:v]null[base];[2:v]'),
-  );
-  assert.deepStrictEqual(plan.audioMapArgs, ['-map', '1:a:0']);
-  assert.strictEqual(plan.audioMapArgs.includes('0:a?'), false);
-  assert.deepStrictEqual(
-    buildMediaInputPlan({ srcPath: SRC_PATH, camPath: CAM_PATH }).audioMapArgs,
-    ['-an'],
-  );
+function testProductionPlainPlanMapsTakeLocalDialogueAudio() {
+  const plan = buildClipRenderPlan({
+    srcPath: SRC_PATH,
+    dialoguePath: '/fixtures/dialogue.m4a',
+    cam: null,
+    crop: null,
+    subtitles: null,
+    rate: null,
+    verticalPreset: null,
+    pip: null,
+  });
+  assert.deepStrictEqual(plan.inputArgs, ['-i', SRC_PATH, '-i', '/fixtures/dialogue.m4a']);
+  assert.deepStrictEqual(plan.filterArgs, ['-map', '0:v:0', '-map', '1:a:0']);
+  assert.strictEqual(plan.filterArgs.includes('0:a?'), false);
+}
+
+function testProductionPipPlanMapsTakeLocalDialogueAudio() {
+  const cam = { path: CAM_PATH, mirror: true, rotate: 90, layout: null };
+  const pip = { layout: null, pipWidth: 480, margin: 24 };
+  const plan = buildClipRenderPlan({
+    srcPath: SRC_PATH,
+    dialoguePath: '/fixtures/dialogue.m4a',
+    cam,
+    crop: null,
+    subtitles: null,
+    rate: null,
+    verticalPreset: null,
+    pip,
+  });
+  assert.deepStrictEqual(plan.inputArgs, ['-i', SRC_PATH, '-i', '/fixtures/dialogue.m4a', '-i', CAM_PATH]);
+  assert.ok(plan.filterArgs[1].startsWith('[0:v]null[base];[2:v]'));
+  assert.deepStrictEqual(plan.filterArgs.slice(-4), ['-map', '[v]', '-map', '1:a:0']);
+  assert.strictEqual(plan.filterArgs.includes('0:a?'), false);
+}
+
+function testTakeLocalDialogueSourcePathsRejectEscapesAndMissingFiles() {
+  const takeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'stem-dialogue-route-'));
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'stem-dialogue-outside-'));
+  const dialoguePath = path.join(takeDir, 'sources', 'dialogue.m4a');
+  const outsidePath = path.join(outsideDir, 'outside.m4a');
+  fs.mkdirSync(path.dirname(dialoguePath), { recursive: true });
+  fs.writeFileSync(dialoguePath, 'fixture');
+  fs.writeFileSync(outsidePath, 'fixture');
+  fs.symlinkSync(outsidePath, path.join(takeDir, 'sources', 'escaped.m4a'));
+  try {
+    assert.strictEqual(resolveTakeLocalDialoguePath(takeDir, 'sources/dialogue.m4a'), fs.realpathSync(dialoguePath));
+    assert.throws(
+      () => resolveTakeLocalDialoguePath(takeDir, '../outside.m4a'),
+      /outside take directory/,
+    );
+    assert.throws(
+      () => resolveTakeLocalDialoguePath(takeDir, 'sources/escaped.m4a'),
+      /outside take directory/,
+    );
+    assert.throws(
+      () => resolveTakeLocalDialoguePath(takeDir, 'sources/missing.m4a'),
+      /selected dialogue source is missing/,
+    );
+  } finally {
+    fs.rmSync(takeDir, { recursive: true, force: true });
+    fs.rmSync(outsideDir, { recursive: true, force: true });
+  }
 }
 
 function testPlainTrimArgs() {
@@ -155,19 +207,23 @@ function testSubtitlesSkippedOnFreezeClips() {
 }
 
 function camPipPlan(overrides = {}) {
-  const cam = { path: CAM_PATH, mirror: true, rotate: 90 };
+  const cam = { path: CAM_PATH, mirror: true, rotate: 90, layout: null };
   const pip = { layout: null, pipWidth: 480, margin: 24 };
-  const media = buildMediaInputPlan({ srcPath: SRC_PATH, dialoguePath: DIALOGUE_PATH, camPath: CAM_PATH });
+  const renderPlan = buildClipRenderPlan({
+    srcPath: SRC_PATH,
+    dialoguePath: DIALOGUE_PATH,
+    cam,
+    crop: null,
+    subtitles: null,
+    rate: null,
+    verticalPreset: null,
+    pip,
+  });
   return basePlan({
     cam,
     pip,
-    inputArgs: media.inputArgs,
-    filterArgs: [
-      '-filter_complex', pipFilterGraph({
-        crop: null, cam, ...pip, subtitlesPath: null, rate: null, camInputIndex: media.camInputIndex,
-      }),
-      '-map', '[v]', ...media.audioMapArgs,
-    ],
+    inputArgs: renderPlan.inputArgs,
+    filterArgs: renderPlan.filterArgs,
     ...overrides,
   });
 }
@@ -252,7 +308,9 @@ function testCacheKeyIgnoresSubtitlesOnFreezeClips() {
 }
 
 const tests = [
-  testDialogueInputPlanMapsAudioSeparatelyFromVideoOnlyScreen,
+  testProductionPlainPlanMapsTakeLocalDialogueAudio,
+  testProductionPipPlanMapsTakeLocalDialogueAudio,
+  testTakeLocalDialogueSourcePathsRejectEscapesAndMissingFiles,
   testPlainTrimArgs,
   testTrimWithoutOutArgs,
   testTrimWithCropArgs,

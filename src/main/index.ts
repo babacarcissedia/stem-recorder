@@ -12,7 +12,13 @@ import {
 
 import { outRoot } from '../../lib/node/paths.js';
 import {
-  findFfmpeg, runFfmpeg, applyClips, hasSubtitlesFilter, probeDuration, resolveCaptionsPath,
+  findFfmpeg,
+  runFfmpeg,
+  applyClips,
+  hasSubtitlesFilter,
+  probeDuration,
+  resolveCaptionsPath,
+  resolveTakeLocalDialoguePath,
 } from '../../lib/node/ffmpeg-util.js';
 import {
   listTakes,
@@ -287,10 +293,9 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
   const sourceName = manifest.source || 'screen.mp4';
   const src = path.join(takeDir, sourceName);
   if (!fs.existsSync(src)) throw new Error(`missing source ${sourceName}`);
-  if (dialogueSource != null && dialogueSource !== 'audio.mp3') {
-    throw new Error(`unsupported dialogue source ${dialogueSource}`);
-  }
-  const dialoguePath = dialogueSource ? path.join(takeDir, dialogueSource) : null;
+  const dialoguePath = dialogueSource == null
+    ? null
+    : resolveTakeLocalDialoguePath(takeDir, dialogueSource);
 
   const editDir = path.join(takeDir, 'edit');
   ensureDir(editDir);
