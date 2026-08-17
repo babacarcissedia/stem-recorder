@@ -40,8 +40,8 @@ const PAIRS = [
   ['timeline-text', 'surface-control', 'normal', 'timeline.css:61 .tl-toolbar button'],
   ['text-primary', 'surface-control', 'normal', 'timeline.css:707 in :705'],
   ['text-primary', 'surface-sunken', 'normal', 'timeline.css:719 in :718'],
-  ['timeline-surface-raised', 'accent', 'normal', 'index.html:168 .tl-toolbar button.primary'],
-  ['accent-contrast', 'accent', 'normal', 'timeline.css:69 .tl-toolbar button.primary'],
+  ['accent-foreground', 'accent', 'normal', 'timeline.css:69 .tl-toolbar button.primary, timeline.css:39, timeline.css:685, index.html:169, index.html:230, index.html:243'],
+  ['timeline-text-muted', 'toolbar-surface', 'normal', 'index.html:171 .tl-time in .tl-toolbar:163'],
   ['negative-on-surface', 'negative-surface', 'normal', 'timeline.css:75 .tl-toolbar button.danger'],
   ['positive-text', 'positive-surface', 'normal', 'timeline.css:81 .tl-toolbar button.on'],
   ['timeline-text-muted', 'clip-gap-a', 'normal', 'timeline.css:577 .asr-provider button'],
@@ -50,7 +50,6 @@ const PAIRS = [
   ['surface-raised', 'text-primary', 'normal', 'app-shell.css:102 stage-empty on stage:98 (text-primary as a fill)'],
   ['timeline-text', 'timeline-track', 'normal', 'timeline.css:265 .tl-lane-meta strong in .timeline-shell:180'],
   ['timeline-text-muted', 'timeline-track', 'normal', 'timeline.css:260 .tl-lane-meta in .timeline-shell:180'],
-  ['timeline-text-faint', 'timeline-track', 'normal', 'timeline.css:200 .tl-ruler in .timeline-shell:180'],
   ['timeline-text-muted', 'timeline-surface', 'normal', 'timeline.css:100 .tl-time in .tl-toolbar:48'],
   ['text-muted', 'timeline-surface-sunken', 'normal', 'timeline.css:543 .clip-meta span in .clip-row:534'],
   ['text-primary', 'timeline-surface-sunken', 'normal', 'timeline.css:628 .cue-text in .cue-row:610'],
@@ -66,13 +65,16 @@ const PAIRS = [
   ['text-on-dark', 'clip-audio-bottom', 'normal', 'timeline.css:318 over .tl-clip.audio:330'],
   ['text-on-dark', 'clip-selected-top', 'normal', 'timeline.css:318 over .tl-clip.freeze:345'],
   ['text-on-dark', 'clip-selected-bottom', 'normal', 'timeline.css:318 over .tl-clip.freeze:345'],
-  ['text-faint', 'wave-surface-top', 'normal', 'timeline.css:500 .wave-panel-empty in .wave-panel:479'],
-  ['text-faint', 'wave-surface-bottom', 'normal', 'timeline.css:500 .wave-panel-empty in .wave-panel:479'],
+  ['text-muted', 'wave-surface-top', 'normal', 'timeline.css:500 .wave-panel-empty in .wave-panel:479'],
+  ['text-muted', 'wave-surface-bottom', 'normal', 'timeline.css:500 .wave-panel-empty in .wave-panel:479'],
   ['accent', 'accent-muted-surface', 'normal', 'timeline.css:691 #cropBtn.on'],
 
-  ['border-subtle', 'surface-raised', 'ui', 'app-shell.css:147 .shell-icon-button border'],
+  ['border-subtle', 'surface-raised', 'ui', 'app-shell.css:55 .shell-sidebar border'],
   ['border-subtle', 'surface-app', 'ui', 'index.html:30 .stage-wrap border in body:10'],
   ['border-strong', 'surface-control', 'ui', 'timeline.css:60 .tl-toolbar button border'],
+  ['border-strong', 'surface-raised', 'ui', 'app-shell.css:147 .shell-icon-button border, index.html:84 select/button border'],
+  ['border-strong', 'surface-subtle', 'ui', 'index.html:221 .clip-row border, index.html:248 .cue-row border, index.html:119 .takes a border'],
+  ['border-strong', 'timeline-surface-sunken', 'ui', 'timeline.css:611 .cue-row border'],
   ['timeline-border', 'timeline-surface', 'ui', 'timeline.css:50 .tl-toolbar border'],
   ['border-subtle', 'timeline-track', 'ui', 'timeline.css:181 .timeline-shell border'],
   ['focus-ring', 'surface-app', 'ui', 'affordance.css:53 :focus-visible outline, offset 2px onto the page'],
@@ -89,45 +91,44 @@ const PAIRS = [
   ['record-border', 'record-surface', 'ui', 'index.html:94 button.rec border'],
 ];
 
-// Seeded from the first run of this gate. Delete an entry the moment its pair
-// passes; the gate fails on a stale entry so the list cannot drift upward.
-const ALLOWLIST = new Set([
-  'light|accent-contrast|accent',
-  'light|accent-muted-border|accent-soft',
-  'light|accent-soft-border|accent-soft',
-  'light|accent-strong|accent',
-  'light|accent|accent-muted-surface',
-  'light|accent|surface-subtle',
-  'light|border-strong|surface-control',
-  'light|border-subtle|surface-app',
-  'light|border-subtle|surface-raised',
-  'light|border-subtle|timeline-track',
-  'light|menu-text-disabled|menu-surface',
-  'light|negative-border|negative-surface',
-  'light|record-border|record-surface',
-  'light|text-faint|wave-surface-bottom',
-  'light|text-faint|wave-surface-top',
-  'light|timeline-border|timeline-surface',
-  'light|timeline-surface-raised|accent',
-  'light|timeline-text-faint|timeline-track',
-  'light|timeline-text-muted|clip-gap-a',
-  'light|timeline-text-muted|timeline-track',
-  'light|warn|negative-surface',
-  'dark|accent-muted-border|accent-soft',
-  'dark|accent-soft-border|accent-soft',
-  'dark|accent-strong|accent',
-  'dark|border-strong|surface-control',
-  'dark|border-subtle|surface-app',
-  'dark|border-subtle|surface-raised',
-  'dark|border-subtle|timeline-track',
-  'dark|menu-text-disabled|menu-surface',
-  'dark|negative-border|negative-surface',
-  'dark|positive-border|positive-surface',
-  'dark|record-border|record-surface',
-  'dark|surface-raised|record-surface',
-  'dark|text-faint|wave-surface-bottom',
-  'dark|text-faint|wave-surface-top',
-  'dark|timeline-border|timeline-surface',
+/**
+ * A PERMANENT pair is one WCAG does not require to pass, so it is never stale
+ * and clearing the threshold does not retire it. A KNOWN_FAILURE is a defect,
+ * so the gate fails once it passes and the list cannot drift upward.
+ */
+const PERMANENT = 'permanent';
+const KNOWN_FAILURE = 'known-failure';
+
+const ALLOWLIST = new Map([
+  ['light|menu-text-disabled|menu-surface', [PERMANENT, 'SC 1.4.3 exempts text in an inactive user-interface component; .ctx-menu button:disabled is disabled at index.html:244']],
+  ['dark|menu-text-disabled|menu-surface', [PERMANENT, 'SC 1.4.3 exempts text in an inactive user-interface component; .ctx-menu button:disabled is disabled at index.html:244']],
+
+  ['light|border-subtle|surface-app', [PERMANENT, 'SC 1.4.11 scopes 3:1 to control identification; .stage-wrap is a container, not a control']],
+  ['dark|border-subtle|surface-app', [PERMANENT, 'SC 1.4.11 scopes 3:1 to control identification; .stage-wrap is a container, not a control']],
+  ['light|border-subtle|surface-raised', [PERMANENT, 'SC 1.4.11 scopes 3:1 to control identification; .shell-sidebar, .shell-footer and .panel are containers, not controls']],
+  ['dark|border-subtle|surface-raised', [PERMANENT, 'SC 1.4.11 scopes 3:1 to control identification; .shell-sidebar, .shell-footer and .panel are containers, not controls']],
+  ['light|border-subtle|timeline-track', [PERMANENT, 'SC 1.4.11 scopes 3:1 to control identification; .timeline-shell is a container, not a control']],
+  ['dark|border-subtle|timeline-track', [PERMANENT, 'SC 1.4.11 scopes 3:1 to control identification; .timeline-shell is a container, not a control']],
+  ['light|timeline-border|timeline-surface', [PERMANENT, 'SC 1.4.11 scopes 3:1 to control identification; .tl-toolbar is a container, not a control']],
+  ['dark|timeline-border|timeline-surface', [PERMANENT, 'SC 1.4.11 scopes 3:1 to control identification; .tl-toolbar is a container, not a control']],
+
+  ['light|accent-strong|accent', [PERMANENT, 'SC 1.4.11: button.primary is identified by its --accent fill, not by this border']],
+  ['dark|accent-strong|accent', [PERMANENT, 'SC 1.4.11: button.primary is identified by its --accent fill, not by this border']],
+  ['light|accent-soft-border|accent-soft', [PERMANENT, 'SC 1.4.11: the active button is identified by its --accent-soft fill, not by this border']],
+  ['dark|accent-soft-border|accent-soft', [PERMANENT, 'SC 1.4.11: the active button is identified by its --accent-soft fill, not by this border']],
+  ['light|accent-muted-border|accent-soft', [PERMANENT, 'SC 1.4.11: .cue-row:hover is identified by its --accent-soft fill, not by this border']],
+  ['dark|accent-muted-border|accent-soft', [PERMANENT, 'SC 1.4.11: .cue-row:hover is identified by its --accent-soft fill, not by this border']],
+  ['light|negative-border|negative-surface', [PERMANENT, 'SC 1.4.11: button.danger is identified by its --negative-surface fill, not by this border']],
+  ['dark|negative-border|negative-surface', [PERMANENT, 'SC 1.4.11: button.danger is identified by its --negative-surface fill, not by this border']],
+  ['dark|positive-border|positive-surface', [PERMANENT, 'SC 1.4.11: button.on is identified by its --positive-surface fill, not by this border']],
+  ['light|record-border|record-surface', [PERMANENT, 'SC 1.4.11: button.rec is identified by its --record-surface fill, not by this border']],
+  ['dark|record-border|record-surface', [PERMANENT, 'SC 1.4.11: button.rec is identified by its --record-surface fill, not by this border']],
+
+  ['light|timeline-text-muted|timeline-track', [KNOWN_FAILURE, '3.91:1 ruler and lane labels; --timeline-text-muted is also painted on the dark --clip-gap-a, so darkening it here breaks that pair. Needs a track-scoped foreground token.']],
+  ['light|timeline-text-muted|clip-gap-a', [KNOWN_FAILURE, '2.21:1 .asr-provider labels; --clip-gap-a stays dark under the light theme while --timeline-text-muted follows the theme.']],
+  ['light|timeline-text-muted|toolbar-surface', [KNOWN_FAILURE, '.tl-toolbar at index.html:163 paints a near-black --toolbar-surface under the light theme while .tl-time keeps a theme-following foreground.']],
+  ['light|warn|negative-surface', [KNOWN_FAILURE, 'button.danger label at index.html:91 sits below 4.5:1 on --negative-surface.']],
+  ['dark|surface-raised|record-surface', [KNOWN_FAILURE, 'button.rec label at index.html:93 sits below 4.5:1 on --record-surface.']],
 ]);
 
 function blocks(source) {
@@ -182,23 +183,36 @@ const themes = { light: declarations(parsed.light), dark: declarations(parsed.da
 
 const failures = [];
 const stale = [];
+const seen = new Set();
 let measured = 0;
-let allowed = 0;
+let exempt = 0;
+let known = 0;
+
+for (const [key, entry] of ALLOWLIST) {
+  const [kind, reason] = entry;
+  if (kind !== PERMANENT && kind !== KNOWN_FAILURE) failures.push(`${key}: kind must be "${PERMANENT}" or "${KNOWN_FAILURE}", got "${kind}"`);
+  if (!reason || !reason.trim()) failures.push(`${key}: every ALLOWLIST entry needs a stated reason`);
+}
 
 for (const [name, theme] of Object.entries(themes)) {
   for (const [fg, bg, size, where] of PAIRS) {
     const ratio = contrast(resolve(fg, theme, base), resolve(bg, theme, base));
     const threshold = THRESHOLDS[size];
     const key = `${name}|${fg}|${bg}`;
-    const listed = ALLOWLIST.has(key);
+    const entry = ALLOWLIST.get(key);
+    seen.add(key);
     measured += 1;
+    if (entry) entry[0] === PERMANENT ? (exempt += 1) : (known += 1);
     if (ratio < threshold) {
-      if (listed) allowed += 1;
-      else failures.push(`${key}: ${ratio.toFixed(2)}:1, needs ${threshold}:1 (${size}), ${where}`);
-    } else if (listed) {
+      if (!entry) failures.push(`${key}: ${ratio.toFixed(2)}:1, needs ${threshold}:1 (${size}), ${where}`);
+    } else if (entry && entry[0] === KNOWN_FAILURE) {
       stale.push(`${key}: now ${ratio.toFixed(2)}:1, clears ${threshold}:1, delete it from ALLOWLIST in scripts/check-contrast.js`);
     }
   }
+}
+
+for (const key of ALLOWLIST.keys()) {
+  if (!seen.has(key)) stale.push(`${key}: no PAIRS entry paints it, delete it from ALLOWLIST in scripts/check-contrast.js`);
 }
 
 if (failures.length || stale.length) {
@@ -208,4 +222,4 @@ if (failures.length || stale.length) {
   process.exit(1);
 }
 
-console.log(`check-contrast: OK (${measured} pairs measured across 2 themes, ${allowed} allowlisted)`);
+console.log(`check-contrast: OK (${measured} pairs measured across 2 themes, ${exempt} permanently exempt, ${known} known failures)`);

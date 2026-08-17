@@ -81,7 +81,7 @@
     }
     label { display: block; font-size: var(--text-4); color: var(--text-muted); margin: var(--space-7) 0 var(--space-2); }
     select, button {
-      width: 100%; font: inherit; border-radius: var(--radius-lg); border: var(--border-hairline) solid var(--border-subtle);
+      width: 100%; font: inherit; border-radius: var(--radius-lg); border: var(--border-hairline) solid var(--border-strong);
       padding: var(--space-6) var(--space-9); background: var(--surface-raised); color: var(--text-primary);
     }
     button {
@@ -116,7 +116,7 @@
     .takes { margin-top: var(--space-11); display: flex; flex-direction: column; gap: var(--space-3); max-height: var(--size-more-menu-min); overflow: auto; }
     .takes a {
       font-size: var(--text-5); color: var(--positive); text-decoration: none;
-      padding: var(--space-4) var(--space-6); border: var(--border-hairline) solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--surface-subtle);
+      padding: var(--space-4) var(--space-6); border: var(--border-hairline) solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface-subtle);
     }
     .takes:empty::after { content: "No takes yet."; color: var(--text-muted); font-size: var(--text-6); }
     .meter { height: var(--size-meter-height); background: var(--meter-track); border-radius: var(--radius-pill); overflow: hidden; margin-top: var(--space-9); }
@@ -160,13 +160,13 @@
     @media (max-width: 900px) { .edit-preview-row { grid-template-columns: 1fr; } }
     .tl-toolbar {
       display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: center;
-      padding: var(--space-7) var(--space-9); background: var(--accent-contrast); border-radius: var(--radius-xl);
+      padding: var(--space-7) var(--space-9); background: var(--toolbar-surface); border-radius: var(--radius-xl);
     }
     .tl-toolbar button {
       width: auto; margin: 0; padding: var(--space-5) var(--space-12); border-radius: var(--radius-md);
       background: var(--surface-control); border-color: var(--surface-control-hover); color: var(--timeline-text); font-weight: var(--weight-heavy);
     }
-    .tl-toolbar button.primary { background: var(--accent); border-color: var(--accent-strong); color: var(--timeline-surface-raised); }
+    .tl-toolbar button.primary { background: var(--accent); border-color: var(--accent-strong); color: var(--accent-foreground); }
     .tl-toolbar button.danger { background: var(--negative-surface); border-color: var(--negative-border); color: var(--negative-on-surface); }
     .tl-toolbar button:disabled { opacity: 0.4; }
     .tl-toolbar .tl-time {
@@ -178,7 +178,7 @@
     }
     .tl-ruler {
       position: relative; height: var(--size-ruler-height-compact); margin: 0 0 var(--space-3) var(--space-18);
-      font-family: var(--font-mono); font-size: var(--text-2); color: var(--timeline-text-faint);
+      font-family: var(--font-mono); font-size: var(--text-2); color: var(--timeline-text-muted);
     }
     .tl-ruler span { position: absolute; transform: translateX(-50%); }
     .tl-track-row {
@@ -186,7 +186,7 @@
     }
     .tl-lane-label {
       font-size: var(--text-2); font-weight: var(--weight-heavy); letter-spacing: var(--tracking-wide); text-transform: uppercase;
-      color: var(--timeline-text-faint); display: flex; align-items: center; justify-content: center;
+      color: var(--timeline-text-muted); display: flex; align-items: center; justify-content: center;
     }
     .tl-track {
       position: relative; height: var(--size-track-height); background: var(--timeline-track); border-radius: var(--radius-lg);
@@ -218,7 +218,7 @@
     }
     .clip-row.selected { border-color: var(--accent); background: var(--accent-soft); }
     .clip-row {
-      border: var(--border-hairline) solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-5) var(--space-7);
+      border: var(--border-hairline) solid var(--border-strong); border-radius: var(--radius-lg); padding: var(--space-5) var(--space-7);
       margin-bottom: var(--space-3); background: var(--surface-subtle); cursor: pointer;
     }
     .clip-meta { display: flex; justify-content: space-between; gap: var(--space-6); font-size: var(--text-6); }
@@ -227,7 +227,7 @@
       width: auto; margin: 0; padding: var(--space-5) var(--space-10); border: none; border-radius: var(--radius-none);
       background: var(--clip-gap-a); color: var(--timeline-text-muted); font-weight: var(--weight-heavy);
     }
-    .asr-provider button.active { background: var(--accent); color: var(--timeline-surface-raised); }
+    .asr-provider button.active { background: var(--accent); color: var(--accent-foreground); }
     .transcript-panel { max-height: var(--size-transcript-max-wide); overflow: auto; }
     .transcript-panel.flash { outline: var(--focus-ring-width) solid var(--accent); outline-offset: var(--focus-ring-offset); border-radius: var(--radius-lg); }
     .ctx-menu {
@@ -240,12 +240,12 @@
       border-radius: var(--radius-sm); background: transparent; color: var(--menu-text); text-align: left;
       font-size: var(--text-7); font-weight: var(--weight-bold); cursor: pointer;
     }
-    .ctx-menu button:hover { background: var(--accent); color: var(--accent-contrast); }
+    .ctx-menu button:hover { background: var(--accent); color: var(--accent-foreground); }
     .ctx-menu button:disabled { color: var(--menu-text-disabled); cursor: default; }
     .ctx-menu button:disabled:hover { background: transparent; color: var(--menu-text-disabled); }
     .cue-row {
       display: flex; gap: var(--space-6); align-items: baseline; width: 100%; text-align: left;
-      border: var(--border-hairline) solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-7);
+      border: var(--border-hairline) solid var(--border-strong); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-7);
       margin: 0 0 var(--space-3); background: var(--surface-subtle); font-weight: var(--weight-medium);
     }
     .cue-row:hover { border-color: var(--accent); }
