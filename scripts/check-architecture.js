@@ -234,8 +234,29 @@ function inspect(root) {
     fail('preflight-wired', 'package.json: missing');
   } else {
     const pkg = JSON.parse(read('package.json'));
-    if (!pkg.scripts || !pkg.scripts.preflight) {
+    const scripts = pkg.scripts || {};
+    if (!scripts.preflight) {
       fail('preflight-wired', 'package.json: scripts.preflight is not defined');
+    }
+    if (!scripts.typecheck) {
+      fail('preflight-wired', 'package.json: scripts.typecheck is not defined');
+    }
+
+    const preflight = path.join('scripts', 'preflight.js');
+    if (!exists(preflight)) {
+      fail('preflight-wired', `${preflight}: missing`);
+    } else {
+      const stepNames = new Set([...read(preflight).matchAll(/name:\s*['"]([^'"]+)['"]/g)].map((match) => match[1]));
+      for (const name of ['typecheck', 'check-architecture', 'check-hex-literals', 'check:arch:self-test']) {
+        if (!stepNames.has(name)) {
+          fail('preflight-wired', `${preflight}: missing required ${name} step`);
+        }
+      }
+      for (const name of Object.keys(scripts).filter((name) => name.startsWith('smoke:'))) {
+        if (!stepNames.has(name)) {
+          fail('preflight-wired', `${preflight}: package script ${name} is not wired into preflight`);
+        }
+      }
     }
   }
 

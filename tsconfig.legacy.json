@@ -2,14 +2,15 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "strict": false,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "noCheck": true
   },
   "include": [
     "electron.vite.config.ts",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "lib/domain/**/*.ts",
-    "lib/node/**/*.js"
+    "src/main/**/*.ts",
+    "src/preload/**/*.ts",
+    "src/renderer/src/**/*.ts",
+    "src/renderer/src/**/*.tsx"
   ],
   "exclude": ["scripts/fixtures/**", "out/**", "release/**"]
 }

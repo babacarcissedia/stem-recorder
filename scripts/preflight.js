@@ -12,8 +12,10 @@
 const { spawnSync } = require('child_process');
 
 const steps = [
+  { name: 'typecheck', cmd: ['npm', 'run', 'typecheck'] },
   { name: 'check-architecture', cmd: ['node', 'scripts/check-architecture.js'] },
   { name: 'check-hex-literals', cmd: ['node', 'scripts/check-hex-literals.js'] },
+  { name: 'check:arch:self-test', cmd: ['npm', 'run', 'check:arch:self-test'] },
   { name: 'smoke:clips', cmd: ['npm', 'run', 'smoke:clips'] },
   { name: 'smoke:apply-args', cmd: ['node', 'scripts/smoke-apply-args.js'] },
   { name: 'smoke:pip', cmd: ['npm', 'run', 'smoke:pip'] },

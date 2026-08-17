@@ -2,6 +2,8 @@
   "name": "arch-fixture-baseline",
   "private": true,
   "scripts": {
-    "build": "electron-vite build"
+    "preflight": "node scripts/preflight.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "smoke:one": "node scripts/smoke-one.js"
   }
 }

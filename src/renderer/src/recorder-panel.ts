@@ -236,7 +236,7 @@
     }
     if (!screenStream) {
       throw lastErr || new Error(
-        'Screen picker failed. Open http://127.0.0.1:8765/cam-preview.html in Chrome (not Cursor preview), or use ./dual-record.sh'
+        'Screen picker failed. Use the Stem Studio desktop app, or try a browser with screen capture support.'
       );
     }
 
@@ -455,7 +455,7 @@
   }
 
   async function previewAll() {
-    if (incCam.checked || true) {
+    if (incCam.checked) {
       try { await startCamPreview(); } catch (e) { log(`Cam preview: ${e.message || e}`); }
     }
     if (incScreen.checked && !screenStream) {
