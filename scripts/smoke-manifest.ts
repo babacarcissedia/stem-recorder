@@ -19,6 +19,7 @@ import {
 
 const require_ = createRequire(import.meta.url);
 const store = require_('../lib/node/manifest-store.js');
+const { resolveTakeLocalDialoguePath } = require_('../lib/node/ffmpeg-util.js');
 
 let cases = 0;
 function group(name: string, body: () => void): void {
@@ -107,6 +108,44 @@ group('three-stem v1 migration defaults dialogue to the separately captured micr
   assert.deepStrictEqual(doc.project.audioRoute, { activeSourceId: 'src-audio', resolvedBy: 'auto' });
   assert.strictEqual(resolveDialogueSource(doc), 'audio.mp3');
   assert.deepStrictEqual(toV1Compat(doc).audioRoute, doc.project.audioRoute);
+});
+
+group('legacy camera audio resolves when no separate microphone stem exists', () => {
+  const doc = migrateV1ToV2(v1, { 'screen.mp4': 600, 'cam.mp4': 600 });
+  assert.deepStrictEqual(doc.project.audioRoute, { activeSourceId: 'src-cam', resolvedBy: 'auto' });
+  assert.strictEqual(resolveDialogueSource(doc), 'cam.mp4');
+});
+
+group('a take-local dialogue source survives the Get Save Apply compatibility round trip', () => {
+  const initial = migrateV1ToV2(v1, DURATIONS);
+  initial.project.timeline.sources['src-dialogue'] = {
+    path: 'dialogue.m4a',
+    label: 'dialogue.m4a',
+    kind: 'audio',
+    availableDuration: 600_000,
+    hasAudio: true,
+    present: true,
+    origin: 'import',
+    peaksKey: null,
+  };
+  initial.project.audioRoute = { activeSourceId: 'src-dialogue', resolvedBy: 'user' };
+
+  const get = toV1Compat(initial);
+  const saved = migrateV1ToV2(get, DURATIONS);
+
+  assert.strictEqual(get.compatAudioSources?.some((source) => source.id === 'src-dialogue'), true);
+  assert.deepStrictEqual(saved.project.timeline.sources['src-dialogue'], initial.project.timeline.sources['src-dialogue']);
+  assert.deepStrictEqual(saved.project.audioRoute, { activeSourceId: 'src-dialogue', resolvedBy: 'user' });
+  assert.strictEqual(resolveDialogueSource(saved), 'dialogue.m4a');
+
+  const takeDir = tmpTake();
+  const dialoguePath = path.join(takeDir, 'dialogue.m4a');
+  fs.writeFileSync(dialoguePath, 'fixture');
+  try {
+    assert.strictEqual(resolveTakeLocalDialoguePath(takeDir, resolveDialogueSource(saved)), fs.realpathSync(dialoguePath));
+  } finally {
+    fs.rmSync(takeDir, { recursive: true, force: true });
+  }
 });
 
 group('migrated documents load through Project.fromJSON', () => {

@@ -111,7 +111,12 @@ function saveStudioManifest(takeId, doc) {
     durations['screen.mp4'] ?? null,
   );
   const audioRoute = doc && typeof doc === 'object' ? doc.audioRoute : undefined;
-  const v2 = migrateV1ToV2({ ...manifest, ...(audioRoute ? { audioRoute } : {}) }, durations);
+  const compatAudioSources = doc && typeof doc === 'object' ? doc.compatAudioSources : undefined;
+  const v2 = migrateV1ToV2({
+    ...manifest,
+    ...(audioRoute ? { audioRoute } : {}),
+    ...(compatAudioSources ? { compatAudioSources } : {}),
+  }, durations);
   const path = writeManifestDoc(takeDir, v2);
   return { path, manifest: toV1Compat(v2) };
 }
