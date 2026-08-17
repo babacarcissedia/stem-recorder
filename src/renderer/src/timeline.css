@@ -511,7 +511,7 @@
 }
 
 .wave-panel-zoom button {
-  width: var(--size-hit-target-compact); /* a11y hit target — 44px would cover too much of the wave */
+  width: var(--size-hit-target-compact); /* a11y hit target: 44px would cover too much of the wave */
   margin: 0;
   padding: 0;
   height: var(--size-hit-target-compact);
