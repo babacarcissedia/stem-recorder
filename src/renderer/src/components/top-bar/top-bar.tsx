@@ -9,7 +9,7 @@ export function TopBar({ projectName, autoSavedAt }: { projectName: string; auto
           {autoSavedAt ? `Auto saved: ${autoSavedAt}` : 'Not saved yet'}
         </span>
       </div>
-      <IconButton label="⌨" />
+      <IconButton label="⌨" disabled />
     </header>
   );
 }

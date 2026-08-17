@@ -14,7 +14,13 @@ const {
 } = require('../lib/domain/shortcuts.ts');
 const { THEME_PREFERENCES, themeCommandId } = require('../lib/domain/theme.ts');
 const { MENU_COMMANDS } = require('../src/preload/api.ts');
-const { onCommand, dispatchCommand } = require('../src/renderer/src/shortcuts/command-bus.ts');
+const {
+  onCommand,
+  canDispatchCommand,
+  dispatchCommand,
+  onCommandAvailabilityChange,
+  notifyCommandAvailabilityChanged,
+} = require('../src/renderer/src/shortcuts/command-bus.ts');
 
 const KEYBOARD_COMMAND_IDS = [
   'file:new-take',
@@ -157,12 +163,12 @@ function check(condition, message) {
       && /<section\s+className=['"]studio-editor-chrome['"]\s+aria-labelledby=['"]studio-editor-title['"]>/.test(appShellSource)
       && /<h1\s+id=['"]studio-editor-title['"]\s+className=['"]studio-editor-title['"]>Studio<\/h1>/.test(appShellSource)
       && /className=['"]studio-editor-status['"]\s+role=['"]status['"]\s+aria-label=['"]Studio status['"]/.test(appShellSource)
-      && /className=['"]studio-editor-react-shell['"]\s+role=['"]region['"]\s+aria-label=['"]Studio preview['"]\s+disabled/.test(appShellSource)
+      && /<section\s+className=['"]studio-editor-react-shell['"]\s+role=['"]region['"]\s+aria-label=['"]Studio preview['"]>/.test(appShellSource)
       && /<TopBar\s+projectName=['"]Current take['"]\s+autoSavedAt=\{null\}\s*\/>/.test(appShellSource)
       && /<ShellLayout[\s\S]*leftSidebar=\{<MediaSidebar \/>\}[\s\S]*main=\{<PlayerPanel \/>\}[\s\S]*rightSidebar=\{<InspectorSidebar \/>\}[\s\S]*footer=\{<TimelineFooter \/>\}[\s\S]*\/>/.test(appShellSource)
       && /className=['"]studio-editor-compatibility-frame['"]\s+role=['"]region['"]\s+aria-label=['"]Studio editor['"]/.test(appShellSource)
       && /<LegacyEditorIsland\s*\/>/.test(appShellSource),
-    'AppShell exposes labelled shell, route navigation, React editor chrome, route, and LegacyEditorIsland compatibility landmark'
+    'AppShell exposes labelled shell, route navigation, enabled React editor chrome, route, and LegacyEditorIsland compatibility landmark'
   );
   check(
     /function\s+RecordShell\s*\([\s\S]*<section\s+className=['"]shell-surface shell-surface-record['"]\s+aria-labelledby=['"]record-shell-title['"][\s\S]*<h1\s+id=['"]record-shell-title['"]/.test(appShellSource)
@@ -184,16 +190,38 @@ function check(condition, message) {
     'AppShell has one Studio-only routed React chrome path wrapping LegacyEditorIsland'
   );
   const timelineFooterSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'components', 'timeline', 'timeline-footer.tsx'), 'utf8');
+  const topBarSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'components', 'top-bar', 'top-bar.tsx'), 'utf8');
+  const playerTransportSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'components', 'player', 'player-transport.tsx'), 'utf8');
+  const commandBusSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'shortcuts', 'command-bus.ts'), 'utf8');
   check(
     /<footer\s+className=['"]shell-footer['"]\s+aria-label=['"]Timeline['"]>/.test(timelineFooterSource)
-      && /Split, delete, and save are available in the Studio editor below\./.test(timelineFooterSource)
-      && /className=['"]shell-footer-actions['"]\s+role=['"]group['"]\s+aria-label=['"]Timeline actions preview['"]/.test(timelineFooterSource)
-      && /<button\s+className=['"]shell-timeline-button['"]\s+type=['"]button['"]\s+disabled>Split<\/button>/.test(timelineFooterSource)
-      && /<button\s+className=['"]shell-timeline-button['"]\s+type=['"]button['"]\s+disabled>Delete<\/button>/.test(timelineFooterSource)
+      && /Split and delete run on the open Studio edit\. Save remains in the Studio editor below\./.test(timelineFooterSource)
+      && /className=['"]shell-footer-actions['"]\s+role=['"]group['"]\s+aria-label=['"]Timeline actions['"]/.test(timelineFooterSource)
+      && /canDispatchCommand\(['"]timeline:split['"]\)/.test(timelineFooterSource)
+      && /canDispatchCommand\(['"]timeline:delete-ripple['"]\)/.test(timelineFooterSource)
+      && /onCommandAvailabilityChange\(refreshAvailability\)/.test(timelineFooterSource)
+      && /onClick=\{\(\) => dispatchCommand\(['"]timeline:split['"]\)\}/.test(timelineFooterSource)
+      && /onClick=\{\(\) => dispatchCommand\(['"]timeline:delete-ripple['"]\)\}/.test(timelineFooterSource)
       && /<button\s+className=['"]shell-timeline-button['"]\s+type=['"]button['"]\s+disabled>Save<\/button>/.test(timelineFooterSource)
       && /className=['"]shell-timeline-lane-label['"]>Video 1<\/span>/.test(timelineFooterSource)
-      && !/onClick=/.test(timelineFooterSource),
-    'TimelineFooter exposes labelled, non-editing timeline chrome'
+      && !/getElementById|querySelector/.test(timelineFooterSource),
+    'TimelineFooter wires Split and Delete through the command bus while Save stays disabled'
+  );
+  check(
+    !/className=['"]studio-editor-react-shell['"][^>]*disabled/.test(appShellSource)
+      && !/<fieldset\s+className=['"]studio-editor-react-shell['"]/.test(appShellSource),
+    'AppShell no longer disables the React studio shell wrapper'
+  );
+  check(
+    /<IconButton\s+label=['"]⌨['"]\s+disabled\s+\/>/.test(topBarSource)
+      && (playerTransportSource.match(/<IconButton[\s\S]*?disabled[\s\S]*?\/>/g) ?? []).length === 4,
+    'TopBar and PlayerTransport keep non-activated shell buttons disabled'
+  );
+  check(
+    /export\s+function\s+onCommandAvailabilityChange\s*\(/.test(commandBusSource)
+      && /export\s+function\s+notifyCommandAvailabilityChanged\s*\(/.test(commandBusSource)
+      && /notifyCommandAvailabilityChanged\(\);/.test(studioSource),
+    'command-bus exposes availability notifications and legacy Studio publishes them'
   );
   check(
     indexHtmlSource.indexOf('id="app-shell-root"') >= 0

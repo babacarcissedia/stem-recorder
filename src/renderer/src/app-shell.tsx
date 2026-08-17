@@ -26,7 +26,7 @@ function StudioEditorChrome() {
           Ready
         </div>
       </header>
-      <fieldset className="studio-editor-react-shell" role="region" aria-label="Studio preview" disabled>
+      <section className="studio-editor-react-shell" role="region" aria-label="Studio preview">
         <TopBar projectName="Current take" autoSavedAt={null} />
         <ShellLayout
           leftSidebar={<MediaSidebar />}
@@ -34,7 +34,7 @@ function StudioEditorChrome() {
           rightSidebar={<InspectorSidebar />}
           footer={<TimelineFooter />}
         />
-      </fieldset>
+      </section>
       <div className="studio-editor-compatibility-frame" role="region" aria-label="Studio editor">
         <LegacyEditorIsland />
       </div>

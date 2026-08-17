@@ -1,14 +1,54 @@
+import { useEffect, useState } from 'react';
+
+import {
+  canDispatchCommand,
+  dispatchCommand,
+  onCommandAvailabilityChange,
+} from '../../shortcuts/command-bus.ts';
+
+type ActiveTimelineCommand = 'timeline:split' | 'timeline:delete-ripple';
+type CommandAvailabilityState = Record<ActiveTimelineCommand, boolean>;
+
+function readTimelineCommandAvailability(): CommandAvailabilityState {
+  return {
+    'timeline:split': canDispatchCommand('timeline:split'),
+    'timeline:delete-ripple': canDispatchCommand('timeline:delete-ripple'),
+  };
+}
+
 export function TimelineFooter() {
+  const [commandAvailability, setCommandAvailability] = useState(readTimelineCommandAvailability);
+
+  useEffect(() => {
+    const refreshAvailability = () => setCommandAvailability(readTimelineCommandAvailability());
+    refreshAvailability();
+    return onCommandAvailabilityChange(refreshAvailability);
+  }, []);
+
   return (
     <footer className="shell-footer" aria-label="Timeline">
       <div className="shell-footer-header">
         <div>
           <h2 className="shell-footer-title">Timeline</h2>
-          <p className="shell-footer-copy">Split, delete, and save are available in the Studio editor below.</p>
+          <p className="shell-footer-copy">Split and delete run on the open Studio edit. Save remains in the Studio editor below.</p>
         </div>
-        <div className="shell-footer-actions" role="group" aria-label="Timeline actions preview">
-          <button className="shell-timeline-button" type="button" disabled>Split</button>
-          <button className="shell-timeline-button" type="button" disabled>Delete</button>
+        <div className="shell-footer-actions" role="group" aria-label="Timeline actions">
+          <button
+            className="shell-timeline-button"
+            type="button"
+            disabled={!commandAvailability['timeline:split']}
+            onClick={() => dispatchCommand('timeline:split')}
+          >
+            Split
+          </button>
+          <button
+            className="shell-timeline-button"
+            type="button"
+            disabled={!commandAvailability['timeline:delete-ripple']}
+            onClick={() => dispatchCommand('timeline:delete-ripple')}
+          >
+            Delete
+          </button>
           <button className="shell-timeline-button" type="button" disabled>Save</button>
         </div>
       </div>

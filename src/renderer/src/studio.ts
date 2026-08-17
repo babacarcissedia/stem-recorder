@@ -6,7 +6,7 @@ import * as ops from '../../../lib/domain/clip-ops.ts';
 import * as gapChips from '../../../lib/domain/gap-chips.ts';
 import { formatTimecode, secondsToMs } from '../../../lib/domain/ms.ts';
 import { createUndoStack } from '../../../lib/domain/undo-stack.ts';
-import { onCommand } from './shortcuts/command-bus.ts';
+import { notifyCommandAvailabilityChanged, onCommand } from './shortcuts/command-bus.ts';
 import { subscribeKeyboardShortcuts } from './shortcuts/use-keyboard-shortcuts.ts';
 
 let mountLegacyStudioShortcutLifecycle: null | (() => () => void) = null;
@@ -158,6 +158,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     if (enabled === editorCommandsEnabled) return;
     editorCommandsEnabled = enabled;
     window.stemMenu?.setEditorCommandsEnabled(enabled);
+    notifyCommandAvailabilityChanged();
   }
 
   function showView(name) {
