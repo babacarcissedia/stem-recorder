@@ -12,7 +12,7 @@ const LEDGER = {
   'src/renderer/index.html': 0,
   'src/renderer/src/app-shell.css': 0,
   'src/renderer/src/affordance.css': 0,
-  'src/renderer/src/tokens.css': 81,
+  'src/renderer/src/tokens.css': 82,
 };
 
 function countHexLiterals(relative) {

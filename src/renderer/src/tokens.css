@@ -81,6 +81,7 @@
   --ramp-amber-700: #a65a2a;
 
   --ramp-blue-200: #6ea8ff;
+  --ramp-blue-250: #9cc8ff;
   --ramp-blue-500: #4a5a8f;
   --ramp-blue-550: #4a5a78;
   --ramp-blue-600: #3d5a78;
@@ -170,8 +171,27 @@
   --elevation-overlay: 0 8px 24px rgba(0, 0, 0, 0.35);
   --elevation-menu: 0 12px 28px rgba(0, 0, 0, 0.45);
   --ring-selected: 0 0 0 1px rgba(255, 255, 255, 0.35);
-  --ring-selected-accent: inset 0 0 0 1px rgba(240, 201, 74, 0.5);
+  --ring-selected-accent: inset 0 0 0 1px color-mix(in srgb, var(--ramp-gold-400) 50%, transparent);
   --scrim-crop: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+
+  --overlay-border: rgba(255, 255, 255, 0.35);
+  --overlay-border-strong: rgba(255, 255, 255, 0.8);
+  --overlay-scrim: rgba(0, 0, 0, 0.6);
+  --overlay-pill: rgba(0, 0, 0, 0.55);
+  --overlay-caption: rgba(10, 12, 18, 0.72);
+  --overlay-hatch-edge: rgba(0, 0, 0, 0.25);
+  --overlay-hatch-a: rgba(255, 255, 255, 0.08);
+  --overlay-hatch-b: rgba(255, 255, 255, 0.12);
+  --overlay-label-shadow: rgba(0, 0, 0, 0.7);
+  --overlay-handle: rgba(255, 255, 255, 0.15);
+  --overlay-handle-active: rgba(255, 255, 255, 0.45);
+  --overlay-crop-border: rgba(0, 0, 0, 0.45);
+  --overlay-clip-freeze-border: color-mix(in srgb, var(--ramp-blue-250) 45%, transparent);
+
+  --wave-panel-zoom-surface: color-mix(in srgb, var(--ramp-neutral-800) 85%, transparent);
+  --pill-live: color-mix(in srgb, var(--ramp-green-700) 90%, transparent);
+  --pill-warn: color-mix(in srgb, var(--ramp-amber-700) 90%, transparent);
+  --pill-off: color-mix(in srgb, var(--ramp-neutral-700) 75%, transparent);
 
   --duration-instant: 90ms;
   --duration-fast: 140ms;
@@ -301,6 +321,9 @@
   --wave-surface-top: var(--ramp-neutral-150);
   --wave-surface-bottom: var(--ramp-neutral-100);
   --wave-border: var(--ramp-neutral-300);
+  --wave-mark-fill: color-mix(in srgb, var(--accent) 16%, transparent);
+  --wave-mark-edge: color-mix(in srgb, var(--accent-strong) 70%, transparent);
+  --wave-center-line: color-mix(in srgb, var(--text-primary) 8%, transparent);
 
   --focus-ring: var(--ramp-blue-500);
   --clip-wave: var(--ramp-blue-200);
@@ -391,6 +414,9 @@
   --wave-surface-top: var(--ramp-neutral-950);
   --wave-surface-bottom: var(--ramp-neutral-980);
   --wave-border: var(--ramp-neutral-840);
+  --wave-mark-fill: color-mix(in srgb, var(--accent) 16%, transparent);
+  --wave-mark-edge: color-mix(in srgb, var(--accent-strong) 70%, transparent);
+  --wave-center-line: color-mix(in srgb, var(--text-primary) 8%, transparent);
 
   --focus-ring: var(--ramp-blue-200);
   --clip-wave: var(--ramp-blue-200);

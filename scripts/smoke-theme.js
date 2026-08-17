@@ -88,6 +88,32 @@ function check(condition, message) {
   }
 }
 
+{
+  const tokens = fs.readFileSync(path.join(ROOT, 'src', 'renderer', 'src', 'tokens.css'), 'utf8');
+  const definitionsIn = (block) =>
+    Object.fromEntries(
+      [...block.matchAll(/^\s*(--[a-z0-9-]+):\s*([^;]+);/gm)].map((match) => [match[1], match[2]])
+    );
+  const rootEnd = tokens.indexOf('\n}', tokens.indexOf(':root {'));
+  const lightStart = tokens.indexOf(':root,\n:root[data-theme="light"]');
+  const darkStart = tokens.indexOf(':root[data-theme="dark"]');
+  const rootDefinitions = definitionsIn(tokens.slice(tokens.indexOf(':root {'), rootEnd));
+  const lightDefinitions = definitionsIn(tokens.slice(lightStart, darkStart));
+  const darkDefinitions = definitionsIn(tokens.slice(darkStart));
+  const resolve = (value, definitions) =>
+    value.replace(/var\((--[a-z0-9-]+)\)/g, (_, name) => resolve(definitions[name] ?? rootDefinitions[name], definitions));
+
+  for (const name of ['--wave-mark-fill', '--wave-mark-edge', '--wave-center-line']) {
+    check(!rootDefinitions[name], `${name} is not fixed in the root token layer`);
+    check(lightDefinitions[name], `${name} is defined for light`);
+    check(darkDefinitions[name], `${name} is defined for dark`);
+    check(
+      resolve(lightDefinitions[name], lightDefinitions) !== resolve(darkDefinitions[name], darkDefinitions),
+      `${name} resolves differently by theme`
+    );
+  }
+}
+
 // R8: cursor affordance is a role convention, not a per-element sprinkle
 {
   const affordance = fs.readFileSync(path.join(ROOT, 'src', 'renderer', 'src', 'affordance.css'), 'utf8');
