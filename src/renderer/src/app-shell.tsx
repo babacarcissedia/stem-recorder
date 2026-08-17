@@ -63,6 +63,26 @@ function LegacyStudioHost() {
   return <div ref={hostRef} className="legacy-studio-host" role="region" aria-label="Studio compatibility host" />;
 }
 
+function StudioEditorChrome() {
+  return (
+    <section className="studio-editor-chrome" aria-labelledby="studio-editor-title">
+      <header className="studio-editor-header">
+        <div className="studio-editor-heading">
+          <p className="studio-editor-kicker">Workspace</p>
+          <h1 id="studio-editor-title" className="studio-editor-title">Studio</h1>
+          <p className="studio-editor-copy">Record, edit, and export your current take in one workspace.</p>
+        </div>
+        <div className="studio-editor-status" role="status" aria-label="Studio status">
+          Ready
+        </div>
+      </header>
+      <div className="studio-editor-compatibility-frame" role="region" aria-label="Studio editor">
+        <LegacyStudioHost />
+      </div>
+    </section>
+  );
+}
+
 function RecordShell() {
   return (
     <section className="shell-surface shell-surface-record" aria-labelledby="record-shell-title">
@@ -105,7 +125,7 @@ function routeLabel(view: ShellView) {
 function renderShellView(view: ShellView) {
   switch (view) {
     case 'studio':
-      return <LegacyStudioHost />;
+      return <StudioEditorChrome />;
     case 'record':
       return <RecordShell />;
     case 'library':
