@@ -40,6 +40,7 @@ const steps = [
   { name: 'smoke:export-bundle', cmd: ['npm', 'run', 'smoke:export-bundle'] },
   { name: 'smoke:media-url', cmd: ['npm', 'run', 'smoke:media-url'] },
   { name: 'smoke:shortcuts', cmd: ['npm', 'run', 'smoke:shortcuts'] },
+  { name: 'smoke:studio-timecode', cmd: ['npm', 'run', 'smoke:studio-timecode'] },
   { name: 'smoke:theme', cmd: ['npm', 'run', 'smoke:theme'] },
   { name: 'smoke:fonts', cmd: ['npm', 'run', 'smoke:fonts'] },
   { name: 'smoke:color-range', cmd: ['npm', 'run', 'smoke:color-range'] },

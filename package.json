@@ -61,6 +61,7 @@
     "smoke:manifest": "node scripts/smoke-manifest.ts",
     "smoke:migrate-v1v2": "node scripts/smoke-migrate-v1v2.ts",
     "smoke:shortcuts": "node scripts/smoke-shortcuts.js",
+    "smoke:studio-timecode": "node scripts/smoke-studio-timecode.js",
     "smoke:theme": "node scripts/smoke-theme.js",
     "smoke:fonts": "node scripts/smoke-fonts.js"
   },

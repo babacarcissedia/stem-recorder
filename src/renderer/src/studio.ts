@@ -4,6 +4,7 @@
  */
 import * as ops from '../../../lib/domain/clip-ops.ts';
 import * as gapChips from '../../../lib/domain/gap-chips.ts';
+import { formatTimecode, secondsToMs } from '../../../lib/domain/ms.ts';
 import { createUndoStack } from '../../../lib/domain/undo-stack.ts';
 import { onCommand } from './shortcuts/command-bus.ts';
 import { subscribeKeyboardShortcuts } from './shortcuts/use-keyboard-shortcuts.ts';
@@ -143,8 +144,8 @@ window.mountLegacyStudio = function mountLegacyStudio() {
   }
 
   function marksHint() {
-    const inn = markIn == null ? '—' : fmt(markIn);
-    const out = markOut == null ? '—' : fmt(markOut);
+    const inn = formatSecondsTimecode(markIn);
+    const out = formatSecondsTimecode(markOut);
     return `marks In ${inn} · Out ${out}`;
   }
 
@@ -210,19 +211,9 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     }
   }
 
-  function fmt(t) {
-    if (t == null || Number.isNaN(t)) return '—';
-    const s = Math.max(0, t);
-    const m = Math.floor(s / 60);
-    const r = (s - m * 60).toFixed(2).padStart(5, '0');
-    return `${m}:${r}`;
-  }
-
-  function fmtClock(t) {
-    if (t == null || Number.isNaN(t)) return '0:00';
-    const s = Math.max(0, Math.floor(t));
-    const m = Math.floor(s / 60);
-    return `${m}:${String(s % 60).padStart(2, '0')}`;
+  function formatSecondsTimecode(value) {
+    if (value == null || !Number.isFinite(value)) return '\u2014';
+    return formatTimecode(secondsToMs(Math.max(0, value)));
   }
 
   function outDur() {
@@ -305,8 +296,8 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       renderTimeline();
     }
     syncFieldsFromClip();
-    editTimeLabel.textContent = `out ${fmt(outputTime)} · src ${fmt(mapped.sourceTime)}`;
-    if (tlOutTime) tlOutTime.textContent = `${fmtClock(outputTime)} / ${fmtClock(total)}`;
+    editTimeLabel.textContent = `out ${formatSecondsTimecode(outputTime)} · src ${formatSecondsTimecode(mapped.sourceTime)}`;
+    if (tlOutTime) tlOutTime.textContent = `${formatSecondsTimecode(outputTime)} / ${formatSecondsTimecode(total)}`;
     requestAnimationFrame(() => { syncingFromTimeline = false; });
   }
 
@@ -415,10 +406,10 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     if (markIn == null || markOut != null) {
       markIn = mapped.sourceTime;
       markOut = null;
-      setStatus(`Mark In ${fmt(markIn)} · ${marksHint()} · Shift-click again for Mark Out`, 'ok');
+      setStatus(`Mark In ${formatSecondsTimecode(markIn)} · ${marksHint()} · Shift-click again for Mark Out`, 'ok');
     } else {
       markOut = mapped.sourceTime;
-      setStatus(`Mark Out ${fmt(markOut)} · ${marksHint()} · Cut range to ripple-delete In→Out`, 'ok');
+      setStatus(`Mark Out ${formatSecondsTimecode(markOut)} · ${marksHint()} · Cut range to ripple-delete In→Out`, 'ok');
     }
     drawWavePanel();
   }
@@ -439,7 +430,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     const step = total > 60 ? 10 : total > 20 ? 5 : total > 8 ? 2 : 1;
     for (let t = 0; t <= total + 0.01; t += step) {
       const span = document.createElement('span');
-      span.textContent = fmtClock(t);
+      span.textContent = formatSecondsTimecode(t);
       span.style.left = `${(t / total) * width}px`;
       tlRuler.appendChild(span);
     }
@@ -529,13 +520,13 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       el.style.left = `${(span.start / total) * width}px`;
       el.style.width = `${Math.max(8, ((span.end - span.start) / total) * width)}px`;
       el.textContent = chip.label;
-      el.title = `${chip.label} · ${fmt(chip.start)} → ${fmt(chip.end)} · click to arm Cut range`;
+      el.title = `${chip.label} · ${formatSecondsTimecode(chip.start)} → ${formatSecondsTimecode(chip.end)} · click to arm Cut range`;
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         markIn = chip.start;
         markOut = chip.end;
         seekOutput(span.start);
-        setStatus(`${chip.kind === 'gap' ? 'Gap' : 'Retake'} ${fmt(chip.start)}–${fmt(chip.end)} armed · ${marksHint()} · Cut range to remove`, 'ok');
+        setStatus(`${chip.kind === 'gap' ? 'Gap' : 'Retake'} ${formatSecondsTimecode(chip.start)} → ${formatSecondsTimecode(chip.end)} armed · ${marksHint()} · Cut range to remove`, 'ok');
       });
       tlChips.appendChild(el);
     }
@@ -596,8 +587,8 @@ window.mountLegacyStudio = function mountLegacyStudio() {
         el.className = `tl-clip ${lane.id}${clip.freeze ? ' freeze' : ''}${idx === selectedIdx ? ' selected' : ''}${has ? '' : ' missing'}`;
         el.style.flex = `0 0 ${clipW}px`;
         el.title = clip.freeze
-          ? `${lane.label} · freeze frame ${fmt(clip.in)} · hold ${dur.toFixed(2)}s`
-          : `${lane.label} · ${fmt(clip.in)} → ${fmt(clip.out)}`;
+          ? `${lane.label} · freeze frame ${formatSecondsTimecode(clip.in)} · hold ${formatSecondsTimecode(dur)}`
+          : `${lane.label} · ${formatSecondsTimecode(clip.in)} → ${formatSecondsTimecode(clip.out)}`;
         if (lane.kind === 'audio') el.appendChild(waveBarsEl(clip, clipW));
         else el.appendChild(filmStripEl(lane.id, clip, clipW));
         const label = document.createElement('span');
@@ -660,8 +651,8 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       row.className = 'clip-row' + (idx === selectedIdx ? ' selected' : '');
       row.innerHTML = `<div class="clip-meta"><strong>${clip.freeze ? '❄ ' : ''}#${idx + 1}${idx === selectedIdx ? ' · selected' : ''}</strong>
         <span>${clip.freeze
-    ? `freeze ${fmt(clip.in)} · hold ${ops.clipDuration(clip, duration).toFixed(1)}s`
-    : `${fmt(clip.in)} → ${fmt(clip.out)}`}</span></div>`;
+    ? `freeze ${formatSecondsTimecode(clip.in)} · hold ${formatSecondsTimecode(ops.clipDuration(clip, duration))}`
+    : `${formatSecondsTimecode(clip.in)} → ${formatSecondsTimecode(clip.out)}`}</span></div>`;
       row.addEventListener('click', () => {
         selectClip(idx);
         let acc = 0;
@@ -680,8 +671,8 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     syncFieldsFromClip();
     const c = selectedClip();
     setStatus(c.freeze
-      ? `Selected #${selectedIdx + 1} · freeze frame ${fmt(c.in)} · hold ${ops.clipDuration(c, duration).toFixed(1)}s`
-      : `Selected #${selectedIdx + 1} · ${fmt(c.in)} → ${fmt(c.out)}`);
+      ? `Selected #${selectedIdx + 1} · freeze frame ${formatSecondsTimecode(c.in)} · hold ${formatSecondsTimecode(ops.clipDuration(c, duration))}`
+      : `Selected #${selectedIdx + 1} · ${formatSecondsTimecode(c.in)} → ${formatSecondsTimecode(c.out)}`);
   }
 
   function refreshAll() {
@@ -695,7 +686,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     updateCaptionsUi();
     updateExportUi();
     const total = outDur();
-    if (tlOutTime) tlOutTime.textContent = `${fmtClock(outputTime)} / ${fmtClock(total)}`;
+    if (tlOutTime) tlOutTime.textContent = `${formatSecondsTimecode(outputTime)} / ${formatSecondsTimecode(total)}`;
   }
 
   function loadPreviewStem() {
@@ -769,7 +760,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     if (!manifest?.clips?.length) return;
     const idx = ops.findClipAtTime(manifest.clips, cue.start, duration);
     if (idx < 0) {
-      setStatus(`Cue at ${fmt(cue.start)} was cut from the timeline`, 'warn');
+      setStatus(`Cue at ${formatSecondsTimecode(cue.start)} was cut from the timeline`, 'warn');
       return;
     }
     seekOutput(ops.sourceToOutput(manifest.clips, idx, cue.start, duration));
@@ -794,7 +785,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       row.title = 'Click to seek · double-click to edit the cue text';
       const time = document.createElement('span');
       time.className = 'cue-time';
-      time.textContent = fmt(cue.start);
+      time.textContent = formatSecondsTimecode(cue.start);
       const text = document.createElement('span');
       text.className = 'cue-text';
       text.textContent = cue.text;
@@ -834,7 +825,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
         done = true;
         try {
           const res = await studio.setCueText(currentTakeId, index, input.value);
-          setStatus(`Cue @ ${fmt(cue.start)} updated → captions.vtt (${res.segments} cue${res.segments === 1 ? '' : 's'})`, 'ok');
+          setStatus(`Cue @ ${formatSecondsTimecode(cue.start)} updated → captions.vtt (${res.segments} cue${res.segments === 1 ? '' : 's'})`, 'ok');
         } catch (err) {
           setStatus(String(err.message || err), 'warn');
         }
@@ -1558,7 +1549,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       refreshAll();
       seekOutput(outputTime);
       setStatus(
-        `Split at ${fmt(mapped.sourceTime)} → ${manifest.clips.length} clips · next: Split @ B or Delete middle`,
+        `Split at ${formatSecondsTimecode(mapped.sourceTime)} → ${manifest.clips.length} clips · next: Split @ B or Delete middle`,
         'ok',
       );
     } catch (e) {
@@ -1590,7 +1581,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     const mapped = ops.outputToSource(manifest.clips, outputTime, duration);
     markIn = mapped.sourceTime;
     drawWavePanel();
-    setStatus(`Mark In ${fmt(markIn)} · ${marksHint()} · set Mark Out then Cut range`, 'ok');
+    setStatus(`Mark In ${formatSecondsTimecode(markIn)} · ${marksHint()} · set Mark Out then Cut range`, 'ok');
   }
 
   function doMarkOut() {
@@ -1598,7 +1589,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     const mapped = ops.outputToSource(manifest.clips, outputTime, duration);
     markOut = mapped.sourceTime;
     drawWavePanel();
-    setStatus(`Mark Out ${fmt(markOut)} · ${marksHint()} · Cut range to ripple-delete In→Out`, 'ok');
+    setStatus(`Mark Out ${formatSecondsTimecode(markOut)} · ${marksHint()} · Cut range to ripple-delete In→Out`, 'ok');
   }
 
   function doCutRange() {
@@ -1617,7 +1608,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       markOut = null;
       refreshAll();
       seekOutput(Math.min(outputTime, Math.max(0, outDur() - 0.01)));
-      setStatus(`Cut range ${fmt(a)}–${fmt(b)} · ripple join`, 'ok');
+      setStatus(`Cut range ${formatSecondsTimecode(a)} → ${formatSecondsTimecode(b)} · ripple join`, 'ok');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     }
@@ -1630,7 +1621,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     try {
       clipClipboard = ops.copySlice(manifest.clips, selectedIdx, 1);
       const c = clipClipboard[0];
-      setStatus(`Copied #${selectedIdx + 1} · ${fmt(c.in)} → ${fmt(c.out)} · Paste inserts after the playhead clip`, 'ok');
+      setStatus(`Copied #${selectedIdx + 1} · ${formatSecondsTimecode(c.in)} → ${formatSecondsTimecode(c.out)} · Paste inserts after the playhead clip`, 'ok');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     }
@@ -1723,8 +1714,8 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       }
       outputTime = acc + offset;
       updatePlayheadUi();
-      editTimeLabel.textContent = `out ${fmt(outputTime)} · src ${fmt(clip.in)} · freeze`;
-      if (tlOutTime) tlOutTime.textContent = `${fmtClock(outputTime)} / ${fmtClock(outDur())}`;
+      editTimeLabel.textContent = `out ${formatSecondsTimecode(outputTime)} · src ${formatSecondsTimecode(clip.in)} · freeze`;
+      if (tlOutTime) tlOutTime.textContent = `${formatSecondsTimecode(outputTime)} / ${formatSecondsTimecode(outDur())}`;
       freezeRaf = requestAnimationFrame(step);
     };
     freezeRaf = requestAnimationFrame(step);
@@ -1847,8 +1838,8 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     }
     outputTime = ops.sourceToOutput(manifest.clips, selectedIdx, src, duration);
     updatePlayheadUi();
-    if (tlOutTime) tlOutTime.textContent = `${fmtClock(outputTime)} / ${fmtClock(outDur())}`;
-    editTimeLabel.textContent = `out ${fmt(outputTime)} · src ${fmt(src)}`;
+    if (tlOutTime) tlOutTime.textContent = `${formatSecondsTimecode(outputTime)} / ${formatSecondsTimecode(outDur())}`;
+    editTimeLabel.textContent = `out ${formatSecondsTimecode(outputTime)} · src ${formatSecondsTimecode(src)}`;
   });
 
   editVideo?.addEventListener('loadedmetadata', () => {
@@ -1959,7 +1950,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       pushUndo(prev);
       refreshAll();
       seekOutput(ops.sourceToOutput(manifest.clips, selectedIdx, inn, duration));
-      setStatus(`Trimmed #${selectedIdx + 1} → ${fmt(inn)}–${fmt(out)}`, 'ok');
+      setStatus(`Trimmed #${selectedIdx + 1} → ${formatSecondsTimecode(inn)} → ${formatSecondsTimecode(out)}`, 'ok');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     }
