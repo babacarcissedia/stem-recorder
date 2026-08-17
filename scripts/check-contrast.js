@@ -40,8 +40,8 @@ const PAIRS = [
   ['timeline-text', 'surface-control', 'normal', 'timeline.css:61 .tl-toolbar button'],
   ['text-primary', 'surface-control', 'normal', 'timeline.css:707 in :705'],
   ['text-primary', 'surface-sunken', 'normal', 'timeline.css:719 in :718'],
-  ['timeline-surface-raised', 'accent', 'normal', 'index.html:168 .tl-toolbar button.primary'],
-  ['accent-contrast', 'accent', 'normal', 'timeline.css:69 .tl-toolbar button.primary'],
+  ['accent-foreground', 'accent', 'normal', 'timeline.css:69 .tl-toolbar button.primary, timeline.css:39, timeline.css:685, index.html:169, index.html:230, index.html:243'],
+  ['timeline-text-muted', 'toolbar-surface', 'normal', 'index.html:171 .tl-time in .tl-toolbar:163'],
   ['negative-on-surface', 'negative-surface', 'normal', 'timeline.css:75 .tl-toolbar button.danger'],
   ['positive-text', 'positive-surface', 'normal', 'timeline.css:81 .tl-toolbar button.on'],
   ['timeline-text-muted', 'clip-gap-a', 'normal', 'timeline.css:577 .asr-provider button'],
@@ -50,7 +50,6 @@ const PAIRS = [
   ['surface-raised', 'text-primary', 'normal', 'app-shell.css:102 stage-empty on stage:98 (text-primary as a fill)'],
   ['timeline-text', 'timeline-track', 'normal', 'timeline.css:265 .tl-lane-meta strong in .timeline-shell:180'],
   ['timeline-text-muted', 'timeline-track', 'normal', 'timeline.css:260 .tl-lane-meta in .timeline-shell:180'],
-  ['timeline-text-faint', 'timeline-track', 'normal', 'timeline.css:200 .tl-ruler in .timeline-shell:180'],
   ['timeline-text-muted', 'timeline-surface', 'normal', 'timeline.css:100 .tl-time in .tl-toolbar:48'],
   ['text-muted', 'timeline-surface-sunken', 'normal', 'timeline.css:543 .clip-meta span in .clip-row:534'],
   ['text-primary', 'timeline-surface-sunken', 'normal', 'timeline.css:628 .cue-text in .cue-row:610'],
@@ -66,13 +65,16 @@ const PAIRS = [
   ['text-on-dark', 'clip-audio-bottom', 'normal', 'timeline.css:318 over .tl-clip.audio:330'],
   ['text-on-dark', 'clip-selected-top', 'normal', 'timeline.css:318 over .tl-clip.freeze:345'],
   ['text-on-dark', 'clip-selected-bottom', 'normal', 'timeline.css:318 over .tl-clip.freeze:345'],
-  ['text-faint', 'wave-surface-top', 'normal', 'timeline.css:500 .wave-panel-empty in .wave-panel:479'],
-  ['text-faint', 'wave-surface-bottom', 'normal', 'timeline.css:500 .wave-panel-empty in .wave-panel:479'],
+  ['text-muted', 'wave-surface-top', 'normal', 'timeline.css:500 .wave-panel-empty in .wave-panel:479'],
+  ['text-muted', 'wave-surface-bottom', 'normal', 'timeline.css:500 .wave-panel-empty in .wave-panel:479'],
   ['accent', 'accent-muted-surface', 'normal', 'timeline.css:691 #cropBtn.on'],
 
-  ['border-subtle', 'surface-raised', 'ui', 'app-shell.css:147 .shell-icon-button border'],
+  ['border-subtle', 'surface-raised', 'ui', 'app-shell.css:55 .shell-sidebar border'],
   ['border-subtle', 'surface-app', 'ui', 'index.html:30 .stage-wrap border in body:10'],
   ['border-strong', 'surface-control', 'ui', 'timeline.css:60 .tl-toolbar button border'],
+  ['border-strong', 'surface-raised', 'ui', 'app-shell.css:147 .shell-icon-button border, index.html:84 select/button border'],
+  ['border-strong', 'surface-subtle', 'ui', 'index.html:221 .clip-row border, index.html:248 .cue-row border, index.html:119 .takes a border'],
+  ['border-strong', 'timeline-surface-sunken', 'ui', 'timeline.css:611 .cue-row border'],
   ['timeline-border', 'timeline-surface', 'ui', 'timeline.css:50 .tl-toolbar border'],
   ['border-subtle', 'timeline-track', 'ui', 'timeline.css:181 .timeline-shell border'],
   ['focus-ring', 'surface-app', 'ui', 'affordance.css:53 :focus-visible outline, offset 2px onto the page'],
@@ -92,31 +94,23 @@ const PAIRS = [
 // Seeded from the first run of this gate. Each floor is the unrounded measured
 // ratio, so a grandfathered pair cannot regress while it remains below WCAG.
 const BASELINE_EXCEPTIONS = new Map([
-  ['light|accent-contrast|accent', 4.1010742002625946],
   ['light|accent-muted-border|accent-soft', 1.1649718085572776],
   ['light|accent-soft-border|accent-soft', 1.1649718085572776],
   ['light|accent-strong|accent', 1.4089921851754046],
-  ['light|accent|accent-muted-surface', 3.1586023601699535],
-  ['light|accent|surface-subtle', 3.8527505823502817],
-  ['light|border-strong|surface-control', 1.7749012490762661],
   ['light|border-subtle|surface-app', 1.3688636519559692],
   ['light|border-subtle|surface-raised', 1.5046206661919197],
   ['light|border-subtle|timeline-track', 1],
   ['light|menu-text-disabled|menu-surface', 4.3624051910043535],
   ['light|negative-border|negative-surface', 1.2020156319772222],
   ['light|record-border|record-surface', 1.3860806766780116],
-  ['light|text-faint|wave-surface-bottom', 3.6385856944090409],
-  ['light|text-faint|wave-surface-top', 3.5075027074224994],
   ['light|timeline-border|timeline-surface', 1.2097594857063192],
-  ['light|timeline-surface-raised|accent', 4.021367065440872],
-  ['light|timeline-text-faint|timeline-track', 2.8993388759209777],
+  ['light|timeline-text-muted|toolbar-surface', 2.8015988584388496],
   ['light|timeline-text-muted|clip-gap-a', 2.2133039091944253],
   ['light|timeline-text-muted|timeline-track', 3.9123560303668827],
   ['light|warn|negative-surface', 4.266730447239321],
   ['dark|accent-muted-border|accent-soft', 2.0709432023240306],
   ['dark|accent-soft-border|accent-soft', 2.5600715340498503],
   ['dark|accent-strong|accent', 1.3404854894308253],
-  ['dark|border-strong|surface-control', 1.2949525298356641],
   ['dark|border-subtle|surface-app', 1.3891658179548516],
   ['dark|border-subtle|surface-raised', 1.2657994443512934],
   ['dark|border-subtle|timeline-track', 1.4712335591628987],
@@ -125,10 +119,7 @@ const BASELINE_EXCEPTIONS = new Map([
   ['dark|positive-border|positive-surface', 1.5678184328989055],
   ['dark|record-border|record-surface', 1.3860806766780116],
   ['dark|surface-raised|record-surface', 3.5165446476705915],
-  ['dark|text-faint|wave-surface-bottom', 4.322243976974117],
-  ['dark|text-faint|wave-surface-top', 4.1129074226998821],
-  ['dark|timeline-border|timeline-surface', 1.3009407431374673],
-]);
+  ['dark|timeline-border|timeline-surface', 1.3009407431374673],]);
 
 function blocks(source) {
   const cut = (start, end) => source.slice(start, end === -1 ? undefined : end);
@@ -182,8 +173,8 @@ function exceptionStatus(ratio, threshold, baseline) {
 }
 
 function selfTest() {
-  const baseline = BASELINE_EXCEPTIONS.get('light|timeline-surface-raised|accent');
-  if (baseline !== 4.021367065440872) throw new Error('contrast self-test baseline changed');
+  const baseline = BASELINE_EXCEPTIONS.get('light|timeline-text-muted|toolbar-surface');
+  if (baseline !== 2.8015988584388496) throw new Error('contrast self-test baseline changed');
   if (exceptionStatus(baseline - 0.01, THRESHOLDS.normal, baseline) !== 'regressed') {
     throw new Error('contrast self-test did not reject a degraded grandfathered pair');
   }

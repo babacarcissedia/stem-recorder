@@ -144,7 +144,7 @@
   margin: 0;
   padding: var(--space-4) var(--space-9);
   border-radius: var(--radius-md);
-  border: var(--border-hairline) solid var(--border-subtle);
+  border: var(--border-hairline) solid var(--border-strong);
   background: var(--surface-raised);
   color: var(--text-primary);
   cursor: pointer;
