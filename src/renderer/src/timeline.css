@@ -59,7 +59,7 @@
   background: var(--surface-control);
   border: var(--border-hairline) solid var(--border-strong);
   color: var(--timeline-text);
-  font-weight: var(--weight-strong);
+  font-weight: var(--weight-heavy);
   font-size: var(--text-6);
 }
 
@@ -264,7 +264,7 @@
 .tl-lane-meta strong {
   color: var(--timeline-text);
   font-size: var(--text-3);
-  font-weight: var(--weight-strong);
+  font-weight: var(--weight-heavy);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -317,7 +317,7 @@
   min-width: var(--size-clip-min);
   color: var(--text-on-dark);
   font-size: var(--text-2);
-  font-weight: var(--weight-strong);
+  font-weight: var(--weight-heavy);
   cursor: pointer;
   background: linear-gradient(180deg, var(--clip-screen-top), var(--clip-screen-bottom));
 }
@@ -387,7 +387,7 @@
 
 .tl-clip .wave b {
   flex: 1;
-  background: var(--focus-ring);
+  background: var(--clip-wave);
   border-radius: var(--radius-hairline);
   min-height: 2px;
 }
@@ -521,7 +521,7 @@
   border: var(--border-hairline) solid var(--border-strong);
   color: var(--timeline-text);
   font-size: var(--text-10);
-  font-weight: var(--weight-strong);
+  font-weight: var(--weight-heavy);
 }
 
 .wave-panel-zoom button:hover { background: var(--border-strong); }

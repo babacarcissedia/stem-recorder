@@ -38,6 +38,8 @@
     "check:arch": "node scripts/check-architecture.js",
     "check:hex": "node scripts/check-hex-literals.js",
     "check:style": "node scripts/check-style-literals.js",
+    "check:theme-parity": "node scripts/check-theme-parity.js",
+    "check:contrast": "node scripts/check-contrast.js",
     "check:arch:self-test": "node scripts/check-architecture.js --self-test",
     "smoke:apply": "node scripts/smoke-apply.js",
     "smoke:clips": "node scripts/smoke-clip-ops.js",
@@ -56,7 +58,8 @@
     "smoke:media-url": "node scripts/smoke-media-url.js",
     "smoke:manifest": "node scripts/smoke-manifest.ts",
     "smoke:shortcuts": "node scripts/smoke-shortcuts.js",
-    "smoke:theme": "node scripts/smoke-theme.js"
+    "smoke:theme": "node scripts/smoke-theme.js",
+    "smoke:fonts": "node scripts/smoke-fonts.js"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

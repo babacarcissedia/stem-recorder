@@ -144,9 +144,7 @@
 
   --weight-regular: 400;
   --weight-medium: 500;
-  --weight-semibold: 550;
   --weight-bold: 600;
-  --weight-strong: 650;
   --weight-heavy: 700;
 
   --leading-none: 1;
@@ -238,6 +236,8 @@
 
 :root,
 :root[data-theme="light"] {
+  color-scheme: light;
+
   --surface-app: var(--ramp-neutral-050);
   --surface-raised: var(--ramp-neutral-000);
   --surface-subtle: var(--ramp-neutral-025);
@@ -303,7 +303,8 @@
   --wave-surface-bottom: var(--ramp-neutral-100);
   --wave-border: var(--ramp-neutral-300);
 
-  --focus-ring: var(--ramp-blue-200);
+  --focus-ring: var(--ramp-blue-500);
+  --clip-wave: var(--ramp-blue-200);
   --clip-outline: var(--ramp-neutral-000);
   --clip-text: var(--ramp-neutral-000);
   --clip-default-top: var(--ramp-blue-550);
@@ -326,6 +327,8 @@
 }
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
+
   --surface-app: var(--ramp-neutral-920);
   --surface-raised: var(--ramp-neutral-890);
   --surface-subtle: var(--ramp-neutral-880);
@@ -341,7 +344,7 @@
   --text-muted: var(--ramp-neutral-450);
   --text-faint: var(--ramp-neutral-550);
   --text-on-dark: var(--ramp-neutral-000);
-  --text-on-accent: var(--ramp-neutral-890);
+  --text-on-accent: var(--ramp-gold-100);
 
   --border-subtle: var(--ramp-neutral-800);
   --border-strong: var(--ramp-neutral-750);
@@ -392,6 +395,7 @@
   --wave-border: var(--ramp-neutral-840);
 
   --focus-ring: var(--ramp-blue-200);
+  --clip-wave: var(--ramp-blue-200);
   --clip-outline: var(--ramp-neutral-000);
   --clip-text: var(--ramp-neutral-000);
   --clip-default-top: var(--ramp-blue-550);
