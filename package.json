@@ -59,6 +59,7 @@
     "smoke:color-range": "node scripts/smoke-color-range.js",
     "smoke:timeline-interaction": "node scripts/smoke-timeline-interaction.ts",
     "smoke:manifest": "node scripts/smoke-manifest.ts",
+    "smoke:migrate-v1v2": "node scripts/smoke-migrate-v1v2.ts",
     "smoke:shortcuts": "node scripts/smoke-shortcuts.js",
     "smoke:theme": "node scripts/smoke-theme.js",
     "smoke:fonts": "node scripts/smoke-fonts.js"
