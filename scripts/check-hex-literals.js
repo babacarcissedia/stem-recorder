@@ -11,6 +11,7 @@ const LEDGER = {
   'src/renderer/src/timeline.css': 0,
   'src/renderer/index.html': 0,
   'src/renderer/src/app-shell.css': 0,
+  'src/renderer/src/components/timeline/timeline-panel.css': 0,
   'src/renderer/src/affordance.css': 0,
   'src/renderer/src/tokens.css': 81,
 };

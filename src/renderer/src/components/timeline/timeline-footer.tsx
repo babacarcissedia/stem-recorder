@@ -1,7 +1,12 @@
+import { TimelinePanel } from './timeline-panel.tsx';
+import { useTimelineProject } from './use-timeline-project.ts';
+
 export function TimelineFooter() {
+  const timeline = useTimelineProject();
+
   return (
     <footer className="shell-footer" aria-label="Timeline">
-      <p className="shell-footer-empty">Timeline goes here.</p>
+      <TimelinePanel timeline={timeline} />
     </footer>
   );
 }

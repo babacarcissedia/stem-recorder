@@ -46,6 +46,7 @@ const LEDGER = {
   'src/renderer/index.html': { length: 9, radius: 0, fontSize: 0, shadow: 0, fontFamily: 0 },
   'src/renderer/src/timeline.css': { length: 41, radius: 0, fontSize: 0, shadow: 0, fontFamily: 0 },
   'src/renderer/src/app-shell.css': { length: 0, radius: 0, fontSize: 0, shadow: 0, fontFamily: 0 },
+  'src/renderer/src/components/timeline/timeline-panel.css': { length: 0, radius: 0, fontSize: 0, shadow: 0, fontFamily: 0 },
   'src/renderer/src/affordance.css': { length: 0, radius: 0, fontSize: 0, shadow: 0, fontFamily: 0 },
   'src/renderer/src/tokens.css': { length: 96, radius: 0, fontSize: 0, shadow: 0, fontFamily: 2 },
   'src/renderer/src/fonts.css': { length: 0, radius: 0, fontSize: 0, shadow: 0, fontFamily: 5 },
