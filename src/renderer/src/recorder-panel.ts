@@ -1,3 +1,4 @@
+window.mountRecorderPanel = function mountRecorderPanel() {
   const camEl = document.getElementById('camPreview');
   const screenEl = document.getElementById('screenPreview');
   const camStage = document.getElementById('camStage');
@@ -524,3 +525,4 @@
   listDevices()
     .then(() => onSourceChange())
     .catch((e) => log(String(e.message || e)));
+};
