@@ -68,6 +68,7 @@ const PAIRS = [
   ['text-muted', 'wave-surface-top', 'normal', 'timeline.css:500 .wave-panel-empty in .wave-panel:479'],
   ['text-muted', 'wave-surface-bottom', 'normal', 'timeline.css:500 .wave-panel-empty in .wave-panel:479'],
   ['accent', 'accent-muted-surface', 'normal', 'timeline.css:691 #cropBtn.on'],
+  ['timeline-text', 'timeline-surface', 'normal', 'timeline-panel.css:16 .tl2-clock over .tl2-scroller:34'],
 
   ['border-subtle', 'surface-raised', 'ui', 'app-shell.css:55 .shell-sidebar border'],
   ['border-subtle', 'surface-app', 'ui', 'index.html:30 .stage-wrap border in body:10'],
@@ -89,6 +90,10 @@ const PAIRS = [
   ['positive-border', 'positive-surface', 'ui', 'timeline.css:80 .tl-toolbar button.on border'],
   ['negative-border', 'negative-surface', 'ui', 'timeline.css:74 .tl-toolbar button.danger border'],
   ['record-border', 'record-surface', 'ui', 'index.html:94 button.rec border'],
+  ['clip-outline', 'clip-selected-top', 'ui', 'timeline-panel.css:139 .tl2-clip.is-selected ring'],
+  ['clip-outline', 'clip-selected-bottom', 'ui', 'timeline-panel.css:139 .tl2-clip.is-selected ring'],
+  ['clip-outline', 'surface-video', 'ui', 'timeline-panel.css:155 .tl2-playhead outline over its own core'],
+  ['accent', 'timeline-surface', 'ui', 'timeline-panel.css:167 .tl2-playhead-cap over .tl2-ruler:41'],
 ];
 
 /**
