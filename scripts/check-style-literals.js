@@ -71,6 +71,7 @@ const COLOR_LEDGER = {
   'src/renderer/src/app-shell.tsx': 0,
   'src/renderer/src/components/atoms/icon-button.tsx': 0,
   'src/renderer/src/components/layout/shell-layout.tsx': 0,
+  'src/renderer/src/components/legacy/legacy-editor-island.tsx': 0,
   'src/renderer/src/components/player/player-panel.tsx': 0,
   'src/renderer/src/components/player/player-transport.tsx': 0,
   'src/renderer/src/components/sidebar/inspector-sidebar.tsx': 0,

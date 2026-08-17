@@ -119,6 +119,10 @@ function check(condition, message) {
 
   const rendererMainSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'main.tsx'), 'utf8');
   const appShellSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'app-shell.tsx'), 'utf8');
+  const legacyEditorIslandSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'renderer', 'src', 'components', 'legacy', 'legacy-editor-island.tsx'),
+    'utf8'
+  );
   const indexHtmlSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'index.html'), 'utf8');
   const recorderPanelSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'recorder-panel.ts'), 'utf8');
   const mountedRendererRoots = rendererMainSource.match(/\bcreateRoot\s*\(/g) ?? [];
@@ -138,16 +142,13 @@ function check(condition, message) {
     'AppShell owns typed studio, record, and library shell view state with studio as the default route'
   );
   check(
-    /function\s+LegacyStudioHost\s*\(/.test(appShellSource)
+    /import\s+\{\s*LegacyEditorIsland\s*\}\s+from\s+['"]\.\/components\/legacy\/legacy-editor-island\.tsx['"]/.test(appShellSource)
       && /function\s+StudioEditorChrome\s*\(/.test(appShellSource)
       && /function\s+renderShellView\s*\(\s*view\s*:\s*ShellView\s*\)/.test(appShellSource)
       && /case\s+['"]studio['"]\s*:\s*\n\s*return\s+<StudioEditorChrome\s*\/>;/.test(appShellSource)
-      && /\buseShellCommandLifecycle\s*\(\s*['"]studio['"]\s*,\s*legacyHostReady\s*\?\s*legacyStudioLifecycle\s*:\s*null\s*\)/.test(appShellSource)
-      && /\bmountShortcutMenuLifecycle\s*:\s*\(\)\s*=>\s*\{[\s\S]*\breturn\s+legacyStudioWindow\.mountLegacyStudio\s*\(\s*\)\s*;[\s\S]*\}/.test(appShellSource)
-      && /\bmountRecorderPanel\s*\(/.test(appShellSource)
       && /import\s+\{\s*ShellLayout\s*\}\s+from\s+['"]\.\/components\/layout\/shell-layout\.tsx['"]/.test(appShellSource)
       && /import\s+\{\s*TimelineFooter\s*\}\s+from\s+['"]\.\/components\/timeline\/timeline-footer\.tsx['"]/.test(appShellSource),
-    'AppShell routes the default studio view through React editor chrome and the LegacyStudioHost compatibility lifecycle'
+    'AppShell routes the default studio view through React editor chrome and LegacyEditorIsland'
   );
   check(
     /className=['"]shell-root['"][^>]*data-shell-view=\{shellView\}[^>]*aria-label=['"]Stem Studio['"]/.test(appShellSource)
@@ -160,8 +161,8 @@ function check(condition, message) {
       && /<TopBar\s+projectName=['"]Current take['"]\s+autoSavedAt=\{null\}\s*\/>/.test(appShellSource)
       && /<ShellLayout[\s\S]*leftSidebar=\{<MediaSidebar \/>\}[\s\S]*main=\{<PlayerPanel \/>\}[\s\S]*rightSidebar=\{<InspectorSidebar \/>\}[\s\S]*footer=\{<TimelineFooter \/>\}[\s\S]*\/>/.test(appShellSource)
       && /className=['"]studio-editor-compatibility-frame['"]\s+role=['"]region['"]\s+aria-label=['"]Studio editor['"]/.test(appShellSource)
-      && /className=['"]legacy-studio-host['"]\s+role=['"]region['"]\s+aria-label=['"]Studio editor['"]/.test(appShellSource),
-    'AppShell exposes labelled shell, route navigation, React editor chrome, route, and legacy compatibility landmarks'
+      && /<LegacyEditorIsland\s*\/>/.test(appShellSource),
+    'AppShell exposes labelled shell, route navigation, React editor chrome, route, and LegacyEditorIsland compatibility landmark'
   );
   check(
     /function\s+RecordShell\s*\([\s\S]*<section\s+className=['"]shell-surface shell-surface-record['"]\s+aria-labelledby=['"]record-shell-title['"][\s\S]*<h1\s+id=['"]record-shell-title['"]/.test(appShellSource)
@@ -175,12 +176,12 @@ function check(condition, message) {
     'workspace route navigation is keyboard-accessible and labelled'
   );
   check(
-    (appShellSource.match(/<LegacyStudioHost\s*\/>/g) ?? []).length === 1
-      && /function\s+StudioEditorChrome\s*\([\s\S]*<LegacyStudioHost\s*\/>[\s\S]*\}\s*\n\s*function\s+RecordShell/.test(appShellSource)
+    (appShellSource.match(/<LegacyEditorIsland\s*\/>/g) ?? []).length === 1
+      && /function\s+StudioEditorChrome\s*\([\s\S]*<LegacyEditorIsland\s*\/>[\s\S]*\}\s*\n\s*function\s+RecordShell/.test(appShellSource)
       && /case\s+['"]studio['"]\s*:\s*\n\s*return\s+<StudioEditorChrome\s*\/>;/.test(appShellSource)
       && /case\s+['"]record['"]\s*:\s*\n\s*return\s+<RecordShell\s*\/>;/.test(appShellSource)
       && /case\s+['"]library['"]\s*:\s*\n\s*return\s+<LibraryShell\s*\/>;/.test(appShellSource),
-    'AppShell has one Studio-only routed React chrome path wrapping LegacyStudioHost'
+    'AppShell has one Studio-only routed React chrome path wrapping LegacyEditorIsland'
   );
   const timelineFooterSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'components', 'timeline', 'timeline-footer.tsx'), 'utf8');
   check(
@@ -200,10 +201,15 @@ function check(condition, message) {
     'legacy Studio markup is available for AppShell to host after the React root'
   );
   check(
-    /const\s+parkedParent\s*=\s*legacyStudioRoot\.parentElement\s*\?\?\s*document\.body\s*;/.test(appShellSource)
-      && /const\s+parkedBefore\s*=\s*legacyStudioRoot\.nextSibling\s*;/.test(appShellSource)
-      && /return\s*\(\)\s*=>\s*\{[\s\S]*setLegacyHostReady\s*\(\s*false\s*\)\s*;[\s\S]*parkedParent\.insertBefore\s*\(\s*legacyStudioRoot\s*,\s*parkedBefore\?\.parentNode\s*===\s*parkedParent\s*\?\s*parkedBefore\s*:\s*null\s*\)\s*;[\s\S]*\}\s*;/.test(appShellSource),
-    'LegacyStudioHost reparks legacy-studio-root before React can delete the host subtree'
+    /export\s+function\s+LegacyEditorIsland\s*\(/.test(legacyEditorIslandSource)
+      && /const\s+parkedParent\s*=\s*legacyStudioRoot\.parentElement\s*\?\?\s*document\.body\s*;/.test(legacyEditorIslandSource)
+      && /const\s+parkedBefore\s*=\s*legacyStudioRoot\.nextSibling\s*;/.test(legacyEditorIslandSource)
+      && /host\.append\s*\(\s*legacyStudioRoot\s*\)\s*;/.test(legacyEditorIslandSource)
+      && /legacyStudioWindow\.mountRecorderPanel\s*\(\s*\)\s*;/.test(legacyEditorIslandSource)
+      && /return\s*\(\)\s*=>\s*\{[\s\S]*setLegacyHostReady\s*\(\s*false\s*\)\s*;[\s\S]*parkedParent\.insertBefore\s*\(\s*legacyStudioRoot\s*,\s*parkedBefore\?\.parentNode\s*===\s*parkedParent\s*\?\s*parkedBefore\s*:\s*null\s*\)\s*;[\s\S]*\}\s*;/.test(legacyEditorIslandSource)
+      && /useShellCommandLifecycle\s*\(\s*['"]studio['"]\s*,\s*legacyHostReady\s*\?\s*legacyStudioLifecycle\s*:\s*null\s*\)/.test(legacyEditorIslandSource)
+      && /className=['"]legacy-studio-host['"]\s+role=['"]region['"]\s+aria-label=['"]Studio editor['"]/.test(legacyEditorIslandSource),
+    'LegacyEditorIsland parks, mounts, and reparks legacy-studio-root with the Studio shortcut/menu lifecycle'
   );
   check(
     legacyRegistrationImports.length === 2
@@ -226,10 +232,13 @@ function check(condition, message) {
     'recorder panel mount is idempotent before any event binding across Studio route remounts'
   );
   check(
-    /type\s+ShellCommandLifecycle\s*=\s*\{\s*\n\s*mountShortcutMenuLifecycle\s*:\s*\(\)\s*=>\s*\(\)\s*=>\s*void\s*;\s*\n\s*\}/.test(appShellSource)
-      && /function\s+useShellCommandLifecycle\s*\(/.test(appShellSource)
-      && /useEffect\s*\(\s*\(\)\s*=>\s*\{[\s\S]*return\s+lifecycle\.mountShortcutMenuLifecycle\s*\(\s*\)\s*;[\s\S]*\},\s*\[\s*view\s*,\s*lifecycle\s*\]\s*\)/.test(appShellSource),
-    'AppShell owns a typed React shortcut/menu lifecycle boundary with cleanup'
+    /type\s+ShellCommandLifecycle\s*=\s*\{\s*\n\s*mountShortcutMenuLifecycle\s*:\s*\(\)\s*=>\s*\(\)\s*=>\s*void\s*;\s*\n\s*\}/.test(legacyEditorIslandSource)
+      && /function\s+useShellCommandLifecycle\s*\(/.test(legacyEditorIslandSource)
+      && /useEffect\s*\(\s*\(\)\s*=>\s*\{[\s\S]*return\s+lifecycle\.mountShortcutMenuLifecycle\s*\(\s*\)\s*;[\s\S]*\},\s*\[\s*view\s*,\s*lifecycle\s*\]\s*\)/.test(legacyEditorIslandSource)
+      && !/document\.getElementById\s*\(\s*['"]legacy-studio-root['"]\s*\)/.test(appShellSource)
+      && !/\bmountLegacyStudio\b/.test(appShellSource)
+      && !/\bmountRecorderPanel\b/.test(appShellSource),
+    'LegacyEditorIsland owns the typed React shortcut/menu lifecycle and AppShell has no direct legacy mount calls'
   );
   const legacyGuardIndex = studioSource.indexOf('if (mountLegacyStudioShortcutLifecycle) return mountLegacyStudioShortcutLifecycle();');
   const firstLegacyEventBindingIndex = studioSource.indexOf('.addEventListener(');
