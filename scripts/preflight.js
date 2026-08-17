@@ -33,6 +33,7 @@ const steps = [
   { name: 'smoke:export-presets', cmd: ['npm', 'run', 'smoke:export-presets'] },
   { name: 'smoke:export-bundle', cmd: ['npm', 'run', 'smoke:export-bundle'] },
   { name: 'smoke:media-url', cmd: ['npm', 'run', 'smoke:media-url'] },
+  { name: 'smoke:shortcuts', cmd: ['npm', 'run', 'smoke:shortcuts'] },
   { name: 'smoke:caption-integration', cmd: ['node', 'scripts/smoke-caption-integration.js'] },
   {
     name: 'smoke:apply',

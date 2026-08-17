@@ -5,7 +5,8 @@
 import * as ops from '../../../lib/domain/clip-ops.ts';
 import * as gapChips from '../../../lib/domain/gap-chips.ts';
 import { createUndoStack } from '../../../lib/domain/undo-stack.ts';
-import type { MenuCommand } from '../../preload/api.ts';
+import { onCommand } from './shortcuts/command-bus.ts';
+import { subscribeKeyboardShortcuts } from './shortcuts/use-keyboard-shortcuts.ts';
 
 (function studioUi() {
   const studio = window.stemStudio;
@@ -2095,20 +2096,25 @@ import type { MenuCommand } from '../../preload/api.ts';
     }
   });
 
-  const menuActions: Record<MenuCommand, () => void> = {
+  const liveCommandHandlers = {
     'file:new-take': () => document.querySelector<HTMLButtonElement>('[data-nav="record"]')?.click(),
     'file:open-take-folder': () => openFolderBtn?.click(),
     'file:export-bundle': () => exportBundleBtn?.click(),
     'timeline:split': () => splitBtn?.click(),
+    'timeline:delete-ripple': () => cutBtn?.click(),
     'timeline:mark-in': () => markInBtn?.click(),
     'timeline:mark-out': () => markOutBtn?.click(),
     'timeline:play-pause': () => tlPlayBtn?.click(),
   };
-  const unsubscribeMenu = window.stemMenu?.onCommand((command) => {
-    if (command !== 'file:new-take' && !hasActiveEditableManifest()) return;
-    menuActions[command]();
-  });
-  window.addEventListener('beforeunload', () => unsubscribeMenu?.(), { once: true });
+  const unsubscribeCommands = onCommand(
+    (command) => liveCommandHandlers[command](),
+    (command) => command === 'file:new-take' || hasActiveEditableManifest(),
+  );
+  const unsubscribeKeyboardShortcuts = subscribeKeyboardShortcuts();
+  window.addEventListener('beforeunload', () => {
+    unsubscribeKeyboardShortcuts();
+    unsubscribeCommands();
+  }, { once: true });
 
   showView('record');
   studio.ffmpegOk().then((ok) => {
