@@ -51,12 +51,12 @@
     .stage video.pip-preview {
       inset: auto; right: 2%; bottom: 3.5%; width: 25%; height: auto;
       object-fit: contain; border-radius: var(--radius-sm);
-      border: var(--border-hairline) solid rgba(255, 255, 255, 0.35);
+      border: var(--border-hairline) solid var(--overlay-border);
       pointer-events: auto; cursor: grab; touch-action: none;
     }
     .stage .pip-resize {
       position: absolute; width: var(--size-pip-handle); height: var(--size-pip-handle); z-index: var(--z-raised);
-      background: rgba(0, 0, 0, 0.6); border: var(--border-hairline) solid rgba(255, 255, 255, 0.8);
+      background: var(--overlay-scrim); border: var(--border-hairline) solid var(--overlay-border-strong);
       border-radius: var(--radius-xs); cursor: nwse-resize; touch-action: none;
     }
     .hud {
@@ -64,12 +64,12 @@
       display: flex; flex-wrap: wrap; gap: var(--space-3); pointer-events: none;
     }
     .pill {
-      background: rgba(0,0,0,0.55); color: var(--surface-raised); border-radius: var(--radius-pill);
+      background: var(--overlay-pill); color: var(--surface-raised); border-radius: var(--radius-pill);
       padding: var(--space-2) var(--space-7); font-size: var(--text-3); font-family: var(--font-mono);
     }
-    .pill.live { background: rgba(47,107,79,0.9); }
-    .pill.warn { background: rgba(166,90,42,0.9); }
-    .pill.off { background: rgba(80,80,80,0.75); }
+    .pill.live { background: var(--pill-live); }
+    .pill.warn { background: var(--pill-warn); }
+    .pill.off { background: var(--pill-off); }
     .panel {
       background: var(--surface-raised); border: var(--border-hairline) solid var(--border-subtle); border-radius: var(--radius-3xl);
       padding: var(--space-14) var(--space-15); box-shadow: var(--elevation-panel);
@@ -261,7 +261,7 @@
     .caption-overlay {
       position: absolute; left: 50%; bottom: 6%; transform: translateX(-50%);
       max-width: 86%; padding: var(--space-2) var(--space-8); border-radius: var(--radius-sm);
-      background: rgba(10, 12, 18, 0.72); color: var(--surface-raised); text-align: center;
+      background: var(--overlay-caption); color: var(--surface-raised); text-align: center;
       font-size: var(--text-9); line-height: var(--leading-tight); pointer-events: none; white-space: pre-line;
     }
     .danger-text { color: var(--warn) !important; }
