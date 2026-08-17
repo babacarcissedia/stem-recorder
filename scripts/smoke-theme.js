@@ -93,11 +93,15 @@ function check(condition, message) {
   check(/\.studio-editor-chrome \{[\s\S]*background:\s*var\(--surface-app\);[\s\S]*color:\s*var\(--text-primary\);/.test(appShellCss), 'Studio editor chrome uses semantic text and app surface aliases');
   check(/\.studio-editor-header \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-subtle\);[\s\S]*background:\s*var\(--surface-raised\);/.test(appShellCss), 'Studio editor header uses semantic border and raised surface aliases');
   check(/\.studio-editor-status \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-strong\);[\s\S]*background:\s*var\(--surface-subtle\);[\s\S]*color:\s*var\(--text-muted\);/.test(appShellCss), 'Studio editor status uses semantic panel and text aliases');
-  check(/\.studio-editor-compatibility-frame \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-subtle\);[\s\S]*background:\s*var\(--surface-raised\);/.test(appShellCss), 'Studio editor compatibility frame uses semantic border and surface aliases');
+  check(/\.studio-editor-react-shell,[\s\S]*\.studio-editor-compatibility-frame \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-subtle\);[\s\S]*background:\s*var\(--surface-raised\);/.test(appShellCss), 'Studio editor shell frames use semantic border and surface aliases');
   check(/\.shell-route-tab \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-strong\);[\s\S]*background:\s*var\(--surface-raised\);[\s\S]*color:\s*var\(--text-primary\);/.test(appShellCss), 'route tabs use semantic surface, border, and text aliases');
   check(/\.shell-route-tab\.active \{[\s\S]*border-color:\s*var\(--accent\);[\s\S]*background:\s*var\(--accent-soft\);[\s\S]*color:\s*var\(--text-on-accent\);/.test(appShellCss), 'active route tab uses semantic accent aliases');
   check(/\.shell-surface \{[\s\S]*background:\s*var\(--surface-raised\);[\s\S]*color:\s*var\(--text-primary\);/.test(appShellCss), 'React route shells use semantic text and raised surface aliases');
   check(/\.shell-surface-panel \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-strong\);[\s\S]*background:\s*var\(--surface-subtle\);/.test(appShellCss), 'Record and Library panels use semantic panel aliases');
+  check(/\.shell-footer \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-subtle\);[\s\S]*background:\s*var\(--surface-raised\);/.test(appShellCss), 'Timeline footer uses semantic border and raised surface aliases');
+  check(/\.shell-timeline-button \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-strong\);[\s\S]*background:\s*var\(--surface-subtle\);[\s\S]*color:\s*var\(--text-muted\);/.test(appShellCss), 'Timeline disabled buttons use semantic control aliases');
+  check(/\.shell-timeline-preview \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-strong\);[\s\S]*background:\s*var\(--surface-subtle\);/.test(appShellCss), 'Timeline preview uses semantic panel aliases');
+  check(/\.shell-timeline-clip \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--accent\);[\s\S]*background:\s*var\(--accent-soft\);[\s\S]*color:\s*var\(--text-on-accent\);/.test(appShellCss), 'Timeline preview clip uses semantic accent aliases');
 }
 
 {

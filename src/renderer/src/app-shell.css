@@ -82,7 +82,9 @@
   text-transform: uppercase;
 }
 
+.studio-editor-react-shell,
 .studio-editor-compatibility-frame {
+  margin: 0;
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
@@ -92,6 +94,10 @@
   border-radius: var(--radius-xl);
   overflow: hidden;
   background: var(--surface-raised);
+}
+
+.studio-editor-react-shell {
+  flex: 0 0 auto;
 }
 
 .shell-route-nav {
@@ -290,16 +296,108 @@
 .shell-footer {
   grid-area: footer;
   flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
   padding: var(--space-11);
   border: var(--border-hairline) solid var(--border-subtle);
   border-radius: var(--radius-xl);
   background: var(--surface-raised);
 }
 
-.shell-footer-empty {
-  color: var(--text-muted);
-  font-size: var(--text-6);
+.shell-footer-header,
+.shell-footer-actions,
+.shell-timeline-ruler,
+.shell-timeline-lane {
+  display: flex;
+  align-items: center;
+}
+
+.shell-footer-header {
+  justify-content: space-between;
+  gap: var(--space-10);
+}
+
+.shell-footer-title,
+.shell-footer-copy {
   margin: 0;
+}
+
+.shell-footer-title {
+  font-size: var(--text-6);
+  line-height: var(--leading-tight);
+}
+
+.shell-footer-copy {
+  color: var(--text-muted);
+  font-size: var(--text-4);
+  line-height: var(--leading-normal);
+}
+
+.shell-footer-actions {
+  flex: 0 0 auto;
+  gap: var(--space-4);
+}
+
+.shell-timeline-button {
+  margin: 0;
+  padding: var(--space-3) var(--space-7);
+  border: var(--border-hairline) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+}
+
+.shell-timeline-preview {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: var(--border-hairline) solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface-subtle);
+}
+
+.shell-timeline-ruler {
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-3);
+}
+
+.shell-timeline-lane {
+  position: relative;
+  gap: var(--space-4);
+  min-height: var(--size-lane-min);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+
+.shell-timeline-lane-label {
+  color: var(--text-muted);
+  font-size: var(--text-3);
+  font-weight: var(--weight-heavy);
+  letter-spacing: var(--tracking-wide);
+}
+
+.shell-timeline-clip {
+  flex: 1 1 auto;
+  padding: var(--space-3) var(--space-6);
+  border: var(--border-hairline) solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--text-on-accent);
+  font-size: var(--text-4);
+}
+
+.shell-timeline-playhead {
+  position: absolute;
+  inset-block: var(--space-2);
+  inset-inline-start: var(--size-lane-gutter);
+  width: var(--size-playhead-width);
+  background: var(--accent);
 }
 
 .shell-icon-button {
