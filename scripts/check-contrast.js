@@ -89,45 +89,45 @@ const PAIRS = [
   ['record-border', 'record-surface', 'ui', 'index.html:94 button.rec border'],
 ];
 
-// Seeded from the first run of this gate. Delete an entry the moment its pair
-// passes; the gate fails on a stale entry so the list cannot drift upward.
-const ALLOWLIST = new Set([
-  'light|accent-contrast|accent',
-  'light|accent-muted-border|accent-soft',
-  'light|accent-soft-border|accent-soft',
-  'light|accent-strong|accent',
-  'light|accent|accent-muted-surface',
-  'light|accent|surface-subtle',
-  'light|border-strong|surface-control',
-  'light|border-subtle|surface-app',
-  'light|border-subtle|surface-raised',
-  'light|border-subtle|timeline-track',
-  'light|menu-text-disabled|menu-surface',
-  'light|negative-border|negative-surface',
-  'light|record-border|record-surface',
-  'light|text-faint|wave-surface-bottom',
-  'light|text-faint|wave-surface-top',
-  'light|timeline-border|timeline-surface',
-  'light|timeline-surface-raised|accent',
-  'light|timeline-text-faint|timeline-track',
-  'light|timeline-text-muted|clip-gap-a',
-  'light|timeline-text-muted|timeline-track',
-  'light|warn|negative-surface',
-  'dark|accent-muted-border|accent-soft',
-  'dark|accent-soft-border|accent-soft',
-  'dark|accent-strong|accent',
-  'dark|border-strong|surface-control',
-  'dark|border-subtle|surface-app',
-  'dark|border-subtle|surface-raised',
-  'dark|border-subtle|timeline-track',
-  'dark|menu-text-disabled|menu-surface',
-  'dark|negative-border|negative-surface',
-  'dark|positive-border|positive-surface',
-  'dark|record-border|record-surface',
-  'dark|surface-raised|record-surface',
-  'dark|text-faint|wave-surface-bottom',
-  'dark|text-faint|wave-surface-top',
-  'dark|timeline-border|timeline-surface',
+// Seeded from the first run of this gate. Each floor is the unrounded measured
+// ratio, so a grandfathered pair cannot regress while it remains below WCAG.
+const BASELINE_EXCEPTIONS = new Map([
+  ['light|accent-contrast|accent', 4.1010742002625946],
+  ['light|accent-muted-border|accent-soft', 1.1649718085572776],
+  ['light|accent-soft-border|accent-soft', 1.1649718085572776],
+  ['light|accent-strong|accent', 1.4089921851754046],
+  ['light|accent|accent-muted-surface', 3.1586023601699535],
+  ['light|accent|surface-subtle', 3.8527505823502817],
+  ['light|border-strong|surface-control', 1.7749012490762661],
+  ['light|border-subtle|surface-app', 1.3688636519559692],
+  ['light|border-subtle|surface-raised', 1.5046206661919197],
+  ['light|border-subtle|timeline-track', 1],
+  ['light|menu-text-disabled|menu-surface', 4.3624051910043535],
+  ['light|negative-border|negative-surface', 1.2020156319772222],
+  ['light|record-border|record-surface', 1.3860806766780116],
+  ['light|text-faint|wave-surface-bottom', 3.6385856944090409],
+  ['light|text-faint|wave-surface-top', 3.5075027074224994],
+  ['light|timeline-border|timeline-surface', 1.2097594857063192],
+  ['light|timeline-surface-raised|accent', 4.021367065440872],
+  ['light|timeline-text-faint|timeline-track', 2.8993388759209777],
+  ['light|timeline-text-muted|clip-gap-a', 2.2133039091944253],
+  ['light|timeline-text-muted|timeline-track', 3.9123560303668827],
+  ['light|warn|negative-surface', 4.266730447239321],
+  ['dark|accent-muted-border|accent-soft', 2.0709432023240306],
+  ['dark|accent-soft-border|accent-soft', 2.5600715340498503],
+  ['dark|accent-strong|accent', 1.3404854894308253],
+  ['dark|border-strong|surface-control', 1.2949525298356641],
+  ['dark|border-subtle|surface-app', 1.3891658179548516],
+  ['dark|border-subtle|surface-raised', 1.2657994443512934],
+  ['dark|border-subtle|timeline-track', 1.4712335591628987],
+  ['dark|menu-text-disabled|menu-surface', 3.271509693653111],
+  ['dark|negative-border|negative-surface', 1.3726098416063528],
+  ['dark|positive-border|positive-surface', 1.5678184328989055],
+  ['dark|record-border|record-surface', 1.3860806766780116],
+  ['dark|surface-raised|record-surface', 3.5165446476705915],
+  ['dark|text-faint|wave-surface-bottom', 4.322243976974117],
+  ['dark|text-faint|wave-surface-top', 4.1129074226998821],
+  ['dark|timeline-border|timeline-surface', 1.3009407431374673],
 ]);
 
 function blocks(source) {
@@ -175,6 +175,28 @@ function contrast(a, b) {
   return (high + 0.05) / (low + 0.05);
 }
 
+function exceptionStatus(ratio, threshold, baseline) {
+  if (ratio >= threshold) return baseline === undefined ? 'passes' : 'stale';
+  if (baseline === undefined) return 'below-threshold';
+  return ratio < baseline ? 'regressed' : 'grandfathered';
+}
+
+function selfTest() {
+  const baseline = BASELINE_EXCEPTIONS.get('light|timeline-surface-raised|accent');
+  if (baseline !== 4.021367065440872) throw new Error('contrast self-test baseline changed');
+  if (exceptionStatus(baseline - 0.01, THRESHOLDS.normal, baseline) !== 'regressed') {
+    throw new Error('contrast self-test did not reject a degraded grandfathered pair');
+  }
+  if (exceptionStatus(baseline, THRESHOLDS.normal, baseline) !== 'grandfathered') {
+    throw new Error('contrast self-test did not retain its recorded floor');
+  }
+  if (exceptionStatus(THRESHOLDS.normal, THRESHOLDS.normal, baseline) !== 'stale') {
+    throw new Error('contrast self-test did not reject a stale exception');
+  }
+}
+
+selfTest();
+
 const source = fs.readFileSync(TOKENS, 'utf8');
 const parsed = blocks(source);
 const base = declarations(parsed.base);
@@ -182,6 +204,7 @@ const themes = { light: declarations(parsed.light), dark: declarations(parsed.da
 
 const failures = [];
 const stale = [];
+const measuredExceptions = new Set();
 let measured = 0;
 let allowed = 0;
 
@@ -190,15 +213,26 @@ for (const [name, theme] of Object.entries(themes)) {
     const ratio = contrast(resolve(fg, theme, base), resolve(bg, theme, base));
     const threshold = THRESHOLDS[size];
     const key = `${name}|${fg}|${bg}`;
-    const listed = ALLOWLIST.has(key);
+    const baseline = BASELINE_EXCEPTIONS.get(key);
+    if (baseline !== undefined) measuredExceptions.add(key);
+    const status = exceptionStatus(ratio, threshold, baseline);
     measured += 1;
-    if (ratio < threshold) {
-      if (listed) allowed += 1;
-      else failures.push(`${key}: ${ratio.toFixed(2)}:1, needs ${threshold}:1 (${size}), ${where}`);
-    } else if (listed) {
-      stale.push(`${key}: now ${ratio.toFixed(2)}:1, clears ${threshold}:1, delete it from ALLOWLIST in scripts/check-contrast.js`);
+    if (status === 'grandfathered') {
+      allowed += 1;
+    } else if (status === 'regressed') {
+      failures.push(
+        `${key}: ${ratio.toFixed(2)}:1, below grandfathered baseline ${baseline.toPrecision(17)}:1 (${size}), ${where}`
+      );
+    } else if (status === 'below-threshold') {
+      failures.push(`${key}: ${ratio.toFixed(2)}:1, needs ${threshold}:1 (${size}), ${where}`);
+    } else if (status === 'stale') {
+      stale.push(`${key}: now ${ratio.toFixed(2)}:1, clears ${threshold}:1, delete it from BASELINE_EXCEPTIONS in scripts/check-contrast.js`);
     }
   }
+}
+
+for (const key of BASELINE_EXCEPTIONS.keys()) {
+  if (!measuredExceptions.has(key)) stale.push(`${key}: no longer measured, delete it from BASELINE_EXCEPTIONS in scripts/check-contrast.js`);
 }
 
 if (failures.length || stale.length) {
@@ -208,4 +242,4 @@ if (failures.length || stale.length) {
   process.exit(1);
 }
 
-console.log(`check-contrast: OK (${measured} pairs measured across 2 themes, ${allowed} allowlisted)`);
+console.log(`check-contrast: OK (${measured} pairs measured across 2 themes, ${allowed} grandfathered)`);
