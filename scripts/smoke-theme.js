@@ -53,7 +53,7 @@ function check(condition, message) {
 {
   const menuSource = fs.readFileSync(path.join(ROOT, 'src', 'main', 'menu.ts'), 'utf8');
   check(/THEME_PREFERENCES\.map\(/.test(menuSource), 'the View menu builds its theme items from THEME_PREFERENCES');
-  check(/commandItem\(themeCommandId\(preference\)\)/.test(menuSource), 'theme menu items come from the shared command registry');
+  check(/commandItem\(themeCommandId\(preference\),/.test(menuSource), 'theme menu items come from the shared command registry');
   check(/type: 'radio'/.test(menuSource), 'theme items are radio items showing the active choice');
 
   const themeSource = fs.readFileSync(path.join(ROOT, 'src', 'main', 'theme.ts'), 'utf8');
