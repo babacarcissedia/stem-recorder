@@ -189,7 +189,7 @@ group('an empty timeline still offers a clickable window', () => {
 });
 
 group('the ruler never crowds past its tick budget at any timeline length', () => {
-  for (const duration of [1_000, 9_000, 60_000, 300_000, 3_600_000, 36_000_000]) {
+  for (const duration of [1_000, 9_000, 60_000, 300_000, 3_600_000, 36_000_000, 86_400_000]) {
     const ticks = rulerTicks(duration);
     assert.ok(ticks.length >= 2, `${duration}ms produced ${ticks.length} ticks`);
     assert.ok(ticks.length <= MAX_RULER_TICKS + 1, `${duration}ms produced ${ticks.length} ticks`);
@@ -198,6 +198,7 @@ group('the ruler never crowds past its tick budget at any timeline length', () =
     assert.ok((ticks[ticks.length - 1] as number) <= duration);
   }
   assert.strictEqual(rulerTickStep(9_000), 1_000);
+  assert.strictEqual(rulerTickStep(86_400_000), 7_200_000);
   assert.strictEqual(code(() => rulerTickStep(0)), 'RULER_DURATION_NOT_POSITIVE');
 });
 

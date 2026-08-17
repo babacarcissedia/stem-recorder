@@ -189,6 +189,9 @@
   --overlay-clip-freeze-border: color-mix(in srgb, var(--ramp-blue-250) 45%, transparent);
 
   --wave-panel-zoom-surface: color-mix(in srgb, var(--ramp-neutral-800) 85%, transparent);
+  --wave-mark-fill: rgba(240, 201, 74, 0.16);
+  --wave-mark-edge: rgba(240, 201, 74, 0.7);
+  --wave-center-line: rgba(255, 255, 255, 0.08);
   --pill-live: color-mix(in srgb, var(--ramp-green-700) 90%, transparent);
   --pill-warn: color-mix(in srgb, var(--ramp-amber-700) 90%, transparent);
   --pill-off: color-mix(in srgb, var(--ramp-neutral-700) 75%, transparent);

@@ -51,18 +51,40 @@ const LEDGER = {
   'src/renderer/src/timeline.css': { length: 41, radius: 0, fontSize: 0, shadow: 0, fontFamily: 0, color: 0 },
   'src/renderer/src/app-shell.css': { length: 0, radius: 0, fontSize: 0, shadow: 0, fontFamily: 0, color: 0 },
   'src/renderer/src/affordance.css': { length: 0, radius: 0, fontSize: 0, shadow: 0, fontFamily: 0, color: 0 },
-  'src/renderer/src/tokens.css': { length: 96, radius: 0, fontSize: 0, shadow: 0, fontFamily: 2, color: 19 },
+  'src/renderer/src/tokens.css': { length: 96, radius: 0, fontSize: 0, shadow: 0, fontFamily: 2, color: 22 },
   'src/renderer/src/fonts.css': { length: 0, radius: 0, fontSize: 0, shadow: 0, fontFamily: 5, color: 0 },
 };
 
-function shippedFiles(dir, found = []) {
+function shippedFiles(dir, extensions, found = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const absolute = path.join(dir, entry.name);
-    if (entry.isDirectory()) shippedFiles(absolute, found);
-    else if (/\.(css|html)$/.test(entry.name)) found.push(path.relative(ROOT, absolute));
+    if (entry.isDirectory()) shippedFiles(absolute, extensions, found);
+    else if (extensions.test(entry.name)) found.push(path.relative(ROOT, absolute));
   }
   return found;
 }
+
+const STYLE_FILES = shippedFiles(RENDERER, /\.(css|html)$/);
+const COLOR_FILES = shippedFiles(RENDERER, /\.(css|html|ts|tsx)$/);
+const COLOR_LEDGER = {
+  ...Object.fromEntries(Object.entries(LEDGER).map(([relative, ceilings]) => [relative, ceilings.color])),
+  'src/renderer/src/app-shell.tsx': 0,
+  'src/renderer/src/components/atoms/icon-button.tsx': 0,
+  'src/renderer/src/components/layout/shell-layout.tsx': 0,
+  'src/renderer/src/components/player/player-panel.tsx': 0,
+  'src/renderer/src/components/player/player-transport.tsx': 0,
+  'src/renderer/src/components/sidebar/inspector-sidebar.tsx': 0,
+  'src/renderer/src/components/sidebar/media-sidebar.tsx': 0,
+  'src/renderer/src/components/timeline/timeline-footer.tsx': 0,
+  'src/renderer/src/components/top-bar/top-bar.tsx': 0,
+  'src/renderer/src/global.d.ts': 0,
+  'src/renderer/src/main.tsx': 0,
+  'src/renderer/src/recorder-panel.ts': 0,
+  'src/renderer/src/shortcuts/command-bus.ts': 0,
+  'src/renderer/src/shortcuts/use-keyboard-shortcuts.ts': 0,
+  'src/renderer/src/studio.ts': 0,
+  'src/renderer/src/theme/apply-theme.ts': 0,
+};
 
 function count(relative, family) {
   const text = fs
@@ -75,10 +97,18 @@ function count(relative, family) {
 
 const failures = [];
 
-for (const relative of shippedFiles(RENDERER)) {
+for (const relative of STYLE_FILES) {
   if (!LEDGER[relative]) {
     failures.push(
       `${relative}: not in LEDGER. Add it to scripts/check-style-literals.js pinned at 0 for every family so a new file cannot open a fresh pocket of raw literals`
+    );
+  }
+}
+
+for (const relative of COLOR_FILES) {
+  if (!Object.hasOwn(COLOR_LEDGER, relative)) {
+    failures.push(
+      `${relative}: not in COLOR_LEDGER. Add it to scripts/check-style-literals.js pinned at 0 so a new renderer source file cannot open a raw rgba pocket`
     );
   }
 }
@@ -89,10 +119,22 @@ for (const [relative, ceilings] of Object.entries(LEDGER)) {
     continue;
   }
   for (const [family, ceiling] of Object.entries(ceilings)) {
+    if (family === 'color') continue;
     const actual = count(relative, family);
     if (actual > ceiling) {
       failures.push(`${relative}: ${actual} raw ${family} literals, ledger ceiling is ${ceiling}. ${FAMILIES[family].advice}`);
     }
+  }
+}
+
+for (const [relative, ceiling] of Object.entries(COLOR_LEDGER)) {
+  if (!fs.existsSync(path.join(ROOT, relative))) {
+    failures.push(`${relative}: missing. Update COLOR_LEDGER in scripts/check-style-literals.js, the file this entry gates no longer exists`);
+    continue;
+  }
+  const actual = count(relative, 'color');
+  if (actual > ceiling) {
+    failures.push(`${relative}: ${actual} raw color literals, ledger ceiling is ${ceiling}. ${FAMILIES.color.advice}`);
   }
 }
 

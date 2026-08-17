@@ -348,6 +348,7 @@ import { subscribeKeyboardShortcuts } from './shortcuts/use-keyboard-shortcuts.t
     if (wavePanelCanvas.width !== w) wavePanelCanvas.width = w;
     if (wavePanelCanvas.height !== h) wavePanelCanvas.height = h;
     const ctx = wavePanelCanvas.getContext('2d');
+    const canvasStyles = getComputedStyle(document.documentElement);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
 
@@ -365,9 +366,9 @@ import { subscribeKeyboardShortcuts } from './shortcuts/use-keyboard-shortcuts.t
     if (span) {
       const x0 = toX(span.lo);
       const x1 = span.open ? x0 : toX(span.hi);
-      ctx.fillStyle = 'rgba(240, 201, 74, 0.16)';
+      ctx.fillStyle = canvasStyles.getPropertyValue('--wave-mark-fill').trim();
       ctx.fillRect(x0, 0, Math.max(2, x1 - x0), cssH);
-      ctx.fillStyle = 'rgba(240, 201, 74, 0.7)';
+      ctx.fillStyle = canvasStyles.getPropertyValue('--wave-mark-edge').trim();
       ctx.fillRect(x0 - 0.5, 0, 1, cssH);
       if (!span.open) ctx.fillRect(x1 - 0.5, 0, 1, cssH);
     }
@@ -376,7 +377,7 @@ import { subscribeKeyboardShortcuts } from './shortcuts/use-keyboard-shortcuts.t
     const gap = 1;
     const bars = Math.max(1, Math.floor(cssW / (barW + gap)));
     const mid = cssH / 2;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.fillStyle = canvasStyles.getPropertyValue('--wave-center-line').trim();
     ctx.fillRect(0, mid - 0.5, cssW, 1);
     for (let i = 0; i < bars; i += 1) {
       const t = win.start + ((i + 0.5) / bars) * win.dur;

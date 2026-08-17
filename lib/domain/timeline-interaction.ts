@@ -78,7 +78,7 @@ export function rulerTickStep(duration: Ms): Ms {
   const total = assertMs(duration, 'duration');
   invariant(total > 0, 'RULER_DURATION_NOT_POSITIVE', String(total));
   const fitting = TICK_STEPS.find((step) => total / step <= MAX_RULER_TICKS);
-  return fitting ?? (TICK_STEPS[TICK_STEPS.length - 1] as Ms);
+  return fitting ?? assertMs(Math.ceil(total / MAX_RULER_TICKS), 'rulerTickStep');
 }
 
 export function rulerTicks(duration: Ms): Ms[] {
