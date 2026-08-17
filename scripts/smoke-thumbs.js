@@ -12,8 +12,9 @@ const path = require('path');
 
 process.env.STEM_OUT_ROOT = process.env.STEM_OUT_ROOT || '/tmp/stem-thumbs-smoke';
 
-const { findFfmpeg, runFfmpeg } = require('../lib/ffmpeg-util');
-const { getFilmstrip, getWaveformPeaks, CACHE_DIR } = require('../lib/media-cache');
+const { findFfmpeg, runFfmpeg } = require('../lib/node/ffmpeg-util.js');
+const { getFilmstrip, getWaveformPeaks, CACHE_DIR } = require('../lib/node/media-cache.js');
+const { fromMediaUrl } = require('../lib/node/media-url.js');
 
 async function main() {
   const ffmpeg = findFfmpeg();
@@ -40,7 +41,8 @@ async function main() {
   assert.ok(strip, 'filmstrip generated');
   assert.strictEqual(strip.intervalSec, 1);
   assert.ok(strip.frames.length >= 7 && strip.frames.length <= 9, `frames ~8, got ${strip.frames.length}`);
-  assert.ok(strip.frames[0].startsWith('file://'), 'frames are file URLs');
+  assert.ok(strip.frames[0].startsWith('app://media/'), 'frames are served over the app media protocol');
+  assert.strictEqual(fromMediaUrl(strip.frames[0]), path.join(takeDir, CACHE_DIR, 'film-screen', 'frame-00001.jpg'));
 
   const frameDir = path.join(takeDir, CACHE_DIR, 'film-screen');
   const firstFrame = path.join(frameDir, 'frame-00001.jpg');

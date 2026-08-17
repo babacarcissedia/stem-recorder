@@ -7,8 +7,8 @@ const os = require('os');
 const path = require('path');
 const {
   resolveCaptionsPath, verticalCropScaleFilter, pipFilterGraph, cropFilter,
-} = require('../lib/ffmpeg-util');
-const { buildVerticalPreset } = require('../lib/export-presets');
+} = require('../lib/node/ffmpeg-util.js');
+const { buildVerticalPreset } = require('../lib/domain/export-presets.ts');
 
 let cases = 0;
 

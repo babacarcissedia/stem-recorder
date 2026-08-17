@@ -14,12 +14,12 @@ const os = require('os');
 const path = require('path');
 const {
   subtitlesFilter, pipFilterGraph, freezeStillChain, hasSubtitlesFilter, findFfmpeg,
-} = require('../lib/ffmpeg-util');
+} = require('../lib/node/ffmpeg-util.js');
 const {
   resolveBurn, updateCueText, writeOutputs, readTranscript, buildVtt,
-} = require('../lib/transcribe');
-const { normalizeManifest } = require('../lib/edit-manifest');
-const { buildSrt, toSrtTimestamp } = require('../lib/captions');
+} = require('../lib/node/transcribe.js');
+const { normalizeManifest } = require('../lib/node/edit-manifest.js');
+const { buildSrt, toSrtTimestamp } = require('../lib/domain/captions.ts');
 
 // —— subtitlesFilter: quoted filename, libavfilter specials escaped ——
 assert.strictEqual(

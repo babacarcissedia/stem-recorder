@@ -13,7 +13,7 @@ const {
   computeCropRect,
   computePipRect,
   buildVerticalPreset,
-} = require('../lib/export-presets');
+} = require('../lib/domain/export-presets.ts');
 
 // —— ensureEven: H.264 requires even dims ——
 assert.strictEqual(ensureEven(1080), 1080);

@@ -16,11 +16,11 @@ const {
   totalOutputDuration,
   splitAt,
   trimClip,
-} = require('../lib/clip-ops');
+} = require('../lib/domain/clip-ops.ts');
 const {
   freezeStillChain, pipFilterGraph, cropFilter,
-} = require('../lib/ffmpeg-util');
-const { normalizeManifest } = require('../lib/edit-manifest');
+} = require('../lib/node/ffmpeg-util.js');
+const { normalizeManifest } = require('../lib/node/edit-manifest.js');
 
 // —— insertFreezeAfter: freeze holds the clip's end for the given duration ——
 {

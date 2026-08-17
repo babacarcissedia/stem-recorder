@@ -13,8 +13,8 @@
 const assert = require('assert');
 const {
   speedVideoFilter, atempoChain, musicMixGraph, pipFilterGraph,
-} = require('../lib/ffmpeg-util');
-const { normalizeExportRate, normalizeMusic } = require('../lib/clip-ops');
+} = require('../lib/node/ffmpeg-util.js');
+const { normalizeExportRate, normalizeMusic } = require('../lib/domain/clip-ops.ts');
 
 // —— atempoChain: each step within [0.5, 2], product = rate ——
 assert.deepStrictEqual(atempoChain(1), []);
@@ -79,7 +79,7 @@ assert.deepStrictEqual(normalizeMusic({ path: '/m/bed.mp3', gainDb: 5 }), { path
 assert.deepStrictEqual(normalizeMusic({ path: '/m/bed.mp3', gainDb: -100 }), { path: '/m/bed.mp3', gainDb: -60 });
 
 // —— manifest round-trip keeps both keys (and strips the defaults) ——
-const { normalizeManifest } = require('../lib/edit-manifest');
+const { normalizeManifest } = require('../lib/node/edit-manifest.js');
 const doc = normalizeManifest({
   clips: [{ id: 'clip-1', in: 0, out: 4 }],
   exportRate: 1.25,

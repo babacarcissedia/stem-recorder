@@ -43,7 +43,6 @@ Records three separate files into one take folder:
   SCREEN_DEV=$SCREEN_DEV  CAM_DEV=$CAM_DEV  MIC_DEV=$MIC_DEV
   OUT_DIR=$OUT_DIR
 
-Cam framing preview (optional): cam-preview.html via python3 -m http.server 8765
 Screen is NOT previewed in HTML — open slides.html in Cursor, then start this script.
 EOF
 }

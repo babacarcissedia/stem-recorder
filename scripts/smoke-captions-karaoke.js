@@ -15,7 +15,7 @@ const {
   toAssTimestamp,
   buildKaraokeCueText,
   buildKaraokeAss,
-} = require('../lib/captions');
+} = require('../lib/domain/captions.ts');
 
 // —— chunkWords: default N=3, exact multiples split cleanly ——
 {

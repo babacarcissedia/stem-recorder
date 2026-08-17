@@ -10,7 +10,7 @@ const {
   mergeIntervals,
   buildChips,
   chipOutputSpan,
-} = require('../lib/gap-chips');
+} = require('../lib/domain/gap-chips.ts');
 
 // detectSilences: quiet run of 1s at 4 peaks/sec between loud audio
 {

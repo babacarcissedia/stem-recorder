@@ -5,7 +5,7 @@ const assert = require('assert');
 const {
   clipArgs, freezeArgs, clipCacheKey,
   cropFilter, freezeStillChain, subtitlesFilter, pipFilterGraph,
-} = require('../lib/ffmpeg-util');
+} = require('../lib/node/ffmpeg-util.js');
 
 const FREEZE_SEEK_BACKOFF = 0.05;
 const ENCODE_ARGS = [

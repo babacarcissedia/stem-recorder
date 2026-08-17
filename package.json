@@ -27,12 +27,17 @@
     "editor",
     "timeline"
   ],
-  "main": "main.js",
+  "main": "out/main/index.js",
   "scripts": {
-    "start": "electron .",
-    "dev": "electron .",
+    "start": "electron-vite preview",
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.legacy.json",
+    "typecheck:strict": "tsc --noEmit -p tsconfig.json",
     "preflight": "node scripts/preflight.js",
     "check:arch": "node scripts/check-architecture.js",
+    "check:hex": "node scripts/check-hex-literals.js",
+    "check:arch:self-test": "node scripts/check-architecture.js --self-test",
     "smoke:apply": "node scripts/smoke-apply.js",
     "smoke:clips": "node scripts/smoke-clip-ops.js",
     "smoke:pip": "node scripts/smoke-pip-filter.js",
@@ -43,9 +48,48 @@
     "smoke:captions": "node scripts/smoke-captions.js",
     "smoke:export": "node scripts/smoke-export.js",
     "smoke:captions-karaoke": "node scripts/smoke-captions-karaoke.js",
-    "smoke:export-presets": "node scripts/smoke-export-presets.js"
+    "smoke:export-presets": "node scripts/smoke-export-presets.js",
+    "smoke:export-bundle": "node scripts/smoke-export-bundle.js",
+    "smoke:media-url": "node scripts/smoke-media-url.js"
   },
   "devDependencies": {
-    "electron": "^41.10.5"
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^41.10.5",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.6"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "build": {
+    "appId": "dev.bcd.stem-studio",
+    "productName": "Stem Studio",
+    "directories": {
+      "buildResources": "build",
+      "output": "release"
+    },
+    "files": [
+      "out/**",
+      "build/icon.png",
+      "scripts/hf-whisper-transcribe.py",
+      "scripts/hf_whisper.py"
+    ],
+    "mac": {
+      "category": "public.app-category.video",
+      "icon": "build/icon.png"
+    },
+    "win": {
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "AudioVideo"
+    }
   }
 }

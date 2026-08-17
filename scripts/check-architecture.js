@@ -1,93 +1,421 @@
 #!/usr/bin/env node
 'use strict';
 
-/**
- * Enforceable layer boundaries (see ARCHITECTURE.md). Exit 1 on any violation.
- *
- *  1. renderer/ is untrusted UI: no require() except relative UI modules —
- *     everything else goes through the preload contextBridge API.
- *  2. Pure edit-model modules (clip-ops, undo-stack, gap-chips) stay free of
- *     electron / fs / child_process so they run anywhere (smokes, future web).
- *  3. main.js keeps the hardened BrowserWindow flags.
- *  4. package.json exposes the preflight gate.
- */
-
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
-const ROOT = path.join(__dirname, '..');
-const failures = [];
+const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
 
-function fail(msg) {
-  failures.push(msg);
-}
+const NODE_BUILTINS = new Set([
+  'assert', 'async_hooks', 'buffer', 'child_process', 'cluster', 'console', 'constants', 'crypto',
+  'dgram', 'diagnostics_channel', 'dns', 'domain', 'events', 'fs', 'http', 'http2', 'https',
+  'inspector', 'module', 'net', 'os', 'path', 'perf_hooks', 'process', 'punycode', 'querystring',
+  'readline', 'repl', 'stream', 'string_decoder', 'sys', 'timers', 'tls', 'trace_events', 'tty',
+  'url', 'util', 'v8', 'vm', 'wasi', 'worker_threads', 'zlib',
+]);
 
-function read(rel) {
-  return fs.readFileSync(path.join(ROOT, rel), 'utf8');
-}
+const RENDERER_ALLOWED_PACKAGES = new Set([
+  'react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime',
+]);
 
-function listJs(dir) {
-  const out = [];
-  for (const entry of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
-    const rel = path.join(dir, entry.name);
-    if (entry.isDirectory()) out.push(...listJs(rel));
-    else if (entry.name.endsWith('.js')) out.push(rel);
-  }
-  return out;
-}
+const PRELOAD_ALLOWED_PACKAGES = new Set(['electron']);
 
-function requiresIn(source) {
-  const out = [];
-  const re = /require\(\s*['"]([^'"]+)['"]\s*\)/g;
-  let match;
-  while ((match = re.exec(source)) !== null) out.push(match[1]);
-  return out;
-}
-
-// 1. renderer/**/*.js — relative UI modules only (in practice: no require at all)
-for (const rel of listJs('renderer')) {
-  for (const dep of requiresIn(read(rel))) {
-    if (!dep.startsWith('./')) {
-      fail(`${rel}: require('${dep}') — renderer is untrusted UI; use the preload bridge (window.stemStudio / window.batchRecorder)`);
-    }
-  }
-}
-
-// 2. pure edit-model modules
-const PURE = [
-  'lib/clip-ops.js',
-  'lib/undo-stack.js',
-  'lib/gap-chips.js',
-  'lib/captions.js',
-  'lib/export-presets.js',
-  'lib/export-bundle.js',
+const RULES = [
+  'renderer-isolation',
+  'renderer-bridge-only',
+  'domain-purity',
+  'html-script-src',
+  'html-inline-script',
+  'window-hardening',
+  'csp-policy',
+  'preload-sandbox',
+  'preflight-wired',
 ];
-const IMPURE = new Set(['electron', 'fs', 'child_process']);
-for (const rel of PURE) {
-  for (const dep of requiresIn(read(rel))) {
-    if (IMPURE.has(dep)) {
-      fail(`${rel}: require('${dep}') — edit-model modules must stay pure (no electron/fs/child_process)`);
+
+const SPECIFIER_PATTERNS = [
+  /\bimport\s+[\s\S]*?\bfrom\s*['"]([^'"]+)['"]/g,
+  /\bexport\s+[\s\S]*?\bfrom\s*['"]([^'"]+)['"]/g,
+  /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+  /\bimport\s*['"]([^'"]+)['"]/g,
+  /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+];
+
+function listSourceFiles(root, relativeDir) {
+  const absolute = path.join(root, relativeDir);
+  if (!fs.existsSync(absolute)) return [];
+  const found = [];
+  for (const entry of fs.readdirSync(absolute, { withFileTypes: true })) {
+    const relative = path.join(relativeDir, entry.name);
+    if (entry.isDirectory()) found.push(...listSourceFiles(root, relative));
+    else if (SOURCE_EXTENSIONS.includes(path.extname(entry.name)) && !entry.name.endsWith('.d.ts')) found.push(relative);
+  }
+  return found;
+}
+
+function specifiersIn(source) {
+  const stripped = source
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1')
+    .replace(/\b(?:import|export)\s+type\s[^;]*?from\s*(['"])[^'"]*\1/g, ' ');
+  const found = new Set();
+  for (const pattern of SPECIFIER_PATTERNS) {
+    pattern.lastIndex = 0;
+    let match;
+    while ((match = pattern.exec(stripped)) !== null) found.add(match[1]);
+  }
+  return [...found];
+}
+
+function classifySpecifier(fromRelative, specifier) {
+  const bare = specifier.replace(/^node:/, '');
+  if (specifier.startsWith('node:') || NODE_BUILTINS.has(bare)) {
+    return { kind: 'builtin', name: bare, specifier };
+  }
+  if (!specifier.startsWith('.') && !specifier.startsWith('/')) {
+    return { kind: 'package', name: specifier, specifier };
+  }
+  const resolved = path.normalize(path.join(path.dirname(fromRelative), specifier));
+  return { kind: 'file', name: resolved.split(path.sep).join('/'), specifier };
+}
+
+function scriptTagsIn(html) {
+  const tags = [];
+  const pattern = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
+  let match;
+  while ((match = pattern.exec(html)) !== null) {
+    const srcMatch = /\bsrc\s*=\s*["']([^"']+)["']/i.exec(match[1]);
+    tags.push({ src: srcMatch ? srcMatch[1] : null, body: match[2] });
+  }
+  return tags;
+}
+
+function localStylesheetHrefsIn(html) {
+  const hrefs = [];
+  const pattern = /<link\b([^>]*)>/gi;
+  let match;
+  while ((match = pattern.exec(html)) !== null) {
+    if (!/\brel\s*=\s*["']stylesheet["']/i.test(match[1])) continue;
+    const hrefMatch = /\bhref\s*=\s*["']([^"']+)["']/i.exec(match[1]);
+    if (hrefMatch && !/^https?:/i.test(hrefMatch[1])) hrefs.push(hrefMatch[1]);
+  }
+  return hrefs;
+}
+
+function productionPolicyEntries(source) {
+  const start = source.indexOf('const PRODUCTION_POLICY = [');
+  if (start < 0) return null;
+  const end = source.indexOf('].join(', start);
+  if (end < 0) return null;
+  const entries = [];
+  const pattern = /(["'])((?:\\.|(?!\1)[\s\S])*)\1/g;
+  const block = source.slice(start, end);
+  let match;
+  while ((match = pattern.exec(block)) !== null) entries.push(match[2]);
+  return entries;
+}
+
+function withoutComments(source) {
+  let output = '';
+  let quote = null;
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    const next = source[index + 1];
+    if (quote) {
+      output += character;
+      if (character === '\\') {
+        output += next || '';
+        index += 1;
+      } else if (character === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (character === '"' || character === "'" || character === '`') {
+      quote = character;
+      output += character;
+    } else if (character === '/' && next === '/') {
+      while (index < source.length && source[index] !== '\n') index += 1;
+      output += '\n';
+    } else if (character === '/' && next === '*') {
+      index += 2;
+      while (index < source.length && (source[index] !== '*' || source[index + 1] !== '/')) index += 1;
+      index += 1;
+      output += ' ';
+    } else {
+      output += character;
     }
   }
+  return output;
 }
 
-// 3. main.js window hardening
-const main = read('main.js');
-for (const flag of ['contextIsolation: true', 'nodeIntegration: false', 'sandbox: true']) {
-  if (!main.includes(flag)) {
-    fail(`main.js: missing "${flag}" in BrowserWindow webPreferences`);
+function balancedLiteral(source, start, open, close) {
+  if (source[start] !== open) return null;
+  let depth = 0;
+  let quote = null;
+  for (let index = start; index < source.length; index += 1) {
+    const character = source[index];
+    if (quote) {
+      if (character === '\\') {
+        index += 1;
+      } else if (character === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (character === '"' || character === "'" || character === '`') {
+      quote = character;
+    } else if (character === open) {
+      depth += 1;
+    } else if (character === close) {
+      depth -= 1;
+      if (depth === 0) return source.slice(start, index + 1);
+    }
+  }
+  return null;
+}
+
+function browserWindowWebPreferences(source) {
+  const stripped = withoutComments(source);
+  const constructor = /\bnew\s+BrowserWindow\s*\(/.exec(stripped);
+  if (!constructor) return null;
+
+  const openParen = stripped.indexOf('(', constructor.index);
+  const args = balancedLiteral(stripped, openParen, '(', ')');
+  if (!args) return null;
+  const openObject = args.indexOf('{');
+  const options = balancedLiteral(args, openObject, '{', '}');
+  if (!options) return null;
+
+  const properties = [...options.matchAll(/\bwebPreferences\s*:/g)];
+  if (properties.length !== 1) return null;
+  const colon = options.indexOf(':', properties[0].index);
+  const openPreferences = options.slice(colon + 1).search(/\S/) + colon + 1;
+  return balancedLiteral(options, openPreferences, '{', '}');
+}
+
+function booleanPropertyValues(objectLiteral, property) {
+  const pattern = new RegExp(`\\b${property}\\s*:\\s*(true|false)\\b`, 'g');
+  return [...objectLiteral.matchAll(pattern)].map((match) => match[1]);
+}
+
+function inspect(root) {
+  const failures = [];
+  const fail = (rule, message) => failures.push({ rule, message });
+  const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
+  const exists = (relative) => fs.existsSync(path.join(root, relative));
+
+  for (const relative of listSourceFiles(root, path.join('src', 'renderer'))) {
+    for (const specifier of specifiersIn(read(relative))) {
+      const dependency = classifySpecifier(relative, specifier);
+      if (dependency.kind === 'builtin') {
+        fail('renderer-isolation', `${relative}: imports node builtin '${dependency.specifier}' — the renderer is untrusted UI and reaches privilege only through window.stemStudio / window.batchRecorder`);
+      } else if (dependency.kind === 'package' && !RENDERER_ALLOWED_PACKAGES.has(dependency.name)) {
+        fail('renderer-isolation', `${relative}: imports package '${dependency.specifier}' — renderer packages are limited to ${[...RENDERER_ALLOWED_PACKAGES].join(', ')}`);
+      } else if (dependency.kind === 'file' && dependency.name.startsWith('lib/node/')) {
+        fail('renderer-bridge-only', `${relative}: imports '${dependency.specifier}' — lib/node is privileged and main-only; cross the preload bridge instead`);
+      } else if (dependency.kind === 'file'
+        && !dependency.name.startsWith('src/renderer/')
+        && !dependency.name.startsWith('lib/domain/')) {
+        fail('renderer-bridge-only', `${relative}: imports '${dependency.specifier}' — the renderer may only import src/renderer and lib/domain modules`);
+      }
+    }
+  }
+
+  for (const relative of listSourceFiles(root, path.join('lib', 'domain'))) {
+    for (const specifier of specifiersIn(read(relative))) {
+      const dependency = classifySpecifier(relative, specifier);
+      if (dependency.kind === 'builtin' || dependency.kind === 'package') {
+        fail('domain-purity', `${relative}: imports '${dependency.specifier}' — lib/domain stays pure and portable so it keeps running under bare node and inside the renderer`);
+      } else if (!dependency.name.startsWith('lib/domain/')) {
+        fail('domain-purity', `${relative}: imports '${dependency.specifier}' — lib/domain may only depend on lib/domain`);
+      }
+    }
+  }
+
+  for (const relative of listSourceFiles(root, path.join('src', 'preload'))) {
+    for (const specifier of specifiersIn(read(relative))) {
+      const dependency = classifySpecifier(relative, specifier);
+      if (dependency.kind === 'builtin') {
+        fail('preload-sandbox', `${relative}: imports node builtin '${dependency.specifier}' — a sandboxed preload has no Node runtime, only the electron bridge`);
+      } else if (dependency.kind === 'package' && !PRELOAD_ALLOWED_PACKAGES.has(dependency.name)) {
+        fail('preload-sandbox', `${relative}: imports package '${dependency.specifier}' — the preload may only import electron`);
+      } else if (dependency.kind === 'file' && !dependency.name.startsWith('src/preload/')) {
+        fail('preload-sandbox', `${relative}: imports '${dependency.specifier}' — the preload ships as one self-contained bundled file`);
+      }
+    }
+  }
+
+  const indexHtml = path.join('src', 'renderer', 'index.html');
+  if (!exists(indexHtml)) {
+    fail('html-script-src', `${indexHtml}: missing — the renderer entry document is where a <script src> silently bypasses the bridge`);
+  } else {
+    const html = read(indexHtml);
+    for (const tag of scriptTagsIn(html)) {
+      if (!tag.src) {
+        if (tag.body.trim()) {
+          fail('html-inline-script', `${indexHtml}: inline <script> block — the bundled renderer runs under script-src 'self', so page scripts belong in src/renderer/src`);
+        }
+        continue;
+      }
+      if (/^https?:/i.test(tag.src)) {
+        fail('html-script-src', `${indexHtml}: <script src="${tag.src}"> — remote scripts are blocked by the content security policy`);
+        continue;
+      }
+      const resolved = classifySpecifier(indexHtml, tag.src.replace(/^\//, './'));
+      if (!resolved.name.startsWith('src/renderer/')) {
+        fail('html-script-src', `${indexHtml}: <script src="${tag.src}"> loads '${resolved.name}' from outside the renderer root — this is how lib/ reaches the page without crossing the bridge`);
+      }
+    }
+    for (const href of localStylesheetHrefsIn(html)) {
+      const resolved = classifySpecifier(indexHtml, href.replace(/^\//, './'));
+      if (!resolved.name.startsWith('src/renderer/')) {
+        fail('html-script-src', `${indexHtml}: <link rel="stylesheet" href="${href}"> loads '${resolved.name}' from outside the renderer root`);
+      }
+    }
+  }
+
+  const mainIndex = path.join('src', 'main', 'index.ts');
+  if (!exists(mainIndex)) {
+    fail('window-hardening', `${mainIndex}: missing — the main entry declares the hardened BrowserWindow`);
+  } else {
+    const main = read(mainIndex);
+    const preferences = browserWindowWebPreferences(main);
+    if (!preferences) {
+      fail('window-hardening', `${mainIndex}: BrowserWindow must have exactly one literal webPreferences object`);
+    } else if (/\.\.\./.test(preferences)) {
+      fail('window-hardening', `${mainIndex}: BrowserWindow webPreferences must not use spread properties`);
+    } else {
+      for (const [property, expected] of Object.entries({
+        contextIsolation: 'true',
+        nodeIntegration: 'false',
+        sandbox: 'true',
+      })) {
+        const values = booleanPropertyValues(preferences, property);
+        if (values.length !== 1 || values[0] !== expected) {
+          fail('window-hardening', `${mainIndex}: BrowserWindow webPreferences must set ${property}: ${expected}`);
+        }
+      }
+    }
+    if (!/Content-Security-Policy/i.test(main)) {
+      fail('csp-policy', `${mainIndex}: never sets a Content-Security-Policy response header`);
+    }
+  }
+
+  const cspModule = path.join('src', 'main', 'csp.ts');
+  if (!exists(cspModule)) {
+    fail('csp-policy', `${cspModule}: missing — the production content security policy lives in one reviewable place`);
+  } else {
+    const entries = productionPolicyEntries(read(cspModule));
+    if (!entries) {
+      fail('csp-policy', `${cspModule}: no PRODUCTION_POLICY array found`);
+    } else {
+      const directives = new Map(entries.map((entry) => [entry.split(/\s+/)[0], entry]));
+      if (directives.get('default-src') !== "default-src 'none'") {
+        fail('csp-policy', `${cspModule}: PRODUCTION_POLICY must start from "default-src 'none'"`);
+      }
+      const scriptSrc = directives.get('script-src');
+      if (scriptSrc !== "script-src 'self'") {
+        fail('csp-policy', `${cspModule}: PRODUCTION_POLICY script-src must be exactly "script-src 'self'", found "${scriptSrc || 'nothing'}"`);
+      }
+      for (const [name, entry] of directives) {
+        if (name !== 'style-src' && /'unsafe-(inline|eval)'/.test(entry)) {
+          fail('csp-policy', `${cspModule}: PRODUCTION_POLICY "${entry}" relaxes a directive that must stay strict`);
+        }
+      }
+    }
+  }
+
+  if (!exists('package.json')) {
+    fail('preflight-wired', 'package.json: missing');
+  } else {
+    const pkg = JSON.parse(read('package.json'));
+    const scripts = pkg.scripts || {};
+    if (!scripts.preflight) {
+      fail('preflight-wired', 'package.json: scripts.preflight is not defined');
+    }
+    if (!scripts.typecheck) {
+      fail('preflight-wired', 'package.json: scripts.typecheck is not defined');
+    }
+
+    const preflight = path.join('scripts', 'preflight.js');
+    if (!exists(preflight)) {
+      fail('preflight-wired', `${preflight}: missing`);
+    } else {
+      const stepNames = new Set([...read(preflight).matchAll(/name:\s*['"]([^'"]+)['"]/g)].map((match) => match[1]));
+      for (const name of ['typecheck', 'check-architecture', 'check-hex-literals', 'check:arch:self-test']) {
+        if (!stepNames.has(name)) {
+          fail('preflight-wired', `${preflight}: missing required ${name} step`);
+        }
+      }
+      for (const name of Object.keys(scripts).filter((name) => name.startsWith('smoke:'))) {
+        if (!stepNames.has(name)) {
+          fail('preflight-wired', `${preflight}: package script ${name} is not wired into preflight`);
+        }
+      }
+    }
+  }
+
+  return failures;
+}
+
+function copyTree(from, to) {
+  fs.mkdirSync(to, { recursive: true });
+  for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
+    const source = path.join(from, entry.name);
+    const destination = path.join(to, entry.name);
+    if (entry.isDirectory()) copyTree(source, destination);
+    else fs.copyFileSync(source, destination);
   }
 }
 
-// 4. preflight script wired
-const pkg = JSON.parse(read('package.json'));
-if (!pkg.scripts || !pkg.scripts.preflight) {
-  fail('package.json: scripts.preflight is not defined');
+function selfTest() {
+  const fixtureRoot = path.join(__dirname, 'fixtures', 'arch-violations');
+  const baseline = path.join(fixtureRoot, '_baseline');
+  const problems = [];
+
+  const baselineFailures = inspect(baseline);
+  if (baselineFailures.length) {
+    for (const failure of baselineFailures) {
+      problems.push(`_baseline is meant to be clean but tripped [${failure.rule}] ${failure.message}`);
+    }
+  }
+
+  for (const rule of RULES) {
+    const overlay = path.join(fixtureRoot, rule);
+    if (!fs.existsSync(overlay)) {
+      problems.push(`${rule}: no fixture at scripts/fixtures/arch-violations/${rule}`);
+      continue;
+    }
+    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'stem-arch-'));
+    try {
+      copyTree(baseline, workspace);
+      copyTree(overlay, workspace);
+      const tripped = new Set(inspect(workspace).map((failure) => failure.rule));
+      if (!tripped.has(rule)) problems.push(`${rule}: fixture did not trip its own rule`);
+      const collateral = [...tripped].filter((name) => name !== rule);
+      if (collateral.length) problems.push(`${rule}: fixture also tripped ${collateral.join(', ')}`);
+    } finally {
+      fs.rmSync(workspace, { recursive: true, force: true });
+    }
+  }
+
+  if (problems.length) {
+    console.error('check-architecture --self-test: FAIL');
+    for (const problem of problems) console.error(`  - ${problem}`);
+    process.exit(1);
+  }
+  console.log(`check-architecture --self-test: OK (${RULES.length} rules, every fixture trips its own rule and only its own)`);
 }
 
-if (failures.length) {
-  console.error('check-architecture: FAIL');
-  for (const msg of failures) console.error(`  - ${msg}`);
-  process.exit(1);
+if (process.argv.includes('--self-test')) {
+  selfTest();
+} else {
+  const failures = inspect(path.join(__dirname, '..'));
+  if (failures.length) {
+    console.error('check-architecture: FAIL');
+    for (const failure of failures) console.error(`  - [${failure.rule}] ${failure.message}`);
+    process.exit(1);
+  }
+  console.log(`check-architecture: OK (${RULES.join(', ')})`);
 }
-console.log('check-architecture: OK (renderer isolation, pure edit model, window hardening, preflight wired)');

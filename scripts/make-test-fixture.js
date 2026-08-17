@@ -16,7 +16,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const { findFfmpeg, runFfmpeg, probeDuration } = require('../lib/ffmpeg-util');
+const { findFfmpeg, runFfmpeg, probeDuration } = require('../lib/node/ffmpeg-util.js');
 
 async function main() {
   const stemOutRoot = process.env.STEM_OUT_ROOT || '/tmp/stem-test-takes';
