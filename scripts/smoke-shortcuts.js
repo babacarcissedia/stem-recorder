@@ -12,6 +12,7 @@ const {
   findBindingForChord,
   isTypingTarget,
 } = require('../lib/domain/shortcuts.ts');
+const { MENU_COMMANDS } = require('../src/preload/api.ts');
 
 let cases = 0;
 function check(condition, message) {
@@ -37,15 +38,22 @@ function check(condition, message) {
 // not the API, so menu.ts is checked by parsing its commandItem() calls)
 {
   const menuSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'main', 'menu.ts'), 'utf8');
-  const referencedIds = new Set([...menuSource.matchAll(/commandItem\('([^']+)'\)/g)].map((match) => match[1]));
+  const referencedIds = new Set([...menuSource.matchAll(/commandItem\('([^']+)'/g)].map((match) => match[1]));
 
   for (const binding of SHORTCUT_REGISTRY) {
     check(referencedIds.has(binding.id), `registry entry '${binding.id}' is never referenced by a commandItem() call in menu.ts`);
+    check(MENU_COMMANDS.includes(binding.id), `registry entry '${binding.id}' is not accepted by the preload bridge`);
   }
   for (const id of referencedIds) {
     check(
       SHORTCUT_REGISTRY.some((binding) => binding.id === id),
       `menu.ts calls commandItem('${id}') but no SHORTCUT_REGISTRY entry has that id`
+    );
+  }
+  for (const id of MENU_COMMANDS) {
+    check(
+      SHORTCUT_REGISTRY.some((binding) => binding.id === id),
+      `preload accepts '${id}' but no SHORTCUT_REGISTRY entry has that id`
     );
   }
 }
