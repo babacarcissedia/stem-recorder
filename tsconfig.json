@@ -27,6 +27,7 @@
     "lib/domain/*.ts",
     "scripts/smoke-model.ts",
     "scripts/smoke-menu.ts",
+    "scripts/smoke-timeline-interaction.ts",
     "src/renderer/src/components/**/*.tsx",
     "src/renderer/src/components/**/*.ts"
   ],
