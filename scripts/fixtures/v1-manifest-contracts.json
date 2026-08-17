@@ -148,6 +148,30 @@
     }
   },
   {
+    "id": "speed-cam-layout-roundtrip",
+    "durationsSeconds": { "screen.mp4": 600, "cam.mp4": 600 },
+    "v1": {
+      "version": 1,
+      "takeId": "take-speed-cam-layout-roundtrip",
+      "source": "screen.mp4",
+      "clips": [{ "id": "clip-speed-cam-layout", "source": "screen.mp4", "in": 2.0004, "out": 7.0005 }],
+      "cam": { "mirror": true, "rotate": 270, "pip": false, "pipLayout": { "x": 0.1234, "y": 0.5678, "w": 0.4321 } },
+      "exportRate": 0.75,
+      "updatedAt": "2026-01-07T12:00:00.000Z"
+    },
+    "expectedCompat": {
+      "version": 1,
+      "takeId": "take-speed-cam-layout-roundtrip",
+      "source": "screen.mp4",
+      "cam": { "mirror": true, "rotate": 270, "pip": false, "pipLayout": { "x": 0.1234, "y": 0.5678, "w": 0.4321 } },
+      "exportRate": 0.75,
+      "audioRoute": { "activeSourceId": "src-cam", "resolvedBy": "auto" },
+      "compatAudioSources": [{ "id": "src-cam", "path": "cam.mp4", "label": "cam.mp4", "kind": "video", "availableDuration": 600000, "hasAudio": true, "present": true, "origin": "capture", "peaksKey": null }],
+      "clips": [{ "id": "clip-speed-cam-layout", "source": "screen.mp4", "in": 2, "out": 7.001 }],
+      "updatedAt": "2026-01-07T12:00:00.000Z"
+    }
+  },
+  {
     "id": "music",
     "durationsSeconds": { "screen.mp4": 600 },
     "v1": {

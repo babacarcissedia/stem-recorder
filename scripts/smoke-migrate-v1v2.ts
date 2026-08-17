@@ -94,6 +94,12 @@ function assertFutureSchemaRefusal(fixture: ContractFixture): void {
 for (const fixture of fixtures) {
   const migrated = migrateV1ToV2(fixture.v1, fixture.durationsSeconds);
   assert.strictEqual(migrated.schemaVersion, 2, `${fixture.id}: migration must produce V2`);
+  if (fixture.v1.cam != null) {
+    assert.deepStrictEqual(migrated.settings.cam, fixture.v1.cam, `${fixture.id}: V2 settings must preserve V1 cam`);
+  }
+  if (fixture.v1.exportRate != null) {
+    assert.strictEqual(migrated.settings.exportRate, fixture.v1.exportRate, `${fixture.id}: V2 settings must preserve V1 exportRate`);
+  }
   const { project } = readManifestV2(migrated);
   assertIntegerBoundaries(project, fixture.id);
   assert.deepStrictEqual(toV1Compat(migrated), fixture.expectedCompat, `${fixture.id}: V1 compatibility contract changed`);
