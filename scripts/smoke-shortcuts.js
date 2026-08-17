@@ -13,6 +13,18 @@ const {
   isTypingTarget,
 } = require('../lib/domain/shortcuts.ts');
 const { MENU_COMMANDS } = require('../src/preload/api.ts');
+const { onCommand, dispatchCommand } = require('../src/renderer/src/shortcuts/command-bus.ts');
+
+const SUPPORTED_COMMAND_IDS = [
+  'file:new-take',
+  'file:open-take-folder',
+  'file:export-bundle',
+  'timeline:split',
+  'timeline:delete-ripple',
+  'timeline:mark-in',
+  'timeline:mark-out',
+  'timeline:play-pause',
+];
 
 let cases = 0;
 function check(condition, message) {
@@ -20,7 +32,6 @@ function check(condition, message) {
   assert.ok(condition, message);
 }
 
-// no accelerator is registered twice
 {
   const chords = SHORTCUT_REGISTRY.map((binding) => parseAccelerator(binding.accelerator));
   for (let i = 0; i < chords.length; i += 1) {
@@ -33,16 +44,28 @@ function check(condition, message) {
   }
 }
 
-// every menu accelerator has a matching registry entry, and vice versa
-// (require('electron') outside an Electron process returns a binary path,
-// not the API, so menu.ts is checked by parsing its commandItem() calls)
 {
   const menuSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'main', 'menu.ts'), 'utf8');
+  const studioSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'studio.ts'), 'utf8');
   const referencedIds = new Set([...menuSource.matchAll(/commandItem\('([^']+)'/g)].map((match) => match[1]));
+  const liveHandlerStart = studioSource.indexOf('const liveCommandHandlers');
+  const liveHandlerSource = studioSource.slice(liveHandlerStart);
+  const liveHandlerIds = new Set([...liveHandlerSource.matchAll(/'([^']+)':\s*\(\)\s*=>/g)].map((match) => match[1]));
+
+  check(liveHandlerStart >= 0, 'studio mounts a liveCommandHandlers command-bus subscriber');
+  check(
+    studioSource.includes("command === 'file:new-take' || hasActiveEditableManifest()"),
+    'studio keeps editor commands unavailable without an editable manifest'
+  );
+  check(
+    JSON.stringify(SHORTCUT_REGISTRY.map((binding) => binding.id)) === JSON.stringify(SUPPORTED_COMMAND_IDS),
+    'registry contains only live Studio commands'
+  );
 
   for (const binding of SHORTCUT_REGISTRY) {
     check(referencedIds.has(binding.id), `registry entry '${binding.id}' is never referenced by a commandItem() call in menu.ts`);
     check(MENU_COMMANDS.includes(binding.id), `registry entry '${binding.id}' is not accepted by the preload bridge`);
+    check(liveHandlerIds.has(binding.id), `registry entry '${binding.id}' has no live Studio handler`);
   }
   for (const id of referencedIds) {
     check(
@@ -58,7 +81,29 @@ function check(condition, message) {
   }
 }
 
-// keyboard chords resolve to the intended command, on both platforms
+{
+  let editorAvailable = false;
+  const invocations = [];
+  const off = onCommand(
+    (command) => invocations.push(command),
+    (command) => command === 'file:new-take' || editorAvailable,
+  );
+
+  for (const binding of SHORTCUT_REGISTRY) dispatchCommand(binding.id);
+  check(
+    JSON.stringify(invocations) === JSON.stringify(['file:new-take']),
+    'unavailable editor commands do not dispatch'
+  );
+
+  editorAvailable = true;
+  for (const binding of SHORTCUT_REGISTRY) dispatchCommand(binding.id);
+  check(
+    JSON.stringify(invocations.slice(1)) === JSON.stringify(SUPPORTED_COMMAND_IDS),
+    'every registry command reaches an available handler'
+  );
+  off();
+}
+
 {
   const macSplit = chordFromKeyEvent({ key: 'b', shiftKey: false, metaKey: true, ctrlKey: false, altKey: false }, true);
   check(findBindingForChord(macSplit)?.id === 'timeline:split', 'Cmd+B on mac resolves to timeline:split');
@@ -66,20 +111,11 @@ function check(condition, message) {
   const winSplit = chordFromKeyEvent({ key: 'b', shiftKey: false, metaKey: false, ctrlKey: true, altKey: false }, false);
   check(findBindingForChord(winSplit)?.id === 'timeline:split', 'Ctrl+B on windows resolves to timeline:split');
 
-  const join = chordFromKeyEvent({ key: 'B', shiftKey: true, metaKey: true, ctrlKey: false, altKey: false }, true);
-  check(findBindingForChord(join)?.id === 'timeline:join', 'Cmd+Shift+B resolves to timeline:join');
-
   const markIn = chordFromKeyEvent({ key: 'i', shiftKey: false, metaKey: false, ctrlKey: false, altKey: false }, true);
   check(findBindingForChord(markIn)?.id === 'timeline:mark-in', 'bare I resolves to timeline:mark-in');
 
-  const importMedia = chordFromKeyEvent({ key: 'i', shiftKey: false, metaKey: true, ctrlKey: false, altKey: false }, true);
-  check(findBindingForChord(importMedia)?.id === 'file:import-media', 'Cmd+I resolves to file:import-media, distinct from bare I');
-
   const space = chordFromKeyEvent({ key: ' ', shiftKey: false, metaKey: false, ctrlKey: false, altKey: false }, true);
   check(findBindingForChord(space)?.id === 'timeline:play-pause', 'Space resolves to timeline:play-pause');
-
-  const liftDelete = chordFromKeyEvent({ key: 'Delete', shiftKey: true, metaKey: false, ctrlKey: false, altKey: false }, true);
-  check(findBindingForChord(liftDelete)?.id === 'timeline:delete-lift', 'Shift+Delete resolves to timeline:delete-lift');
 
   const rippleDelete = chordFromKeyEvent({ key: 'Delete', shiftKey: false, metaKey: false, ctrlKey: false, altKey: false }, true);
   check(findBindingForChord(rippleDelete)?.id === 'timeline:delete-ripple', 'Delete resolves to timeline:delete-ripple');
@@ -88,7 +124,6 @@ function check(condition, message) {
   check(findBindingForChord(unbound) === undefined, 'Cmd+Z has no registry entry');
 }
 
-// typing-target guard
 {
   check(isTypingTarget({ tagName: 'INPUT', isContentEditable: false }), 'INPUT is a typing target');
   check(isTypingTarget({ tagName: 'TEXTAREA', isContentEditable: false }), 'TEXTAREA is a typing target');

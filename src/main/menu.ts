@@ -38,7 +38,6 @@ export function buildAppMenu(appName: string, editorCommandsEnabled: boolean = f
         commandItem('file:new-take', editorCommandsEnabled),
         commandItem('file:open-take-folder', editorCommandsEnabled),
         { type: 'separator' },
-        commandItem('file:import-media', editorCommandsEnabled),
         commandItem('file:export-bundle', editorCommandsEnabled),
         { type: 'separator' },
         isMac ? { role: 'close' } : { role: 'quit' },
@@ -73,10 +72,8 @@ export function buildAppMenu(appName: string, editorCommandsEnabled: boolean = f
       label: 'Timeline',
       submenu: [
         commandItem('timeline:split', editorCommandsEnabled),
-        commandItem('timeline:join', editorCommandsEnabled),
         { type: 'separator' },
         commandItem('timeline:delete-ripple', editorCommandsEnabled),
-        commandItem('timeline:delete-lift', editorCommandsEnabled),
         { type: 'separator' },
         commandItem('timeline:mark-in', editorCommandsEnabled),
         commandItem('timeline:mark-out', editorCommandsEnabled),

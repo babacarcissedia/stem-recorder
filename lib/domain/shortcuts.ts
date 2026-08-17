@@ -1,12 +1,9 @@
 export type ShortcutCommandId =
   | 'file:new-take'
   | 'file:open-take-folder'
-  | 'file:import-media'
   | 'file:export-bundle'
   | 'timeline:split'
-  | 'timeline:join'
   | 'timeline:delete-ripple'
-  | 'timeline:delete-lift'
   | 'timeline:mark-in'
   | 'timeline:mark-out'
   | 'timeline:play-pause';
@@ -25,12 +22,9 @@ export interface ShortcutBinding {
 export const SHORTCUT_REGISTRY: ShortcutBinding[] = [
   { id: 'file:new-take', label: 'New Take', accelerator: 'CmdOrCtrl+N', menuGroup: 'File', guardTyping: true, enabled: true },
   { id: 'file:open-take-folder', label: 'Open Take Folder', accelerator: 'CmdOrCtrl+O', menuGroup: 'File', guardTyping: true, enabled: true },
-  { id: 'file:import-media', label: 'Import Media…', accelerator: 'CmdOrCtrl+I', menuGroup: 'File', guardTyping: true, enabled: true },
   { id: 'file:export-bundle', label: 'Export Bundle…', accelerator: 'CmdOrCtrl+E', menuGroup: 'File', guardTyping: true, enabled: true },
   { id: 'timeline:split', label: 'Split', accelerator: 'CmdOrCtrl+B', menuGroup: 'Timeline', guardTyping: true, enabled: true },
-  { id: 'timeline:join', label: 'Join', accelerator: 'CmdOrCtrl+Shift+B', menuGroup: 'Timeline', guardTyping: true, enabled: true },
   { id: 'timeline:delete-ripple', label: 'Delete (Ripple)', accelerator: 'Delete', menuGroup: 'Timeline', guardTyping: true, enabled: true },
-  { id: 'timeline:delete-lift', label: 'Delete (Lift)', accelerator: 'Shift+Delete', menuGroup: 'Timeline', guardTyping: true, enabled: true },
   { id: 'timeline:mark-in', label: 'Mark In', accelerator: 'I', menuGroup: 'Timeline', guardTyping: true, enabled: true },
   { id: 'timeline:mark-out', label: 'Mark Out', accelerator: 'O', menuGroup: 'Timeline', guardTyping: true, enabled: true },
   { id: 'timeline:play-pause', label: 'Play/Pause', accelerator: 'Space', menuGroup: 'Timeline', guardTyping: true, enabled: true },
