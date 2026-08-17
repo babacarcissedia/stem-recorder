@@ -41,7 +41,7 @@ export interface BatchRecorderBridge {
   openTake(takeDir: string): Promise<void>;
 }
 
-import type { ThemePreference } from '../../lib/domain/theme.ts';
+export type ThemePreference = 'system' | 'light' | 'dark';
 
 export interface ThemeState {
   preference: ThemePreference;

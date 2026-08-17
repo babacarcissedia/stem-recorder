@@ -1,7 +1,3 @@
-import fs from 'node:fs';
-import { contextBridge, ipcRenderer } from 'electron';
+import type { ThemePreference } from '../../lib/domain/theme.ts';
 
-contextBridge.exposeInMainWorld('stemStudio', {
-  listTakes: () => ipcRenderer.invoke('studio:listTakes'),
-  readAnything: (file: string) => fs.readFileSync(file, 'utf8'),
-});
+export type PreloadThemePreference = ThemePreference;
