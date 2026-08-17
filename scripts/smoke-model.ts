@@ -364,6 +364,24 @@ group('nothing hardcodes three tracks', () => {
   timeline.normalize();
 });
 
+group('timeline rejects duplicate source IDs on construction and mutation', () => {
+  const duplicateScreen = makeSource({
+    id: 'src-screen',
+    path: 'screen-copy.mp4',
+    label: 'screen-copy.mp4',
+    kind: 'video',
+    availableDuration: 600_000,
+  });
+
+  assert.strictEqual(
+    code(() => new Timeline({ takeId: 't', sources: [screen, duplicateScreen] })),
+    'DUPLICATE_SOURCE_ID',
+  );
+
+  const timeline = new Timeline({ takeId: 't', sources: [screen] });
+  assert.strictEqual(code(() => timeline.addSource(duplicateScreen)), 'DUPLICATE_SOURCE_ID');
+});
+
 group('normalize enforces sources, overlap and marker range', () => {
   const timeline = new Timeline({ takeId: 't', sources: [screen] });
   timeline.addTrack(new Track({ id: 'trk-a', kind: 'video', clips: [clip('a', 'src-screen', 0, 10_000, 0)] }));
