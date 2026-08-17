@@ -139,19 +139,24 @@ function check(condition, message) {
   );
   check(
     /function\s+LegacyStudioHost\s*\(/.test(appShellSource)
+      && /function\s+StudioEditorChrome\s*\(/.test(appShellSource)
       && /function\s+renderShellView\s*\(\s*view\s*:\s*ShellView\s*\)/.test(appShellSource)
-      && /case\s+['"]studio['"]\s*:\s*\n\s*return\s+<LegacyStudioHost\s*\/>;/.test(appShellSource)
+      && /case\s+['"]studio['"]\s*:\s*\n\s*return\s+<StudioEditorChrome\s*\/>;/.test(appShellSource)
       && /\buseShellCommandLifecycle\s*\(\s*['"]studio['"]\s*,\s*legacyHostReady\s*\?\s*legacyStudioLifecycle\s*:\s*null\s*\)/.test(appShellSource)
       && /\bmountShortcutMenuLifecycle\s*:\s*\(\)\s*=>\s*\{[\s\S]*\breturn\s+legacyStudioWindow\.mountLegacyStudio\s*\(\s*\)\s*;[\s\S]*\}/.test(appShellSource)
       && /\bmountRecorderPanel\s*\(/.test(appShellSource),
-    'AppShell routes the default studio view through the LegacyStudioHost compatibility lifecycle'
+    'AppShell routes the default studio view through React editor chrome and the LegacyStudioHost compatibility lifecycle'
   );
   check(
     /className=['"]shell-root['"][^>]*data-shell-view=\{shellView\}[^>]*aria-label=['"]Stem Studio shell['"]/.test(appShellSource)
       && /<nav\s+className=['"]shell-route-nav['"]\s+aria-label=['"]Workspaces['"]>/.test(appShellSource)
       && /<main\s+className=['"]shell-route['"]\s+data-shell-route=\{shellView\}\s+aria-label=\{routeLabel\(shellView\)\}>/.test(appShellSource)
+      && /<section\s+className=['"]studio-editor-chrome['"]\s+aria-labelledby=['"]studio-editor-title['"]>/.test(appShellSource)
+      && /<h1\s+id=['"]studio-editor-title['"]\s+className=['"]studio-editor-title['"]>Studio<\/h1>/.test(appShellSource)
+      && /className=['"]studio-editor-status['"]\s+role=['"]status['"]\s+aria-label=['"]Studio status['"]/.test(appShellSource)
+      && /className=['"]studio-editor-compatibility-frame['"]\s+role=['"]region['"]\s+aria-label=['"]Studio editor['"]/.test(appShellSource)
       && /className=['"]legacy-studio-host['"]\s+role=['"]region['"]\s+aria-label=['"]Studio compatibility host['"]/.test(appShellSource),
-    'AppShell exposes labelled shell, route navigation, route, and legacy compatibility landmarks'
+    'AppShell exposes labelled shell, route navigation, React editor chrome, route, and legacy compatibility landmarks'
   );
   check(
     /function\s+RecordShell\s*\([\s\S]*<section\s+className=['"]shell-surface shell-surface-record['"]\s+aria-labelledby=['"]record-shell-title['"][\s\S]*<h1\s+id=['"]record-shell-title['"]/.test(appShellSource)
@@ -166,10 +171,11 @@ function check(condition, message) {
   );
   check(
     (appShellSource.match(/<LegacyStudioHost\s*\/>/g) ?? []).length === 1
-      && /case\s+['"]studio['"]\s*:\s*\n\s*return\s+<LegacyStudioHost\s*\/>;/.test(appShellSource)
+      && /function\s+StudioEditorChrome\s*\([\s\S]*<LegacyStudioHost\s*\/>[\s\S]*\}\s*\n\s*function\s+RecordShell/.test(appShellSource)
+      && /case\s+['"]studio['"]\s*:\s*\n\s*return\s+<StudioEditorChrome\s*\/>;/.test(appShellSource)
       && /case\s+['"]record['"]\s*:\s*\n\s*return\s+<RecordShell\s*\/>;/.test(appShellSource)
       && /case\s+['"]library['"]\s*:\s*\n\s*return\s+<LibraryShell\s*\/>;/.test(appShellSource),
-    'AppShell has one Studio-only routed LegacyStudioHost render path'
+    'AppShell has one Studio-only routed React chrome path wrapping LegacyStudioHost'
   );
   check(
     indexHtmlSource.indexOf('id="app-shell-root"') >= 0
