@@ -251,20 +251,21 @@
 
   --text-primary: var(--ramp-neutral-890);
   --text-muted: var(--ramp-neutral-650);
-  --text-faint: var(--ramp-neutral-550);
   --text-on-dark: var(--ramp-neutral-000);
   --text-on-accent: var(--ramp-gold-870);
 
   --border-subtle: var(--ramp-neutral-300);
-  --border-strong: var(--ramp-neutral-400);
+  --border-strong: var(--ramp-neutral-550);
 
-  --accent: var(--ramp-gold-800);
+  --accent: var(--ramp-gold-870);
   --accent-strong: var(--ramp-gold-700);
   --accent-soft: var(--ramp-gold-100);
   --accent-soft-border: var(--ramp-gold-200);
-  --accent-contrast: var(--ramp-neutral-890);
+  --accent-foreground: var(--text-on-dark);
   --accent-muted-surface: var(--ramp-gold-100);
   --accent-muted-border: var(--ramp-gold-200);
+
+  --toolbar-surface: var(--ramp-neutral-890);
 
   --positive: var(--ramp-green-700);
   --positive-surface: var(--ramp-green-100);
@@ -284,13 +285,11 @@
   --record-border: var(--ramp-red-600);
 
   --timeline-surface: var(--ramp-neutral-150);
-  --timeline-surface-raised: var(--ramp-neutral-000);
   --timeline-surface-sunken: var(--ramp-neutral-100);
   --timeline-track: var(--ramp-neutral-300);
   --timeline-border: var(--ramp-neutral-300);
   --timeline-text: var(--ramp-neutral-890);
   --timeline-text-muted: var(--ramp-neutral-650);
-  --timeline-text-faint: var(--ramp-neutral-550);
   --timeline-control: var(--ramp-neutral-000);
   --timeline-control-hover: var(--ramp-neutral-150);
 
@@ -342,20 +341,21 @@
 
   --text-primary: var(--ramp-neutral-075);
   --text-muted: var(--ramp-neutral-450);
-  --text-faint: var(--ramp-neutral-550);
   --text-on-dark: var(--ramp-neutral-000);
   --text-on-accent: var(--ramp-gold-100);
 
   --border-subtle: var(--ramp-neutral-800);
-  --border-strong: var(--ramp-neutral-750);
+  --border-strong: var(--ramp-neutral-500);
 
   --accent: var(--ramp-gold-400);
   --accent-strong: var(--ramp-gold-600);
   --accent-soft: var(--ramp-gold-950);
   --accent-soft-border: var(--ramp-gold-850);
-  --accent-contrast: var(--ramp-neutral-890);
+  --accent-foreground: var(--ramp-neutral-890);
   --accent-muted-surface: var(--ramp-gold-900);
   --accent-muted-border: var(--ramp-gold-880);
+
+  --toolbar-surface: var(--ramp-neutral-890);
 
   --positive: var(--ramp-green-300);
   --positive-surface: var(--ramp-green-800);
@@ -375,13 +375,11 @@
   --record-border: var(--ramp-red-600);
 
   --timeline-surface: var(--ramp-neutral-880);
-  --timeline-surface-raised: var(--ramp-neutral-890);
   --timeline-surface-sunken: var(--ramp-neutral-910);
   --timeline-track: var(--ramp-neutral-990);
   --timeline-border: var(--ramp-neutral-780);
   --timeline-text: var(--ramp-neutral-075);
   --timeline-text-muted: var(--ramp-neutral-400);
-  --timeline-text-faint: var(--ramp-neutral-500);
   --timeline-control: var(--ramp-neutral-800);
   --timeline-control-hover: var(--ramp-neutral-750);
 

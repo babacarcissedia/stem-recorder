@@ -132,8 +132,11 @@ async function finalizeStem(takeDir, kind, rawPath) {
   const out = path.join(takeDir, `${kind}.mp4`);
   await runFfmpeg(ffmpeg, [
     '-hide_banner', '-y', '-i', rawPath,
+    '-vf', 'scale=in_range=full:out_range=tv',
     '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
     '-pix_fmt', 'yuv420p',
+    '-color_range', 'tv', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709',
+    '-x264-params', 'colorprim=bt709:transfer=bt709:colormatrix=bt709:fullrange=off',
     '-c:a', 'aac', '-b:a', '160k',
     '-movflags', '+faststart',
     out,

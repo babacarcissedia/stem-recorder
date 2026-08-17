@@ -56,6 +56,7 @@
     "smoke:export-presets": "node scripts/smoke-export-presets.js",
     "smoke:export-bundle": "node scripts/smoke-export-bundle.js",
     "smoke:media-url": "node scripts/smoke-media-url.js",
+    "smoke:color-range": "node scripts/smoke-color-range.js",
     "smoke:manifest": "node scripts/smoke-manifest.ts",
     "smoke:shortcuts": "node scripts/smoke-shortcuts.js",
     "smoke:theme": "node scripts/smoke-theme.js",

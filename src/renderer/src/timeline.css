@@ -36,7 +36,7 @@
 .preview-switch button.active {
   background: var(--accent);
   border-color: var(--accent-strong);
-  color: var(--accent-contrast);
+  color: var(--accent-foreground);
 }
 
 .tl-toolbar {
@@ -66,7 +66,7 @@
 .tl-toolbar button.primary {
   background: var(--accent);
   border-color: var(--accent-strong);
-  color: var(--accent-contrast);
+  color: var(--accent-foreground);
 }
 
 .tl-toolbar button.danger {
@@ -197,7 +197,7 @@
   border-bottom: var(--border-hairline) solid var(--border-subtle);
   font-family: var(--font-mono);
   font-size: var(--text-1);
-  color: var(--timeline-text-faint);
+  color: var(--timeline-text-muted);
 }
 
 .tl-ruler span {
@@ -497,7 +497,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-faint);
+  color: var(--text-muted);
   font-size: var(--text-4);
   pointer-events: none;
 }
@@ -524,10 +524,10 @@
   font-weight: var(--weight-heavy);
 }
 
-.wave-panel-zoom button:hover { background: var(--border-strong); }
+.wave-panel-zoom button:hover { background: var(--surface-control-hover); }
 
 .clip-row {
-  border: var(--border-hairline) solid var(--border-subtle);
+  border: var(--border-hairline) solid var(--border-strong);
   border-radius: var(--radius-lg);
   padding: var(--space-4) var(--space-6);
   margin-bottom: var(--space-3);
@@ -608,7 +608,7 @@
   text-align: left;
   padding: var(--space-3) var(--space-5);
   background: var(--timeline-surface-sunken);
-  border: var(--border-hairline) solid var(--border-subtle);
+  border: var(--border-hairline) solid var(--border-strong);
   border-radius: var(--radius-md);
   font-size: var(--text-4);
 }
@@ -682,7 +682,7 @@
 .crop-actions button.primary {
   background: var(--accent);
   border-color: var(--accent-strong);
-  color: var(--accent-contrast);
+  color: var(--accent-foreground);
 }
 
 #cropBtn.on {
