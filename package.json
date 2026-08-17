@@ -55,6 +55,7 @@
     "smoke:media-url": "node scripts/smoke-media-url.js",
     "smoke:color-range": "node scripts/smoke-color-range.js",
     "smoke:model": "node scripts/smoke-model.ts",
+    "smoke:timeline-interaction": "node scripts/smoke-timeline-interaction.ts",
     "smoke:manifest": "node scripts/smoke-manifest.ts",
     "smoke:shortcuts": "node scripts/smoke-shortcuts.js",
     "smoke:shortcuts": "node scripts/smoke-shortcuts.js",
