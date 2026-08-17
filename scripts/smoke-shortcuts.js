@@ -51,13 +51,13 @@ function check(condition, message) {
   const studioSourcePath = process.env.STUDIO_SHORTCUTS_SOURCE_PATH
     || path.join(__dirname, '..', 'src', 'renderer', 'src', 'studio.ts');
   const studioSource = fs.readFileSync(studioSourcePath, 'utf8');
-  const studioUiStart = studioSource.indexOf('(function studioUi() {');
-  check(studioUiStart >= 0, 'studio defines the live studioUi lifecycle');
+  const studioUiStart = studioSource.indexOf('window.mountLegacyStudio = function mountLegacyStudio() {');
+  check(studioUiStart >= 0, 'studio registers the named LegacyStudioHost lifecycle');
 
-  const studioUiEnd = studioSource.indexOf('\n}());', studioUiStart);
-  check(studioUiEnd >= 0, 'studioUi lifecycle has a closing boundary');
+  const studioUiEnd = studioSource.lastIndexOf('\n};');
+  check(studioUiEnd > studioUiStart, 'mountLegacyStudio has a closing boundary');
 
-  const studioUiSource = studioSource.slice(studioUiStart, studioUiEnd + '\n}());'.length);
+  const studioUiSource = studioSource.slice(studioUiStart, studioUiEnd + '\n};'.length);
   const referencedIds = new Set([...menuSource.matchAll(/commandItem\('([^']+)'/g)].map((match) => match[1]));
   if (/commandItem\(themeCommandId\(preference\)/.test(menuSource)) {
     for (const preference of THEME_PREFERENCES) referencedIds.add(themeCommandId(preference));
@@ -117,16 +117,39 @@ function check(condition, message) {
 
   const rendererMainSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'main.tsx'), 'utf8');
   const appShellSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'app-shell.tsx'), 'utf8');
+  const indexHtmlSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'index.html'), 'utf8');
+  const recorderPanelSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'recorder-panel.ts'), 'utf8');
   const mountedRendererRoots = rendererMainSource.match(/\bcreateRoot\s*\(/g) ?? [];
-  const dormantShellSubscriptions = appShellSource.match(/\b(?:useKeyboardShortcuts|subscribeKeyboardShortcuts)\s*\(|\bstemMenu\s*\??\.\s*onCommand\s*\(/g) ?? [];
+  const legacyRegistrationImports = rendererMainSource.match(/import\s+['"]\.\/(?:studio|recorder-panel)\.ts['"]\s*;/g) ?? [];
+  const shellSubscriptions = appShellSource.match(/\b(?:useKeyboardShortcuts|subscribeKeyboardShortcuts)\s*\(|\bstemMenu\s*\??\.\s*onCommand\s*\(/g) ?? [];
 
   check(
-    mountedRendererRoots.length === 0 && !rendererMainSource.includes('AppShell'),
-    'the legacy Studio renderer is the only mounted UI while AppShell is disconnected'
+    mountedRendererRoots.length === 1
+      && /createRoot\(host\)\.render\(<AppShell\s*\/>\);/.test(rendererMainSource),
+    'main mounts AppShell once as the live React renderer root'
   );
   check(
-    dormantShellSubscriptions.length === 0,
-    'a dormant AppShell cannot register a duplicate menu or keyboard subscription'
+    /function\s+LegacyStudioHost\s*\(/.test(appShellSource)
+      && /<LegacyStudioHost\s*\/>/.test(appShellSource)
+      && /\bmountLegacyStudio\s*\(/.test(appShellSource)
+      && /\bmountRecorderPanel\s*\(/.test(appShellSource),
+    'AppShell owns the named LegacyStudioHost compatibility mount'
+  );
+  check(
+    indexHtmlSource.indexOf('id="app-shell-root"') >= 0
+      && indexHtmlSource.indexOf('id="legacy-studio-root"') > indexHtmlSource.indexOf('id="app-shell-root"'),
+    'legacy Studio markup is available for AppShell to host after the React root'
+  );
+  check(
+    legacyRegistrationImports.length === 2
+      && /window\.mountRecorderPanel\s*=\s*function mountRecorderPanel\s*\(/.test(recorderPanelSource)
+      && /window\.mountLegacyStudio\s*=\s*function mountLegacyStudio\s*\(/.test(studioSource)
+      && !/\bmount(?:LegacyStudio|RecorderPanel)\s*\(/.test(rendererMainSource),
+    'main registers legacy mount functions without independently initializing Studio'
+  );
+  check(
+    shellSubscriptions.length === 0,
+    'AppShell delegates shortcut and menu lifecycle to the one legacy Studio owner'
   );
 }
 

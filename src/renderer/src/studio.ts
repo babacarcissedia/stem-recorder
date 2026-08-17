@@ -8,7 +8,7 @@ import { createUndoStack } from '../../../lib/domain/undo-stack.ts';
 import { onCommand } from './shortcuts/command-bus.ts';
 import { subscribeKeyboardShortcuts } from './shortcuts/use-keyboard-shortcuts.ts';
 
-(function studioUi() {
+window.mountLegacyStudio = function mountLegacyStudio() {
   const studio = window.stemStudio;
   if (!studio) return;
 
@@ -2121,4 +2121,4 @@ import { subscribeKeyboardShortcuts } from './shortcuts/use-keyboard-shortcuts.t
   studio.ffmpegOk().then((ok) => {
     if (!ok) setStatus('ffmpeg missing — Apply will fail until installed', 'warn');
   });
-}());
+};

@@ -1,20 +1,32 @@
-import { TopBar } from './components/top-bar/top-bar.tsx';
-import { ShellLayout } from './components/layout/shell-layout.tsx';
-import { MediaSidebar } from './components/sidebar/media-sidebar.tsx';
-import { InspectorSidebar } from './components/sidebar/inspector-sidebar.tsx';
-import { PlayerPanel } from './components/player/player-panel.tsx';
-import { TimelineFooter } from './components/timeline/timeline-footer.tsx';
+import { useEffect, useRef } from 'react';
+
+type LegacyStudioWindow = Window & typeof globalThis & {
+  mountLegacyStudio: () => void;
+  mountRecorderPanel: () => void;
+};
+
+function LegacyStudioHost() {
+  const hostRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const legacyStudioRoot = document.getElementById('legacy-studio-root');
+    const host = hostRef.current;
+
+    if (!legacyStudioRoot || !host) throw new Error('Missing LegacyStudioHost markup');
+
+    host.append(legacyStudioRoot);
+    const legacyStudioWindow = window as LegacyStudioWindow;
+    legacyStudioWindow.mountRecorderPanel();
+    legacyStudioWindow.mountLegacyStudio();
+  }, []);
+
+  return <div ref={hostRef} className="legacy-studio-host" />;
+}
 
 export function AppShell() {
   return (
     <div className="shell-root">
-      <TopBar projectName="Stem Studio" autoSavedAt={null} />
-      <ShellLayout
-        leftSidebar={<MediaSidebar />}
-        main={<PlayerPanel />}
-        rightSidebar={<InspectorSidebar />}
-        footer={<TimelineFooter />}
-      />
+      <LegacyStudioHost />
     </div>
   );
 }
