@@ -37,12 +37,10 @@ export type AudioRoute = {
   resolvedBy: 'auto' | 'user';
 };
 
-export function resolveAudioRoute(sources: Iterable<Source>, camLabel = 'cam.mp4'): SourceId | null {
+export function resolveAudioRoute(sources: Iterable<Source>): SourceId | null {
   const audible = [...sources].filter((source) => source.hasAudio && source.present);
-  const cam = audible.find((source) => source.kind === 'video' && source.label === camLabel);
-  if (cam) return cam.id;
-  const video = audible.find((source) => source.kind === 'video');
-  if (video) return video.id;
   const audio = audible.find((source) => source.kind === 'audio');
-  return audio ? audio.id : null;
+  if (audio) return audio.id;
+  const video = audible.find((source) => source.kind === 'video');
+  return video ? video.id : null;
 }

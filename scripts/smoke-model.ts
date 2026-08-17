@@ -408,12 +408,12 @@ group('Project carries outputs, never a vertical boolean', () => {
   assert.deepStrictEqual(project.tracks.map((track) => track.id), ['trk-cam']);
 });
 
-group('audio route resolves cam, then any video, then the mic file', () => {
-  assert.strictEqual(resolveAudioRoute([screen, cam, mic]), 'src-cam');
+group('audio route resolves the separate mic file before video sources', () => {
+  assert.strictEqual(resolveAudioRoute([screen, cam, mic]), 'src-mic');
   assert.strictEqual(resolveAudioRoute([screen, mic]), 'src-mic');
   assert.strictEqual(resolveAudioRoute([screen]), null);
   const otherVideo = makeSource({ id: 'src-broll', kind: 'video', label: 'b-roll.mov', hasAudio: true, availableDuration: 1_000 });
-  assert.strictEqual(resolveAudioRoute([screen, otherVideo, mic]), 'src-broll');
+  assert.strictEqual(resolveAudioRoute([screen, otherVideo, mic]), 'src-mic');
   assert.strictEqual(resolveAudioRoute([{ ...cam, present: false }, mic]), 'src-mic');
 
   const project = new Project({
@@ -421,7 +421,7 @@ group('audio route resolves cam, then any video, then the mic file', () => {
     audioRoute: { activeSourceId: 'src-screen', resolvedBy: 'user' },
   });
   project.normalize();
-  assert.deepStrictEqual(project.audioRoute, { activeSourceId: 'src-cam', resolvedBy: 'auto' });
+  assert.deepStrictEqual(project.audioRoute, { activeSourceId: 'src-mic', resolvedBy: 'auto' });
 
   const pinned = new Project({
     timeline: new Timeline({ takeId: 't', sources: [screen, cam, mic] }),

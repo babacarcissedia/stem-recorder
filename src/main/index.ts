@@ -12,7 +12,13 @@ import {
 
 import { outRoot } from '../../lib/node/paths.js';
 import {
-  findFfmpeg, runFfmpeg, applyClips, hasSubtitlesFilter, probeDuration, resolveCaptionsPath,
+  findFfmpeg,
+  runFfmpeg,
+  applyClips,
+  hasSubtitlesFilter,
+  probeDuration,
+  resolveCaptionsPath,
+  resolveTakeLocalDialoguePath,
 } from '../../lib/node/ffmpeg-util.js';
 import {
   listTakes,
@@ -28,7 +34,13 @@ import {
   readManifestDoc,
   writeManifestDoc,
 } from '../../lib/node/manifest-store.js';
-import { V1_STEMS, migrateV1ToV2, toV1Compat } from '../../lib/domain/manifest-v2.ts';
+import {
+  V1_STEMS,
+  migrateV1ToV2,
+  resolveDialogueSource,
+  resolveLegacyDialogueSource,
+  toV1Compat,
+} from '../../lib/domain/manifest-v2.ts';
 import { getFilmstrip, getWaveformPeaks } from '../../lib/node/media-cache.js';
 import {
   runLocal as runLocalAsr,
@@ -84,10 +96,14 @@ function readStudioManifest(takeId) {
   const duration = durations['screen.mp4'] ?? null;
   const autosaveNewer = autosaveIsNewer(takeDir);
   const result = readManifestDoc(takeDir, durations);
+  const dialogueSource = result.doc
+    ? resolveDialogueSource(result.doc)
+    : resolveLegacyDialogueSource(durations);
   return {
     takeDir,
     duration,
     manifest: result.doc ? toV1Compat(result.doc) : defaultManifest(takeId, duration),
+    dialogueSource,
     autosaveNewer,
   };
 }
@@ -100,7 +116,13 @@ function saveStudioManifest(takeId, doc) {
     takeId,
     durations['screen.mp4'] ?? null,
   );
-  const v2 = migrateV1ToV2(manifest, durations);
+  const audioRoute = doc && typeof doc === 'object' ? doc.audioRoute : undefined;
+  const compatAudioSources = doc && typeof doc === 'object' ? doc.compatAudioSources : undefined;
+  const v2 = migrateV1ToV2({
+    ...manifest,
+    ...(audioRoute ? { audioRoute } : {}),
+    ...(compatAudioSources ? { compatAudioSources } : {}),
+  }, durations);
   const path = writeManifestDoc(takeDir, v2);
   return { path, manifest: toV1Compat(v2) };
 }
@@ -278,10 +300,13 @@ ipcMain.handle('studio:getTake', (_evt, takeId) => {
 ipcMain.handle('studio:saveManifest', (_evt, takeId, doc) => saveStudioManifest(takeId, doc));
 
 ipcMain.handle('studio:apply', async (_evt, takeId) => {
-  const { takeDir, manifest } = readStudioManifest(takeId);
+  const { takeDir, manifest, dialogueSource } = readStudioManifest(takeId);
   const sourceName = manifest.source || 'screen.mp4';
   const src = path.join(takeDir, sourceName);
   if (!fs.existsSync(src)) throw new Error(`missing source ${sourceName}`);
+  const dialoguePath = dialogueSource == null
+    ? null
+    : resolveTakeLocalDialoguePath(takeDir, dialogueSource);
 
   const editDir = path.join(takeDir, 'edit');
   ensureDir(editDir);
@@ -338,6 +363,7 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
           layout: camSettings.pipLayout || null,
         },
       } : {}),
+      ...(dialoguePath ? { dialoguePath } : {}),
       ...(burn.burn ? { subtitles: subtitlesPath, preBurnOutPath: preBurnOut } : {}),
       ...(rate ? { rate } : {}),
       ...(music ? { music } : {}),

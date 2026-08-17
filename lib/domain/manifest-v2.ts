@@ -7,11 +7,11 @@ import type { SourceId } from './clip.ts';
 import { Clip, MIN_CLIP_DURATION } from './clip.ts';
 import { Track } from './track.ts';
 import { Timeline } from './timeline.ts';
-import type { Source } from './source.ts';
-import { makeSource } from './source.ts';
+import type { AudioRoute, Source, SourceKind, SourceOrigin } from './source.ts';
+import { makeSource, resolveAudioRoute } from './source.ts';
 import type { ProjectJson } from './project.ts';
 import { PROJECT_SCHEMA_VERSION, Project } from './project.ts';
-import { invariant } from './invariant.ts';
+import { InvariantError, invariant } from './invariant.ts';
 
 export const MANIFEST_SCHEMA_VERSION = PROJECT_SCHEMA_VERSION;
 
@@ -42,6 +42,8 @@ export type V1Manifest = {
   exportRate?: unknown;
   music?: unknown;
   vertical?: boolean;
+  audioRoute?: AudioRoute;
+  compatAudioSources?: Source[];
   updatedAt: string;
 };
 
@@ -82,7 +84,86 @@ function settingsFrom(doc: Partial<V1Manifest>): ManifestSettings {
   return settings;
 }
 
-function sourcesForTake(durationsSeconds: StemDurations): Source[] {
+function requiredCompatString(value: unknown, code: string): string {
+  if (typeof value !== 'string' || value.length === 0) throw new InvariantError(code);
+  return value;
+}
+
+function takeLocalSourcePath(value: unknown): string {
+  const sourcePath = requiredCompatString(value, 'COMPAT_AUDIO_SOURCE_PATH_REQUIRED');
+  invariant(
+    !sourcePath.includes('\0')
+      && !sourcePath.startsWith('/')
+      && !sourcePath.startsWith('\\')
+      && !/^[A-Za-z]:[\\/]/.test(sourcePath)
+      && sourcePath.split('/').every((segment) => segment !== '..')
+      && !sourcePath.includes('\\'),
+    'COMPAT_AUDIO_SOURCE_PATH_NOT_TAKE_LOCAL',
+  );
+  return sourcePath;
+}
+
+function compatAudioSource(value: unknown): Source {
+  invariant(value != null && typeof value === 'object' && !Array.isArray(value), 'INVALID_COMPAT_AUDIO_SOURCE');
+  const source = value as Record<string, unknown>;
+  const kind = requiredCompatString(source.kind, 'COMPAT_AUDIO_SOURCE_KIND_REQUIRED');
+  invariant(kind === 'audio' || kind === 'video', 'COMPAT_AUDIO_SOURCE_NOT_AUDIBLE');
+  const origin = requiredCompatString(source.origin, 'COMPAT_AUDIO_SOURCE_ORIGIN_REQUIRED');
+  invariant(['capture', 'import', 'generated'].includes(origin), 'COMPAT_AUDIO_SOURCE_ORIGIN_INVALID');
+  invariant(typeof source.hasAudio === 'boolean', 'COMPAT_AUDIO_SOURCE_NOT_AUDIBLE');
+  invariant(typeof source.present === 'boolean', 'COMPAT_AUDIO_SOURCE_PRESENT_INVALID');
+  invariant(
+    typeof source.availableDuration === 'number'
+      && Number.isFinite(source.availableDuration)
+      && Number.isInteger(source.availableDuration)
+      && source.availableDuration >= 0,
+    'COMPAT_AUDIO_SOURCE_DURATION_INVALID',
+  );
+  invariant(source.peaksKey === null || typeof source.peaksKey === 'string', 'COMPAT_AUDIO_SOURCE_PEAKS_KEY_INVALID');
+
+  return makeSource({
+    id: requiredCompatString(source.id, 'COMPAT_AUDIO_SOURCE_ID_REQUIRED'),
+    path: takeLocalSourcePath(source.path),
+    label: requiredCompatString(source.label, 'COMPAT_AUDIO_SOURCE_LABEL_REQUIRED'),
+    kind: kind as SourceKind,
+    availableDuration: source.availableDuration as number,
+    hasAudio: source.hasAudio as boolean,
+    present: source.present as boolean,
+    origin: origin as SourceOrigin,
+    peaksKey: source.peaksKey as string | null,
+  });
+}
+
+function compatAudioSources(doc: V1Manifest): Source[] {
+  const raw: unknown = doc.compatAudioSources;
+  if (raw == null) return [];
+  if (!Array.isArray(raw)) throw new InvariantError('COMPAT_AUDIO_SOURCES_INVALID');
+  const sourceIds = new Set<string>();
+  return raw.map((value) => {
+    const source = compatAudioSource(value);
+    invariant(!sourceIds.has(source.id), 'DUPLICATE_COMPAT_AUDIO_SOURCE', source.id);
+    sourceIds.add(source.id);
+    return source;
+  });
+}
+
+function isReservedV1SourceId(sourceId: SourceId): boolean {
+  return V1_STEMS.some((stem) => stem.sourceId === sourceId);
+}
+
+function matchesCanonicalSource(source: Source, canonical: Source): boolean {
+  return source.id === canonical.id
+    && source.path === canonical.path
+    && source.label === canonical.label
+    && source.kind === canonical.kind
+    && source.availableDuration === canonical.availableDuration
+    && source.hasAudio === canonical.hasAudio
+    && source.present === canonical.present
+    && source.origin === canonical.origin
+    && source.peaksKey === canonical.peaksKey;
+}
+
+function sourcesForTake(durationsSeconds: StemDurations, compatibleSources: Source[] = []): Source[] {
   const sources: Source[] = [];
   for (const stem of V1_STEMS) {
     const seconds = durationsSeconds[stem.file];
@@ -99,7 +180,22 @@ function sourcesForTake(durationsSeconds: StemDurations): Source[] {
       }),
     );
   }
+  for (const source of compatibleSources) {
+    const canonical = sources.find((candidate) => candidate.id === source.id);
+    if (isReservedV1SourceId(source.id)) {
+      invariant(canonical && matchesCanonicalSource(source, canonical), 'COMPAT_AUDIO_SOURCE_ID_CONFLICT', source.id);
+      continue;
+    }
+    invariant(source.hasAudio, 'COMPAT_AUDIO_SOURCE_NOT_AUDIBLE');
+    sources.push(source);
+  }
   return sources;
+}
+
+export function resolveLegacyDialogueSource(durationsSeconds: StemDurations): string | null {
+  const sources = sourcesForTake(durationsSeconds);
+  const sourceId = resolveAudioRoute(sources);
+  return sourceId == null ? null : sources.find((source) => source.id === sourceId)?.path ?? null;
 }
 
 function sourceIdForFile(file: string): SourceId {
@@ -114,7 +210,7 @@ function fileForSourceId(timeline: Timeline, sourceId: SourceId): string {
 
 export function migrateV1ToV2(doc: V1Manifest, durationsSeconds: StemDurations): ManifestV2 {
   invariant(detectSchemaVersion(doc) === 1, 'NOT_A_V1_MANIFEST', String(detectSchemaVersion(doc)));
-  const sources = sourcesForTake(durationsSeconds);
+  const sources = sourcesForTake(durationsSeconds, compatAudioSources(doc));
   const timeline = new Timeline({ takeId: doc.takeId, sources });
   const track = new Track({ id: V1_VIDEO_TRACK_ID, kind: 'video', name: 'Video' });
 
@@ -159,7 +255,7 @@ export function migrateV1ToV2(doc: V1Manifest, durationsSeconds: StemDurations):
   }
 
   timeline.addTrack(track);
-  const project = new Project({ timeline });
+  const project = new Project({ timeline, audioRoute: doc.audioRoute });
   project.normalize();
 
   return {
@@ -180,6 +276,16 @@ export function readManifestV2(doc: ManifestV2): { project: Project; settings: M
   return { project: Project.fromJSON(doc.project), settings: doc.settings };
 }
 
+export function resolveDialogueSource(doc: ManifestV2): string | null {
+  const { project } = readManifestV2(doc);
+  const sourceId = project.audioRoute.resolvedBy === 'user'
+    ? project.audioRoute.activeSourceId
+    : resolveAudioRoute(project.timeline.sources.values());
+  if (sourceId == null || !project.timeline.sources.has(sourceId)) return null;
+  const source = project.timeline.source(sourceId);
+  return source.hasAudio && source.present ? source.path : null;
+}
+
 export function toManifestV2(
   takeId: string,
   project: Project,
@@ -197,6 +303,7 @@ export function toManifestV2(
 
 export function toV1Compat(doc: ManifestV2): V1Manifest {
   const { project, settings } = readManifestV2(doc);
+  const compatibleAudioSources = [...project.timeline.sources.values()].filter((source) => source.hasAudio);
   const track = project.timeline.tracks.find((candidate) => candidate.id === V1_VIDEO_TRACK_ID)
     ?? project.timeline.tracks[0];
   const clips: V1Clip[] = [];
@@ -221,6 +328,8 @@ export function toV1Compat(doc: ManifestV2): V1Manifest {
     ...(settings.exportRate != null ? { exportRate: settings.exportRate } : {}),
     ...(settings.music != null ? { music: settings.music } : {}),
     ...(settings.vertical === true ? { vertical: true } : {}),
+    audioRoute: project.audioRoute,
+    ...(compatibleAudioSources.length > 0 ? { compatAudioSources: compatibleAudioSources } : {}),
     clips,
     updatedAt: doc.updatedAt,
   };

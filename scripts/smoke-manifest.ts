@@ -8,16 +8,20 @@ import { createRequire } from 'node:module';
 import { InvariantError } from '../lib/domain/invariant.ts';
 import { Project } from '../lib/domain/project.ts';
 import type { V1Manifest } from '../lib/domain/manifest-v2.ts';
+import type { Source } from '../lib/domain/source.ts';
 import {
   MANIFEST_SCHEMA_VERSION,
   detectSchemaVersion,
   migrateV1ToV2,
   readManifestV2,
+  resolveDialogueSource,
+  resolveLegacyDialogueSource,
   toV1Compat,
 } from '../lib/domain/manifest-v2.ts';
 
 const require_ = createRequire(import.meta.url);
 const store = require_('../lib/node/manifest-store.js');
+const { resolveTakeLocalDialoguePath } = require_('../lib/node/ffmpeg-util.js');
 
 let cases = 0;
 function group(name: string, body: () => void): void {
@@ -41,6 +45,21 @@ const code = (fn: () => unknown): string => {
 };
 
 const DURATIONS = { 'screen.mp4': 600, 'cam.mp4': 600, 'audio.mp3': 600 };
+
+function compatibleAudioSource(id: string, path: string, overrides: Partial<Source> = {}): Source {
+  return {
+    id,
+    path,
+    label: path,
+    kind: 'audio',
+    availableDuration: 600_000,
+    hasAudio: true,
+    present: true,
+    origin: 'import',
+    peaksKey: null,
+    ...overrides,
+  };
+}
 
 const v1: V1Manifest = {
   version: 1,
@@ -99,6 +118,122 @@ group('a null v1 out resolves to the source available duration', () => {
   };
   const clip = migrateV1ToV2(open, DURATIONS).project.timeline.tracks[0]!.clips[0]!;
   assert.strictEqual(clip.duration, 600_000);
+});
+
+group('three-stem v1 migration defaults dialogue to the separately captured microphone file', () => {
+  const doc = migrateV1ToV2(v1, DURATIONS);
+  assert.deepStrictEqual(doc.project.audioRoute, { activeSourceId: 'src-audio', resolvedBy: 'auto' });
+  assert.strictEqual(resolveDialogueSource(doc), 'audio.mp3');
+  assert.deepStrictEqual(toV1Compat(doc).audioRoute, doc.project.audioRoute);
+});
+
+group('legacy camera audio resolves when no separate microphone stem exists', () => {
+  const doc = migrateV1ToV2(v1, { 'screen.mp4': 600, 'cam.mp4': 600 });
+  assert.deepStrictEqual(doc.project.audioRoute, { activeSourceId: 'src-cam', resolvedBy: 'auto' });
+  assert.strictEqual(resolveDialogueSource(doc), 'cam.mp4');
+});
+
+group('manifest-less takes resolve dialogue through the V1 source route', () => {
+  assert.strictEqual(resolveLegacyDialogueSource(DURATIONS), 'audio.mp3');
+  assert.strictEqual(resolveLegacyDialogueSource({ 'screen.mp4': 600, 'cam.mp4': 600 }), 'cam.mp4');
+  assert.strictEqual(resolveLegacyDialogueSource({ 'screen.mp4': 600 }), null);
+  assert.strictEqual(resolveLegacyDialogueSource({}), null);
+});
+
+group('compatibility audio sources reject reserved V1 source ID collisions', () => {
+  assert.strictEqual(
+    code(() => migrateV1ToV2({
+      ...v1,
+      compatAudioSources: [compatibleAudioSource('src-audio', 'dialogue.m4a')],
+    }, DURATIONS)),
+    'COMPAT_AUDIO_SOURCE_ID_CONFLICT',
+  );
+});
+
+group('every reserved V1 source ID rejects a noncanonical compatibility definition', () => {
+  for (const sourceId of ['src-cam', 'src-screen', 'src-audio']) {
+    assert.strictEqual(
+      code(() => migrateV1ToV2({
+        ...v1,
+        compatAudioSources: [compatibleAudioSource(sourceId, 'dialogue.m4a', {
+          kind: 'video',
+          origin: 'capture',
+        })],
+      }, DURATIONS)),
+      'COMPAT_AUDIO_SOURCE_ID_CONFLICT',
+      sourceId,
+    );
+  }
+});
+
+group('canonical reserved screen compatibility sources retain the generated source', () => {
+  const doc = migrateV1ToV2({
+    ...v1,
+    compatAudioSources: [compatibleAudioSource('src-screen', 'screen.mp4', {
+      kind: 'video',
+      hasAudio: false,
+      origin: 'capture',
+    })],
+  }, DURATIONS);
+  assert.deepStrictEqual(doc.project.timeline.sources['src-screen'], {
+    path: 'screen.mp4',
+    label: 'screen.mp4',
+    kind: 'video',
+    availableDuration: 600_000,
+    hasAudio: false,
+    present: true,
+    origin: 'capture',
+    peaksKey: null,
+  });
+});
+
+group('reserved V1 compatibility IDs conflict when their stems are absent', () => {
+  assert.strictEqual(
+    code(() => migrateV1ToV2({
+      ...v1,
+      compatAudioSources: [compatibleAudioSource('src-audio', 'audio.mp3', { origin: 'capture' })],
+    }, { 'screen.mp4': 600, 'cam.mp4': 600 })),
+    'COMPAT_AUDIO_SOURCE_ID_CONFLICT',
+  );
+});
+
+group('a take-local dialogue source survives the Get Save Apply compatibility round trip', () => {
+  const initial = migrateV1ToV2(v1, DURATIONS);
+  initial.project.timeline.sources['src-dialogue'] = {
+    path: 'dialogue.m4a',
+    label: 'dialogue.m4a',
+    kind: 'audio',
+    availableDuration: 600_000,
+    hasAudio: true,
+    present: true,
+    origin: 'import',
+    peaksKey: null,
+  };
+  initial.project.audioRoute = { activeSourceId: 'src-dialogue', resolvedBy: 'user' };
+
+  const get = toV1Compat(initial);
+  const saved = migrateV1ToV2(get, DURATIONS);
+
+  assert.deepStrictEqual(
+    get.compatAudioSources?.filter((source) => ['src-cam', 'src-audio'].includes(source.id)),
+    ['src-cam', 'src-audio'].map((sourceId) => ({
+      id: sourceId,
+      ...initial.project.timeline.sources[sourceId]!,
+    })),
+  );
+  assert.strictEqual(get.compatAudioSources?.some((source) => source.id === 'src-dialogue'), true);
+  assert.deepStrictEqual(saved.project.timeline.sources['src-dialogue'], initial.project.timeline.sources['src-dialogue']);
+  assert.deepStrictEqual(saved.project.audioRoute, { activeSourceId: 'src-dialogue', resolvedBy: 'user' });
+  assert.strictEqual(resolveDialogueSource(saved), 'dialogue.m4a');
+
+  const takeDir = tmpTake();
+  const dialoguePath = path.join(takeDir, 'dialogue.m4a');
+  fs.writeFileSync(dialoguePath, 'fixture');
+  try {
+    assert.strictEqual(resolveTakeLocalDialoguePath(takeDir, resolveDialogueSource(saved)), fs.realpathSync(dialoguePath));
+  } finally {
+    fs.rmSync(takeDir, { recursive: true, force: true });
+  }
 });
 
 group('migrated documents load through Project.fromJSON', () => {
