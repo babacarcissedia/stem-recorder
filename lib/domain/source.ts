@@ -1,10 +1,9 @@
-import type { Ms } from './ms.ts';
-import { assertNonNegativeMs } from './ms.ts';
-import type { SourceId } from './clip.ts';
+import { assertNonNegativeMs, type Ms } from './ms.ts';
+import { type SourceId } from './clip.ts';
 import { invariant } from './invariant.ts';
 
 export type SourceKind = 'video' | 'audio' | 'image' | 'text';
-export type SourceOrigin = 'capture' | 'import' | 'generated';
+export type SourceOrigin = 'capture' | `import` | 'generated';
 
 export type Source = {
   id: SourceId;

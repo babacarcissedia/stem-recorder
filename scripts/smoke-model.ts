@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 import assert from 'node:assert';
 
-import { InvariantError } from './invariant.ts';
-import { assertMs, formatTimecode, msToSeconds, secondsToMs } from './ms.ts';
-import { constant, evaluate, keyed } from './animatable.ts';
-import { IDENTITY_TRANSFORM, isIdentityTransform, makeTransform } from './transform.ts';
-import { EffectStack, normalizeRect, normalizeSpeedRate, rectsEqual } from './effects.ts';
-import { Clip, MIN_CLIP_DURATION } from './clip.ts';
-import { Track } from './track.ts';
-import { Timeline } from './timeline.ts';
-import { Selection } from './selection.ts';
-import { makeSource, resolveAudioRoute } from './source.ts';
-import { makeOutputTarget } from './output-target.ts';
-import { Project } from './project.ts';
+import { InvariantError } from '../lib/domain/invariant.ts';
+import { assertMs, formatTimecode, msToSeconds, secondsToMs } from '../lib/domain/ms.ts';
+import { constant, evaluate, keyed } from '../lib/domain/animatable.ts';
+import { IDENTITY_TRANSFORM, isIdentityTransform, makeTransform } from '../lib/domain/transform.ts';
+import { EffectStack, normalizeRect, normalizeSpeedRate, rectsEqual } from '../lib/domain/effects.ts';
+import { Clip, MIN_CLIP_DURATION } from '../lib/domain/clip.ts';
+import { Track } from '../lib/domain/track.ts';
+import { Timeline } from '../lib/domain/timeline.ts';
+import { Selection } from '../lib/domain/selection.ts';
+import { makeSource, resolveAudioRoute } from '../lib/domain/source.ts';
+import { makeOutputTarget } from '../lib/domain/output-target.ts';
+import { Project } from '../lib/domain/project.ts';
 
 let cases = 0;
 function group(name: string, body: () => void): void {

@@ -40,6 +40,7 @@
     "check:arch:self-test": "node scripts/check-architecture.js --self-test",
     "smoke:apply": "node scripts/smoke-apply.js",
     "smoke:clips": "node scripts/smoke-clip-ops.js",
+    "smoke:model": "node scripts/smoke-model.ts",
     "smoke:pip": "node scripts/smoke-pip-filter.js",
     "smoke:freeze": "node scripts/smoke-freeze.js",
     "smoke:thumbs": "node scripts/smoke-thumbs.js",
