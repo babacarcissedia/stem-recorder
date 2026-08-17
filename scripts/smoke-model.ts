@@ -143,6 +143,43 @@ group('speed breaks the 1:1 and sourceOut goes through the stack', () => {
   );
 });
 
+group('nonintegral speed mappings preserve selected source boundaries', () => {
+  const speed = (rate: number) => new EffectStack([
+    { id: `fx-speed-${rate}`, type: 'speed', enabled: true, params: { rate } },
+  ]);
+
+  const onePointFive = new Clip({
+    id: 'speed-15', sourceId: 'src-screen', timelineStart: 0, duration: 2, sourceIn: 0, effects: speed(1.5),
+  });
+  const [onePointFiveLeft, onePointFiveRight] = onePointFive.splitAt(1, 'speed-15-right');
+  assert.strictEqual(onePointFive.sourceOut, 3);
+  assert.strictEqual(onePointFiveLeft.sourceOut, 2);
+  assert.strictEqual(onePointFiveRight.sourceIn, 2);
+  assert.strictEqual(onePointFiveRight.sourceOut, 3);
+
+  const onePointFiveFourPoint = Clip.fourPoint({
+    id: 'speed-15-four-point', sourceId: 'src-screen', timelineStart: 0, sourceIn: 0, sourceOut: 1, effects: speed(1.5),
+  });
+  assert.strictEqual(onePointFiveFourPoint.duration, 1);
+  assert.strictEqual(onePointFiveFourPoint.sourceOut, 1);
+  assert.strictEqual(Clip.fromJSON(onePointFiveFourPoint.toJSON()).sourceOut, 1);
+
+  const onePointTwoFive = new Clip({
+    id: 'speed-125', sourceId: 'src-screen', timelineStart: 0, duration: 2, sourceIn: 0, effects: speed(1.25),
+  });
+  const [onePointTwoFiveLeft, onePointTwoFiveRight] = onePointTwoFive.splitAt(1, 'speed-125-right');
+  assert.strictEqual(onePointTwoFive.sourceOut, 3);
+  assert.strictEqual(onePointTwoFiveLeft.sourceOut, 1);
+  assert.strictEqual(onePointTwoFiveRight.sourceIn, 1);
+  assert.strictEqual(onePointTwoFiveRight.sourceOut, 3);
+
+  const onePointTwoFiveFourPoint = Clip.fourPoint({
+    id: 'speed-125-four-point', sourceId: 'src-screen', timelineStart: 0, sourceIn: 3, sourceOut: 5, effects: speed(1.25),
+  });
+  assert.strictEqual(onePointTwoFiveFourPoint.duration, 2);
+  assert.strictEqual(onePointTwoFiveFourPoint.sourceOut, 5);
+});
+
 group('freeze is an effect holding one source frame', () => {
   const stack = new EffectStack([{ id: 'fx-f', type: 'freeze', enabled: true, params: {} }]);
   const c = new Clip({

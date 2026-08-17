@@ -20,6 +20,7 @@ export type ClipInit = {
   timelineStart: Ms;
   duration: Ms;
   sourceIn: Ms;
+  sourceOut?: Ms;
   label?: string;
   enabled?: boolean;
   linkGroupId?: LinkGroupId | null;
@@ -33,6 +34,7 @@ export type ClipJson = {
   timelineStart: Ms;
   duration: Ms;
   sourceIn: Ms;
+  sourceOut?: Ms;
   label?: string;
   enabled?: boolean;
   linkGroup?: LinkGroupId;
@@ -53,6 +55,7 @@ export class Clip {
   readonly timelineStart: Ms;
   readonly duration: Ms;
   readonly sourceIn: Ms;
+  private readonly sourceOutOverride: Ms | null;
   readonly label: string;
   readonly enabled: boolean;
   readonly linkGroupId: LinkGroupId | null;
@@ -71,12 +74,22 @@ export class Clip {
     this.timelineStart = assertNonNegativeMs(init.timelineStart, 'timelineStart');
     this.duration = assertPositiveMs(init.duration, 'duration');
     this.sourceIn = assertNonNegativeMs(init.sourceIn, 'sourceIn');
+    this.sourceOutOverride = init.sourceOut === undefined
+      ? null
+      : assertNonNegativeMs(init.sourceOut, 'sourceOut');
     this.label = init.label ?? '';
     this.enabled = init.enabled ?? true;
     this.linkGroupId = init.linkGroupId ?? null;
     this.transform = init.transform ?? constant(IDENTITY_TRANSFORM);
     this.effects =
       init.effects instanceof EffectStack ? init.effects : new EffectStack(init.effects ?? []);
+    if (this.sourceOutOverride !== null && !this.effects.isFreeze) {
+      invariant(
+        this.sourceOutOverride > this.sourceIn,
+        'SOURCE_OUT_BEFORE_IN',
+        `${this.sourceIn}..${this.sourceOutOverride}`,
+      );
+    }
     assertNonNegativeMs(this.sourceOut, 'sourceOut');
   }
 
@@ -88,7 +101,7 @@ export class Clip {
     invariant(!stack.isFreeze, 'FREEZE_HAS_NO_SOURCE_SPAN', init.id);
     invariant(sourceOut > sourceIn, 'SOURCE_OUT_BEFORE_IN', `${sourceIn}..${sourceOut}`);
     const duration = Math.round((sourceOut - sourceIn) / stack.rate);
-    return new Clip({ ...init, effects: stack, duration });
+    return new Clip({ ...init, effects: stack, duration, sourceOut });
   }
 
   get timelineEnd(): Ms {
@@ -97,7 +110,7 @@ export class Clip {
 
   get sourceOut(): Ms {
     if (this.effects.isFreeze) return this.sourceIn;
-    return this.sourceIn + Math.round(this.duration * this.effects.rate);
+    return this.sourceOutOverride ?? this.sourceIn + Math.round(this.duration * this.effects.rate);
   }
 
   transformAt(timelineTime: Ms): Transform {
@@ -107,12 +120,18 @@ export class Clip {
   sourceTimeAt(timelineTime: Ms): Ms {
     const offset = Math.min(Math.max(timelineTime - this.timelineStart, 0), this.duration);
     if (this.effects.isFreeze) return this.sourceIn;
+    if (this.sourceOutOverride !== null) {
+      return this.sourceIn + Math.round(offset * (this.sourceOut - this.sourceIn) / this.duration);
+    }
     return this.sourceIn + Math.round(offset * this.effects.rate);
   }
 
   timelineTimeAt(sourceTime: Ms): Ms {
     if (this.effects.isFreeze) return this.timelineStart;
-    const offset = Math.round((sourceTime - this.sourceIn) / this.effects.rate);
+    const rate = this.sourceOutOverride === null
+      ? this.effects.rate
+      : (this.sourceOut - this.sourceIn) / this.duration;
+    const offset = Math.round((sourceTime - this.sourceIn) / rate);
     return this.timelineStart + Math.min(Math.max(offset, 0), this.duration);
   }
 
@@ -131,6 +150,7 @@ export class Clip {
       timelineStart: this.timelineStart,
       duration: this.duration,
       sourceIn: this.sourceIn,
+      sourceOut: this.sourceOutOverride ?? undefined,
       label: this.label,
       enabled: this.enabled,
       linkGroupId: this.linkGroupId,
@@ -153,12 +173,14 @@ export class Clip {
       `${at} not inside ${this.timelineStart}..${this.timelineEnd}`,
     );
     const leftDuration = at - this.timelineStart;
-    const left = this.with({ duration: leftDuration });
+    const sourceAtCut = this.sourceTimeAt(at);
+    const left = this.with({ duration: leftDuration, sourceOut: sourceAtCut });
     const right = this.with({
       id: rightId,
       timelineStart: at,
       duration: this.duration - leftDuration,
-      sourceIn: this.sourceTimeAt(at),
+      sourceIn: sourceAtCut,
+      sourceOut: this.sourceOut,
     });
     return [left, right];
   }
@@ -171,6 +193,7 @@ export class Clip {
       duration: this.duration,
       sourceIn: this.sourceIn,
     };
+    if (this.sourceOutOverride !== null) json.sourceOut = this.sourceOutOverride;
     if (this.label) json.label = this.label;
     if (!this.enabled) json.enabled = false;
     if (this.linkGroupId) json.linkGroup = this.linkGroupId;
@@ -188,6 +211,7 @@ export class Clip {
       timelineStart: json.timelineStart,
       duration: json.duration,
       sourceIn: json.sourceIn,
+      sourceOut: json.sourceOut,
       label: json.label,
       enabled: json.enabled,
       linkGroupId: json.linkGroup ?? null,
