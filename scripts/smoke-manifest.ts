@@ -306,6 +306,22 @@ group('schema version detection separates v1 from v2 and rejects the unknown', (
   );
 });
 
+group('future manifests are refused by the V2 reader with both schema versions named', () => {
+  const futureVersion = MANIFEST_SCHEMA_VERSION + 1;
+  const future = { ...migrateV1ToV2(v1, DURATIONS), schemaVersion: futureVersion };
+  let error: unknown;
+  try {
+    readManifestV2(future as never);
+  } catch (reason) {
+    error = reason;
+  }
+
+  assert.ok(error instanceof InvariantError, `expected InvariantError, got ${String(error)}`);
+  assert.strictEqual(error.code, 'FROM_THE_FUTURE');
+  assert.match(error.message, new RegExp(String(MANIFEST_SCHEMA_VERSION)));
+  assert.match(error.message, new RegExp(String(futureVersion)));
+});
+
 group('reading a v1 file on disk writes the backup before it migrates', () => {
   const takeDir = tmpTake();
   const manifestPath = path.join(takeDir, store.MANIFEST_NAME);
@@ -322,6 +338,37 @@ group('reading a v1 file on disk writes the backup before it migrates', () => {
   assert.strictEqual(onDisk.schemaVersion, 2);
   assert.strictEqual(store.readManifestDoc(takeDir, DURATIONS).migrated, false);
   fs.rmSync(takeDir, { recursive: true, force: true });
+});
+
+group('future disk manifests are refused without a backup or write', () => {
+  const takeDir = tmpTake();
+  const manifestPath = path.join(takeDir, store.MANIFEST_NAME);
+  const futureVersion = MANIFEST_SCHEMA_VERSION + 1;
+  const future = { ...migrateV1ToV2(v1, DURATIONS), schemaVersion: futureVersion };
+  const originalBytes = JSON.stringify(future, null, 2);
+  fs.writeFileSync(manifestPath, originalBytes, 'utf8');
+
+  try {
+    let error: unknown;
+    try {
+      store.readManifestDoc(takeDir, DURATIONS);
+    } catch (reason) {
+      error = reason;
+    }
+
+    assert.ok(error instanceof Error, `expected Error, got ${String(error)}`);
+    assert.strictEqual((error as Error & { code?: unknown }).code, 'FROM_THE_FUTURE');
+    assert.match(error.message, new RegExp(String(MANIFEST_SCHEMA_VERSION)));
+    assert.match(error.message, new RegExp(String(futureVersion)));
+    assert.strictEqual(fs.readFileSync(manifestPath, 'utf8'), originalBytes);
+    assert.deepStrictEqual(
+      fs.readdirSync(path.join(takeDir, 'edit')).filter((name) => /^manifest\.v\d+\.bak\.json$/.test(name)),
+      [],
+    );
+    assert.strictEqual(JSON.parse(fs.readFileSync(manifestPath, 'utf8')).schemaVersion, futureVersion);
+  } finally {
+    fs.rmSync(takeDir, { recursive: true, force: true });
+  }
 });
 
 group('the backup captures the pre-migration bytes even when migration then fails', () => {
