@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { ShellLayout } from './components/layout/shell-layout.tsx';
+import { PlayerPanel } from './components/player/player-panel.tsx';
+import { InspectorSidebar } from './components/sidebar/inspector-sidebar.tsx';
+import { MediaSidebar } from './components/sidebar/media-sidebar.tsx';
+import { TimelineFooter } from './components/timeline/timeline-footer.tsx';
+import { TopBar } from './components/top-bar/top-bar.tsx';
+
 const SHELL_VIEWS = ['studio', 'record', 'library'] as const;
 const DEFAULT_SHELL_VIEW: ShellView = 'studio';
 
@@ -60,7 +67,7 @@ function LegacyStudioHost() {
 
   useShellCommandLifecycle('studio', legacyHostReady ? legacyStudioLifecycle : null);
 
-  return <div ref={hostRef} className="legacy-studio-host" role="region" aria-label="Studio compatibility host" />;
+  return <div ref={hostRef} className="legacy-studio-host" role="region" aria-label="Studio editor" />;
 }
 
 function StudioEditorChrome() {
@@ -76,6 +83,15 @@ function StudioEditorChrome() {
           Ready
         </div>
       </header>
+      <fieldset className="studio-editor-react-shell" role="region" aria-label="Studio preview" disabled>
+        <TopBar projectName="Current take" autoSavedAt={null} />
+        <ShellLayout
+          leftSidebar={<MediaSidebar />}
+          main={<PlayerPanel />}
+          rightSidebar={<InspectorSidebar />}
+          footer={<TimelineFooter />}
+        />
+      </fieldset>
       <div className="studio-editor-compatibility-frame" role="region" aria-label="Studio editor">
         <LegacyStudioHost />
       </div>
@@ -137,7 +153,7 @@ export function AppShell() {
   const [shellView, setShellView] = useState<ShellView>(DEFAULT_SHELL_VIEW);
 
   return (
-    <div className="shell-root" data-shell-view={shellView} aria-label="Stem Studio shell">
+    <div className="shell-root" data-shell-view={shellView} aria-label="Stem Studio">
       <nav className="shell-route-nav" aria-label="Workspaces">
         {SHELL_VIEWS.map((view) => (
           <button

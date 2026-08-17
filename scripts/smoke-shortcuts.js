@@ -144,18 +144,23 @@ function check(condition, message) {
       && /case\s+['"]studio['"]\s*:\s*\n\s*return\s+<StudioEditorChrome\s*\/>;/.test(appShellSource)
       && /\buseShellCommandLifecycle\s*\(\s*['"]studio['"]\s*,\s*legacyHostReady\s*\?\s*legacyStudioLifecycle\s*:\s*null\s*\)/.test(appShellSource)
       && /\bmountShortcutMenuLifecycle\s*:\s*\(\)\s*=>\s*\{[\s\S]*\breturn\s+legacyStudioWindow\.mountLegacyStudio\s*\(\s*\)\s*;[\s\S]*\}/.test(appShellSource)
-      && /\bmountRecorderPanel\s*\(/.test(appShellSource),
+      && /\bmountRecorderPanel\s*\(/.test(appShellSource)
+      && /import\s+\{\s*ShellLayout\s*\}\s+from\s+['"]\.\/components\/layout\/shell-layout\.tsx['"]/.test(appShellSource)
+      && /import\s+\{\s*TimelineFooter\s*\}\s+from\s+['"]\.\/components\/timeline\/timeline-footer\.tsx['"]/.test(appShellSource),
     'AppShell routes the default studio view through React editor chrome and the LegacyStudioHost compatibility lifecycle'
   );
   check(
-    /className=['"]shell-root['"][^>]*data-shell-view=\{shellView\}[^>]*aria-label=['"]Stem Studio shell['"]/.test(appShellSource)
+    /className=['"]shell-root['"][^>]*data-shell-view=\{shellView\}[^>]*aria-label=['"]Stem Studio['"]/.test(appShellSource)
       && /<nav\s+className=['"]shell-route-nav['"]\s+aria-label=['"]Workspaces['"]>/.test(appShellSource)
       && /<main\s+className=['"]shell-route['"]\s+data-shell-route=\{shellView\}\s+aria-label=\{routeLabel\(shellView\)\}>/.test(appShellSource)
       && /<section\s+className=['"]studio-editor-chrome['"]\s+aria-labelledby=['"]studio-editor-title['"]>/.test(appShellSource)
       && /<h1\s+id=['"]studio-editor-title['"]\s+className=['"]studio-editor-title['"]>Studio<\/h1>/.test(appShellSource)
       && /className=['"]studio-editor-status['"]\s+role=['"]status['"]\s+aria-label=['"]Studio status['"]/.test(appShellSource)
+      && /className=['"]studio-editor-react-shell['"]\s+role=['"]region['"]\s+aria-label=['"]Studio preview['"]\s+disabled/.test(appShellSource)
+      && /<TopBar\s+projectName=['"]Current take['"]\s+autoSavedAt=\{null\}\s*\/>/.test(appShellSource)
+      && /<ShellLayout[\s\S]*leftSidebar=\{<MediaSidebar \/>\}[\s\S]*main=\{<PlayerPanel \/>\}[\s\S]*rightSidebar=\{<InspectorSidebar \/>\}[\s\S]*footer=\{<TimelineFooter \/>\}[\s\S]*\/>/.test(appShellSource)
       && /className=['"]studio-editor-compatibility-frame['"]\s+role=['"]region['"]\s+aria-label=['"]Studio editor['"]/.test(appShellSource)
-      && /className=['"]legacy-studio-host['"]\s+role=['"]region['"]\s+aria-label=['"]Studio compatibility host['"]/.test(appShellSource),
+      && /className=['"]legacy-studio-host['"]\s+role=['"]region['"]\s+aria-label=['"]Studio editor['"]/.test(appShellSource),
     'AppShell exposes labelled shell, route navigation, React editor chrome, route, and legacy compatibility landmarks'
   );
   check(
@@ -176,6 +181,18 @@ function check(condition, message) {
       && /case\s+['"]record['"]\s*:\s*\n\s*return\s+<RecordShell\s*\/>;/.test(appShellSource)
       && /case\s+['"]library['"]\s*:\s*\n\s*return\s+<LibraryShell\s*\/>;/.test(appShellSource),
     'AppShell has one Studio-only routed React chrome path wrapping LegacyStudioHost'
+  );
+  const timelineFooterSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'components', 'timeline', 'timeline-footer.tsx'), 'utf8');
+  check(
+    /<footer\s+className=['"]shell-footer['"]\s+aria-label=['"]Timeline['"]>/.test(timelineFooterSource)
+      && /Split, delete, and save are available in the Studio editor below\./.test(timelineFooterSource)
+      && /className=['"]shell-footer-actions['"]\s+role=['"]group['"]\s+aria-label=['"]Timeline actions preview['"]/.test(timelineFooterSource)
+      && /<button\s+className=['"]shell-timeline-button['"]\s+type=['"]button['"]\s+disabled>Split<\/button>/.test(timelineFooterSource)
+      && /<button\s+className=['"]shell-timeline-button['"]\s+type=['"]button['"]\s+disabled>Delete<\/button>/.test(timelineFooterSource)
+      && /<button\s+className=['"]shell-timeline-button['"]\s+type=['"]button['"]\s+disabled>Save<\/button>/.test(timelineFooterSource)
+      && /className=['"]shell-timeline-lane-label['"]>Video 1<\/span>/.test(timelineFooterSource)
+      && !/onClick=/.test(timelineFooterSource),
+    'TimelineFooter exposes labelled, non-editing timeline chrome'
   );
   check(
     indexHtmlSource.indexOf('id="app-shell-root"') >= 0
