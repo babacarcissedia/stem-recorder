@@ -34,7 +34,13 @@ import {
   readManifestDoc,
   writeManifestDoc,
 } from '../../lib/node/manifest-store.js';
-import { V1_STEMS, migrateV1ToV2, resolveDialogueSource, toV1Compat } from '../../lib/domain/manifest-v2.ts';
+import {
+  V1_STEMS,
+  migrateV1ToV2,
+  resolveDialogueSource,
+  resolveLegacyDialogueSource,
+  toV1Compat,
+} from '../../lib/domain/manifest-v2.ts';
 import { getFilmstrip, getWaveformPeaks } from '../../lib/node/media-cache.js';
 import {
   runLocal as runLocalAsr,
@@ -92,7 +98,7 @@ function readStudioManifest(takeId) {
   const result = readManifestDoc(takeDir, durations);
   const dialogueSource = result.doc
     ? resolveDialogueSource(result.doc)
-    : (fs.existsSync(path.join(takeDir, 'audio.mp3')) ? 'audio.mp3' : null);
+    : resolveLegacyDialogueSource(durations);
   return {
     takeDir,
     duration,

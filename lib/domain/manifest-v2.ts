@@ -110,7 +110,7 @@ function compatAudioSource(value: unknown): Source {
   invariant(kind === 'audio' || kind === 'video', 'COMPAT_AUDIO_SOURCE_NOT_AUDIBLE');
   const origin = requiredCompatString(source.origin, 'COMPAT_AUDIO_SOURCE_ORIGIN_REQUIRED');
   invariant(['capture', 'import', 'generated'].includes(origin), 'COMPAT_AUDIO_SOURCE_ORIGIN_INVALID');
-  invariant(source.hasAudio === true, 'COMPAT_AUDIO_SOURCE_NOT_AUDIBLE');
+  invariant(typeof source.hasAudio === 'boolean', 'COMPAT_AUDIO_SOURCE_NOT_AUDIBLE');
   invariant(typeof source.present === 'boolean', 'COMPAT_AUDIO_SOURCE_PRESENT_INVALID');
   invariant(
     typeof source.availableDuration === 'number'
@@ -127,7 +127,7 @@ function compatAudioSource(value: unknown): Source {
     label: requiredCompatString(source.label, 'COMPAT_AUDIO_SOURCE_LABEL_REQUIRED'),
     kind: kind as SourceKind,
     availableDuration: source.availableDuration as number,
-    hasAudio: true,
+    hasAudio: source.hasAudio as boolean,
     present: source.present as boolean,
     origin: origin as SourceOrigin,
     peaksKey: source.peaksKey as string | null,
@@ -145,6 +145,22 @@ function compatAudioSources(doc: V1Manifest): Source[] {
     sourceIds.add(source.id);
     return source;
   });
+}
+
+function isReservedV1SourceId(sourceId: SourceId): boolean {
+  return V1_STEMS.some((stem) => stem.sourceId === sourceId);
+}
+
+function matchesCanonicalSource(source: Source, canonical: Source): boolean {
+  return source.id === canonical.id
+    && source.path === canonical.path
+    && source.label === canonical.label
+    && source.kind === canonical.kind
+    && source.availableDuration === canonical.availableDuration
+    && source.hasAudio === canonical.hasAudio
+    && source.present === canonical.present
+    && source.origin === canonical.origin
+    && source.peaksKey === canonical.peaksKey;
 }
 
 function sourcesForTake(durationsSeconds: StemDurations, compatibleSources: Source[] = []): Source[] {
@@ -165,9 +181,21 @@ function sourcesForTake(durationsSeconds: StemDurations, compatibleSources: Sour
     );
   }
   for (const source of compatibleSources) {
-    if (!sources.some((candidate) => candidate.id === source.id)) sources.push(source);
+    const canonical = sources.find((candidate) => candidate.id === source.id);
+    if (isReservedV1SourceId(source.id)) {
+      invariant(canonical && matchesCanonicalSource(source, canonical), 'COMPAT_AUDIO_SOURCE_ID_CONFLICT', source.id);
+      continue;
+    }
+    invariant(source.hasAudio, 'COMPAT_AUDIO_SOURCE_NOT_AUDIBLE');
+    sources.push(source);
   }
   return sources;
+}
+
+export function resolveLegacyDialogueSource(durationsSeconds: StemDurations): string | null {
+  const sources = sourcesForTake(durationsSeconds);
+  const sourceId = resolveAudioRoute(sources);
+  return sourceId == null ? null : sources.find((source) => source.id === sourceId)?.path ?? null;
 }
 
 function sourceIdForFile(file: string): SourceId {
