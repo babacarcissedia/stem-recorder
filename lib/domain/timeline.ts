@@ -39,7 +39,7 @@ export class Timeline {
   } = {}) {
     this.takeId = init.takeId ?? '';
     this.sources = new Map();
-    for (const source of init.sources ?? []) this.sources.set(source.id, source);
+    for (const source of init.sources ?? []) this.addSource(source);
     this.tracks = [];
     this.markers = init.markers ?? [];
     for (const track of init.tracks ?? []) this.addTrack(track);

@@ -140,6 +140,19 @@ group('manifest-less takes resolve dialogue through the V1 source route', () => 
   assert.strictEqual(resolveLegacyDialogueSource({}), null);
 });
 
+group('compatibility audio sources reject duplicate source IDs', () => {
+  assert.strictEqual(
+    code(() => migrateV1ToV2({
+      ...v1,
+      compatAudioSources: [
+        compatibleAudioSource('src-dialogue', 'dialogue-a.m4a'),
+        compatibleAudioSource('src-dialogue', 'dialogue-b.m4a'),
+      ],
+    }, DURATIONS)),
+    'DUPLICATE_COMPAT_AUDIO_SOURCE',
+  );
+});
+
 group('compatibility audio sources reject reserved V1 source ID collisions', () => {
   assert.strictEqual(
     code(() => migrateV1ToV2({
