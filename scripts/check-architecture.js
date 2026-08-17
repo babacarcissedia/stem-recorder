@@ -115,6 +115,90 @@ function productionPolicyEntries(source) {
   return entries;
 }
 
+function withoutComments(source) {
+  let output = '';
+  let quote = null;
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    const next = source[index + 1];
+    if (quote) {
+      output += character;
+      if (character === '\\') {
+        output += next || '';
+        index += 1;
+      } else if (character === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (character === '"' || character === "'" || character === '`') {
+      quote = character;
+      output += character;
+    } else if (character === '/' && next === '/') {
+      while (index < source.length && source[index] !== '\n') index += 1;
+      output += '\n';
+    } else if (character === '/' && next === '*') {
+      index += 2;
+      while (index < source.length && (source[index] !== '*' || source[index + 1] !== '/')) index += 1;
+      index += 1;
+      output += ' ';
+    } else {
+      output += character;
+    }
+  }
+  return output;
+}
+
+function balancedLiteral(source, start, open, close) {
+  if (source[start] !== open) return null;
+  let depth = 0;
+  let quote = null;
+  for (let index = start; index < source.length; index += 1) {
+    const character = source[index];
+    if (quote) {
+      if (character === '\\') {
+        index += 1;
+      } else if (character === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (character === '"' || character === "'" || character === '`') {
+      quote = character;
+    } else if (character === open) {
+      depth += 1;
+    } else if (character === close) {
+      depth -= 1;
+      if (depth === 0) return source.slice(start, index + 1);
+    }
+  }
+  return null;
+}
+
+function browserWindowWebPreferences(source) {
+  const stripped = withoutComments(source);
+  const constructor = /\bnew\s+BrowserWindow\s*\(/.exec(stripped);
+  if (!constructor) return null;
+
+  const openParen = stripped.indexOf('(', constructor.index);
+  const args = balancedLiteral(stripped, openParen, '(', ')');
+  if (!args) return null;
+  const openObject = args.indexOf('{');
+  const options = balancedLiteral(args, openObject, '{', '}');
+  if (!options) return null;
+
+  const properties = [...options.matchAll(/\bwebPreferences\s*:/g)];
+  if (properties.length !== 1) return null;
+  const colon = options.indexOf(':', properties[0].index);
+  const openPreferences = options.slice(colon + 1).search(/\S/) + colon + 1;
+  return balancedLiteral(options, openPreferences, '{', '}');
+}
+
+function booleanPropertyValues(objectLiteral, property) {
+  const pattern = new RegExp(`\\b${property}\\s*:\\s*(true|false)\\b`, 'g');
+  return [...objectLiteral.matchAll(pattern)].map((match) => match[1]);
+}
+
 function inspect(root) {
   const failures = [];
   const fail = (rule, message) => failures.push({ rule, message });
@@ -196,9 +280,21 @@ function inspect(root) {
     fail('window-hardening', `${mainIndex}: missing — the main entry declares the hardened BrowserWindow`);
   } else {
     const main = read(mainIndex);
-    for (const flag of ['contextIsolation: true', 'nodeIntegration: false', 'sandbox: true']) {
-      if (!main.includes(flag)) {
-        fail('window-hardening', `${mainIndex}: missing "${flag}" in BrowserWindow webPreferences`);
+    const preferences = browserWindowWebPreferences(main);
+    if (!preferences) {
+      fail('window-hardening', `${mainIndex}: BrowserWindow must have exactly one literal webPreferences object`);
+    } else if (/\.\.\./.test(preferences)) {
+      fail('window-hardening', `${mainIndex}: BrowserWindow webPreferences must not use spread properties`);
+    } else {
+      for (const [property, expected] of Object.entries({
+        contextIsolation: 'true',
+        nodeIntegration: 'false',
+        sandbox: 'true',
+      })) {
+        const values = booleanPropertyValues(preferences, property);
+        if (values.length !== 1 || values[0] !== expected) {
+          fail('window-hardening', `${mainIndex}: BrowserWindow webPreferences must set ${property}: ${expected}`);
+        }
       }
     }
     if (!/Content-Security-Policy/i.test(main)) {

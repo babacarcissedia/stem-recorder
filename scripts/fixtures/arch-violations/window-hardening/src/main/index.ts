@@ -10,8 +10,9 @@ export function createWindow(): BrowserWindow {
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false,
+      nodeIntegration: true,
+      sandbox: true,
+      // nodeIntegration: false,
     },
   });
 

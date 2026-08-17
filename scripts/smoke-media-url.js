@@ -22,14 +22,25 @@ check('round trips spaces, accents and hash characters', () => {
 
 check('encodes without characters that need URL escaping', () => {
   const url = toMediaUrl('/tmp/a b/c?d#e.mp4');
-  assert.ok(/^app:\/\/media\/[A-Za-z0-9_-]+$/.test(url), `unexpected encoding: ${url}`);
+  assert.ok(/^app:\/\/media\/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(url), `unexpected encoding: ${url}`);
 });
 
 check('rejects other schemes and hosts', () => {
   assert.strictEqual(fromMediaUrl('file:///tmp/screen.mp4'), null);
   assert.strictEqual(fromMediaUrl('app://bundle/index.html'), null);
   assert.strictEqual(fromMediaUrl('not a url'), null);
+  assert.strictEqual(fromMediaUrl(`${MEDIA_SCHEME}://${MEDIA_HOST}/%`), null);
   assert.strictEqual(fromMediaUrl(`${MEDIA_SCHEME}://${MEDIA_HOST}/`), null);
+});
+
+check('rejects a sibling path substituted into a minted URL', () => {
+  const source = '/Users/someone/Movies/stem-recorder/take-owned/screen.mp4';
+  const minted = toMediaUrl(source);
+  const sourceToken = Buffer.from(source, 'utf8').toString('base64url');
+  const siblingToken = Buffer.from('/Users/someone/Movies/stem-recorder/take-sibling/screen.mp4', 'utf8').toString('base64url');
+  const tampered = minted.replace(sourceToken, siblingToken);
+  assert.notStrictEqual(tampered, minted);
+  assert.strictEqual(fromMediaUrl(tampered), null);
 });
 
 console.log(JSON.stringify({ ok: true, cases }, null, 2));
