@@ -1,3 +1,19 @@
+export const MENU_COMMANDS = [
+  'file:new-take',
+  'file:open-take-folder',
+  'file:export-bundle',
+  'timeline:split',
+  'timeline:mark-in',
+  'timeline:mark-out',
+  'timeline:play-pause',
+] as const;
+
+export type MenuCommand = (typeof MENU_COMMANDS)[number];
+
+export function isMenuCommand(command: string): command is MenuCommand {
+  return (MENU_COMMANDS as readonly string[]).includes(command);
+}
+
 export interface BatchRecorderBridge {
   isDesktop: true;
   outRoot(): Promise<string>;
@@ -7,7 +23,7 @@ export interface BatchRecorderBridge {
 }
 
 export interface MenuBridge {
-  onCommand(listener: (command: string) => void): () => void;
+  onCommand(listener: (command: MenuCommand) => void): () => void;
 }
 
 export interface StemStudioBridge {

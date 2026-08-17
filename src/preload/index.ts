@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-import type { BatchRecorderBridge, MenuBridge, StemStudioBridge } from './api.ts';
+import { isMenuCommand, type BatchRecorderBridge, type MenuBridge, type StemStudioBridge } from './api.ts';
 
 const recorder: BatchRecorderBridge = {
   isDesktop: true,
@@ -30,7 +30,9 @@ const studio: StemStudioBridge = {
 
 const menu: MenuBridge = {
   onCommand: (listener) => {
-    const handler = (_event: Electron.IpcRendererEvent, command: string) => listener(command);
+    const handler = (_event: Electron.IpcRendererEvent, command: string) => {
+      if (isMenuCommand(command)) listener(command);
+    };
     ipcRenderer.on('menu:command', handler);
     return () => ipcRenderer.removeListener('menu:command', handler);
   },

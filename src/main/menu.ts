@@ -1,17 +1,6 @@
 import { app, shell, BrowserWindow, Menu, type MenuItemConstructorOptions } from 'electron';
 
-export type MenuCommand =
-  | 'file:new-take'
-  | 'file:open-take-folder'
-  | 'file:import-media'
-  | 'file:export-bundle'
-  | 'timeline:split'
-  | 'timeline:join'
-  | 'timeline:delete-ripple'
-  | 'timeline:delete-lift'
-  | 'timeline:mark-in'
-  | 'timeline:mark-out'
-  | 'timeline:play-pause';
+import type { MenuCommand } from '../preload/api.ts';
 
 function sendCommand(command: MenuCommand): void {
   const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
@@ -38,7 +27,6 @@ export function buildAppMenu(appName: string): Menu {
         commandItem('New Take', 'file:new-take', 'CmdOrCtrl+N'),
         commandItem('Open Take Folder', 'file:open-take-folder', 'CmdOrCtrl+O'),
         { type: 'separator' },
-        commandItem('Import Media…', 'file:import-media', 'CmdOrCtrl+I'),
         commandItem('Export Bundle…', 'file:export-bundle', 'CmdOrCtrl+E'),
         { type: 'separator' },
         isMac ? { role: 'close' } : { role: 'quit' },
@@ -73,10 +61,6 @@ export function buildAppMenu(appName: string): Menu {
       label: 'Timeline',
       submenu: [
         commandItem('Split', 'timeline:split', 'CmdOrCtrl+B'),
-        commandItem('Join', 'timeline:join', 'CmdOrCtrl+Shift+B'),
-        { type: 'separator' },
-        commandItem('Delete (Ripple)', 'timeline:delete-ripple', 'Delete'),
-        commandItem('Delete (Lift)', 'timeline:delete-lift', 'Shift+Delete'),
         { type: 'separator' },
         commandItem('Mark In', 'timeline:mark-in', 'I'),
         commandItem('Mark Out', 'timeline:mark-out', 'O'),

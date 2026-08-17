@@ -5,6 +5,7 @@
 import * as ops from '../../../lib/domain/clip-ops.ts';
 import * as gapChips from '../../../lib/domain/gap-chips.ts';
 import { createUndoStack } from '../../../lib/domain/undo-stack.ts';
+import type { MenuCommand } from '../../preload/api.ts';
 
 (function studioUi() {
   const studio = window.stemStudio;
@@ -2079,6 +2080,18 @@ import { createUndoStack } from '../../../lib/domain/undo-stack.ts';
       seekOutput(outputTime + (e.shiftKey ? 1 : 0.1));
     }
   });
+
+  const menuActions: Record<MenuCommand, () => void> = {
+    'file:new-take': () => document.querySelector<HTMLButtonElement>('[data-nav="record"]')?.click(),
+    'file:open-take-folder': () => openFolderBtn?.click(),
+    'file:export-bundle': () => exportBundleBtn?.click(),
+    'timeline:split': () => splitBtn?.click(),
+    'timeline:mark-in': () => markInBtn?.click(),
+    'timeline:mark-out': () => markOutBtn?.click(),
+    'timeline:play-pause': () => tlPlayBtn?.click(),
+  };
+  const unsubscribeMenu = window.stemMenu?.onCommand((command) => menuActions[command]());
+  window.addEventListener('beforeunload', () => unsubscribeMenu?.(), { once: true });
 
   showView('record');
   studio.ffmpegOk().then((ok) => {
