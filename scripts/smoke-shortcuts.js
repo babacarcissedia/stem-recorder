@@ -82,11 +82,13 @@ function check(condition, message) {
       && /\bconst\s+unsubscribeKeyboardShortcuts\s*=\s*subscribeKeyboardShortcuts\s*\(\s*\)\s*;/.test(studioUiSource),
     'studioUi registers exactly one keyboard-shortcut subscription'
   );
-  check(unloadCleanup !== null, 'studioUi registers beforeunload cleanup');
   check(
-    /\bunsubscribeCommands\s*\(\s*\)\s*;/.test(unloadCleanup?.[1] ?? '')
-      && /\bunsubscribeKeyboardShortcuts\s*\(\s*\)\s*;/.test(unloadCleanup?.[1] ?? ''),
-    'studioUi unload cleanup removes command and keyboard subscriptions'
+    unloadCleanup === null,
+    'legacy Studio leaves shortcut/menu cleanup to the React shell lifecycle'
+  );
+  check(
+    /let\s+cleanedUp\s*=\s*false\s*;[\s\S]*return\s*\(\)\s*=>\s*\{\s*\n\s*if\s*\(\s*cleanedUp\s*\)\s*return\s*;\s*\n\s*cleanedUp\s*=\s*true\s*;\s*\n\s*unsubscribeKeyboardShortcuts\s*\(\s*\)\s*;\s*\n\s*unsubscribeCommands\s*\(\s*\)\s*;\s*\n\s*\}\s*;/.test(studioUiSource),
+    'legacy Studio exposes idempotent shortcut/menu cleanup to AppShell'
   );
   check(
     studioUiSource.includes("command === 'file:new-take' || hasActiveEditableManifest()"),
@@ -121,7 +123,7 @@ function check(condition, message) {
   const recorderPanelSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'recorder-panel.ts'), 'utf8');
   const mountedRendererRoots = rendererMainSource.match(/\bcreateRoot\s*\(/g) ?? [];
   const legacyRegistrationImports = rendererMainSource.match(/import\s+['"]\.\/(?:studio|recorder-panel)\.ts['"]\s*;/g) ?? [];
-  const shellSubscriptions = appShellSource.match(/\b(?:useKeyboardShortcuts|subscribeKeyboardShortcuts)\s*\(|\bstemMenu\s*\??\.\s*onCommand\s*\(/g) ?? [];
+  const appShellDirectSubscriptions = appShellSource.match(/\b(?:useKeyboardShortcuts|subscribeKeyboardShortcuts)\s*\(|\bstemMenu\s*\??\.\s*onCommand\s*\(/g) ?? [];
 
   check(
     mountedRendererRoots.length === 1
@@ -138,9 +140,10 @@ function check(condition, message) {
     /function\s+LegacyStudioHost\s*\(/.test(appShellSource)
       && /function\s+renderShellView\s*\(\s*view\s*:\s*ShellView\s*\)/.test(appShellSource)
       && /case\s+['"]studio['"]\s*:\s*\n\s*return\s+<LegacyStudioHost\s*\/>;/.test(appShellSource)
-      && /\bmountLegacyStudio\s*\(/.test(appShellSource)
+      && /\buseShellCommandLifecycle\s*\(\s*['"]studio['"]\s*,\s*legacyHostReady\s*\?\s*legacyStudioLifecycle\s*:\s*null\s*\)/.test(appShellSource)
+      && /\bmountShortcutMenuLifecycle\s*:\s*\(\)\s*=>\s*\{[\s\S]*\breturn\s+legacyStudioWindow\.mountLegacyStudio\s*\(\s*\)\s*;[\s\S]*\}/.test(appShellSource)
       && /\bmountRecorderPanel\s*\(/.test(appShellSource),
-    'AppShell routes the default studio view to the named LegacyStudioHost compatibility mount'
+    'AppShell routes the default studio view through the LegacyStudioHost compatibility lifecycle'
   );
   check(
     (appShellSource.match(/<LegacyStudioHost\s*\/>/g) ?? []).length === 1,
@@ -152,6 +155,12 @@ function check(condition, message) {
     'legacy Studio markup is available for AppShell to host after the React root'
   );
   check(
+    /const\s+parkedParent\s*=\s*legacyStudioRoot\.parentElement\s*\?\?\s*document\.body\s*;/.test(appShellSource)
+      && /const\s+parkedBefore\s*=\s*legacyStudioRoot\.nextSibling\s*;/.test(appShellSource)
+      && /return\s*\(\)\s*=>\s*\{[\s\S]*setLegacyHostReady\s*\(\s*false\s*\)\s*;[\s\S]*parkedParent\.insertBefore\s*\(\s*legacyStudioRoot\s*,\s*parkedBefore\?\.parentNode\s*===\s*parkedParent\s*\?\s*parkedBefore\s*:\s*null\s*\)\s*;[\s\S]*\}\s*;/.test(appShellSource),
+    'LegacyStudioHost reparks legacy-studio-root before React can delete the host subtree'
+  );
+  check(
     legacyRegistrationImports.length === 2
       && /window\.mountRecorderPanel\s*=\s*function mountRecorderPanel\s*\(/.test(recorderPanelSource)
       && /window\.mountLegacyStudio\s*=\s*function mountLegacyStudio\s*\(/.test(studioSource)
@@ -159,8 +168,14 @@ function check(condition, message) {
     'main registers legacy mount functions without independently initializing Studio'
   );
   check(
-    shellSubscriptions.length === 0,
-    'AppShell delegates shortcut and menu lifecycle to the one legacy Studio owner'
+    /type\s+ShellCommandLifecycle\s*=\s*\{\s*\n\s*mountShortcutMenuLifecycle\s*:\s*\(\)\s*=>\s*\(\)\s*=>\s*void\s*;\s*\n\s*\}/.test(appShellSource)
+      && /function\s+useShellCommandLifecycle\s*\(/.test(appShellSource)
+      && /useEffect\s*\(\s*\(\)\s*=>\s*\{[\s\S]*return\s+lifecycle\.mountShortcutMenuLifecycle\s*\(\s*\)\s*;[\s\S]*\},\s*\[\s*view\s*,\s*lifecycle\s*\]\s*\)/.test(appShellSource),
+    'AppShell owns a typed React shortcut/menu lifecycle boundary with cleanup'
+  );
+  check(
+    appShellDirectSubscriptions.length === 0,
+    'AppShell lifecycle boundary does not duplicate raw shortcut or menu subscriptions'
   );
 }
 

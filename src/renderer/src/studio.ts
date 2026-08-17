@@ -10,7 +10,7 @@ import { subscribeKeyboardShortcuts } from './shortcuts/use-keyboard-shortcuts.t
 
 window.mountLegacyStudio = function mountLegacyStudio() {
   const studio = window.stemStudio;
-  if (!studio) return;
+  if (!studio) return () => undefined;
 
   const LANES = [
     { id: 'cam', file: 'cam.mp4', kind: 'video', label: 'cam.mp4' },
@@ -2112,13 +2112,19 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     (command) => command === 'file:new-take' || hasActiveEditableManifest(),
   );
   const unsubscribeKeyboardShortcuts = subscribeKeyboardShortcuts();
-  window.addEventListener('beforeunload', () => {
-    unsubscribeKeyboardShortcuts();
-    unsubscribeCommands();
-  }, { once: true });
 
   showView('record');
   studio.ffmpegOk().then((ok) => {
     if (!ok) setStatus('ffmpeg missing — Apply will fail until installed', 'warn');
   });
+
+  let cleanedUp = false;
+
+  return () => {
+    if (cleanedUp) return;
+
+    cleanedUp = true;
+    unsubscribeKeyboardShortcuts();
+    unsubscribeCommands();
+  };
 };
