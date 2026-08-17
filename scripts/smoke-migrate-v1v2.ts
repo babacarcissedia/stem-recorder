@@ -34,7 +34,7 @@ function assertIntegerBoundaries(project: Project, id: string): void {
       assert.ok(Number.isInteger(clip.timelineStart), `${id}: ${clip.id} timelineStart must be an integer`);
       assert.ok(Number.isInteger(clip.duration), `${id}: ${clip.id} duration must be an integer`);
       assert.ok(Number.isInteger(clip.sourceIn), `${id}: ${clip.id} sourceIn must be an integer`);
-      if (!clip.effects.isFreeze) assert.ok(Number.isInteger(clip.sourceOut), `${id}: ${clip.id} sourceOut must be an integer`);
+      assert.ok(Number.isInteger(clip.sourceOut), `${id}: ${clip.id} sourceOut must be an integer`);
     }
   }
 }
