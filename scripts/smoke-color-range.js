@@ -51,12 +51,8 @@ function probeLumaRange(ffprobeBin, filePath) {
   return { min, max };
 }
 
-function findRealSource() {
-  if (process.env.STEM_COLOR_SMOKE_SRC && fs.existsSync(process.env.STEM_COLOR_SMOKE_SRC)) {
-    return process.env.STEM_COLOR_SMOKE_SRC;
-  }
-  const root = path.join(os.homedir(), 'Movies', 'stem-recorder');
-  if (!fs.existsSync(root)) return null;
+function findScreenSource(root) {
+  if (!root || !fs.existsSync(root)) return null;
   for (const entry of fs.readdirSync(root)) {
     const candidate = path.join(root, entry, 'screen.mp4');
     if (fs.existsSync(candidate)) return candidate;
@@ -64,14 +60,53 @@ function findRealSource() {
   return null;
 }
 
+function findRealSource({
+  colorSmokeSource = process.env.STEM_COLOR_SMOKE_SRC,
+  outRoot = process.env.STEM_OUT_ROOT,
+  homeRoot = path.join(os.homedir(), 'Movies', 'stem-recorder'),
+} = {}) {
+  if (colorSmokeSource && fs.existsSync(colorSmokeSource)) return colorSmokeSource;
+  return findScreenSource(outRoot) ?? findScreenSource(homeRoot);
+}
+
+function selfTest() {
+  const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'color-range-source-test-'));
+  const outSource = path.join(workDir, 'out', 'take-out', 'screen.mp4');
+  const homeSource = path.join(workDir, 'home', 'take-home', 'screen.mp4');
+  const explicitSource = path.join(workDir, 'explicit.mp4');
+
+  try {
+    fs.mkdirSync(path.dirname(outSource), { recursive: true });
+    fs.mkdirSync(path.dirname(homeSource), { recursive: true });
+    fs.writeFileSync(outSource, 'out');
+    fs.writeFileSync(homeSource, 'home');
+    fs.writeFileSync(explicitSource, 'explicit');
+
+    assert.strictEqual(
+      findRealSource({ outRoot: path.join(workDir, 'out'), homeRoot: path.join(workDir, 'home') }),
+      outSource,
+      'STEM_OUT_ROOT source must precede the home-directory fallback'
+    );
+    assert.strictEqual(
+      findRealSource({ colorSmokeSource: explicitSource, outRoot: path.join(workDir, 'out'), homeRoot: path.join(workDir, 'home') }),
+      explicitSource,
+      'STEM_COLOR_SMOKE_SRC must override STEM_OUT_ROOT'
+    );
+  } finally {
+    fs.rmSync(workDir, { recursive: true, force: true });
+  }
+}
+
 async function main() {
+  selfTest();
+
   const ffmpeg = findFfmpeg();
   const ffprobe = findFfprobe();
   assert.ok(ffmpeg && ffprobe, 'ffmpeg + ffprobe required for this smoke');
 
   const realSource = findRealSource();
   if (!realSource) {
-    console.log(JSON.stringify({ ok: true, skipped: 'no real captured take found (STEM_COLOR_SMOKE_SRC unset, ~/Movies/stem-recorder empty)' }, null, 2));
+    console.log(JSON.stringify({ ok: true, skipped: 'no real captured take found (STEM_COLOR_SMOKE_SRC and STEM_OUT_ROOT unset, ~/Movies/stem-recorder empty)' }, null, 2));
     return;
   }
 
@@ -113,7 +148,12 @@ async function main() {
   }, null, 2));
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (process.argv.includes('--self-test')) {
+  selfTest();
+  console.log('smoke-color-range: source resolution self-test OK');
+} else {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

@@ -45,7 +45,6 @@ const PAIRS = [
   ['timeline-text-muted', 'clip-gap-a', 'normal', 'timeline.css:577 .asr-provider button'],
   ['menu-text', 'menu-surface', 'normal', 'index.html:239 .ctx-menu button in .ctx-menu:234'],
   ['menu-text-disabled', 'menu-surface', 'normal', 'index.html:243 .ctx-menu button:disabled'],
-  ['surface-raised', 'text-primary', 'normal', 'app-shell.css:102 stage-empty on stage:98 (text-primary as a fill)'],
   ['timeline-text', 'timeline-track', 'normal', 'timeline.css:265 .tl-lane-meta strong in .timeline-shell:180'],
   ['timeline-text-muted', 'timeline-track', 'normal', 'timeline.css:260 .tl-lane-meta in .timeline-shell:180'],
   ['timeline-text-muted', 'timeline-surface', 'normal', 'timeline.css:100 .tl-time in .tl-toolbar:48'],
@@ -72,10 +71,14 @@ const PAIRS = [
   ['border-subtle', 'surface-sunken', 'ui', 'index.html:31 .stage-wrap border, timeline.css:712 #view-edit .stage-wrap border'],
   ['border-subtle', 'timeline-track', 'ui', 'timeline.css:181 .timeline-shell border'],
   ['border-strong', 'surface-control', 'ui', 'timeline.css:60 .tl-toolbar button border'],
+  ['border-strong', 'surface-control-hover', 'ui', 'timeline.css:106 #tlMoreBtn expanded, timeline.css:521,527 wave zoom buttons hovered'],
   ['border-strong', 'surface-raised', 'ui', 'index.html:84 select border'],
   ['border-strong', 'surface-subtle', 'ui', 'index.html:119 .takes a border'],
   ['border-strong', 'clip-gap-a', 'ui', 'timeline.css:147 .tl-more-row.asr-provider button border, timeline.css:576 button background'],
+  ['border-strong', 'positive-surface', 'ui', 'timeline.css:565 ASR provider border around active child at timeline.css:581'],
   ['border-strong', 'timeline-surface-sunken', 'ui', 'timeline.css:611 .cue-row border'],
+  ['surface-raised', 'timeline-track', 'ui', 'timeline.css:431 playhead over timeline track'],
+  ['surface-raised', 'timeline-surface-sunken', 'ui', 'timeline.css:440 playhead cap over sunken timeline surface'],
   ['surface-stage-border', 'surface-stage', 'ui', 'index.html:39 .stage border'],
   ['surface-control-hover', 'menu-surface', 'ui', 'index.html:235 .ctx-menu border'],
   ['timeline-border', 'timeline-surface', 'ui', 'timeline.css:50 .tl-toolbar border'],
@@ -84,6 +87,9 @@ const PAIRS = [
   ['focus-ring', 'surface-app', 'ui', 'affordance.css:53 :focus-visible outline, offset 2px onto the page'],
   ['focus-ring', 'surface-raised', 'ui', 'affordance.css:53 outline on panel-hosted controls'],
   ['focus-ring', 'timeline-surface', 'ui', 'affordance.css:53 outline on .tl-toolbar:48 controls'],
+  ['focus-ring', 'timeline-track', 'ui', 'affordance.css:53 outline on timeline chips and reveal controls over timeline.css:180'],
+  ['focus-ring', 'wave-surface-top', 'ui', 'affordance.css:53 outline on timeline.css:513 wave zoom controls'],
+  ['focus-ring', 'wave-surface-bottom', 'ui', 'affordance.css:53 outline on timeline.css:513 wave zoom controls'],
   ['focus-ring', 'menu-surface', 'ui', 'affordance.css:53 outline on .ctx-menu:234 items'],
   ['accent', 'surface-raised', 'ui', 'index.html:232 .transcript-panel.flash outline'],
   ['accent', 'surface-sunken', 'ui', 'index.html:259 .cue-edit input border, timeline.css:726 background'],
@@ -125,6 +131,8 @@ const BASELINE_EXCEPTIONS = new Map([
   ['light|negative-surface|negative-surface', 1],
   ['light|record-border|record-surface', 1.3860806766780116],
   ['light|surface-control-hover|menu-surface', 1.2437353738238686],
+  ['light|surface-raised|timeline-surface-sunken', 1.1989288029432743],
+  ['light|surface-raised|timeline-track', 1.5046206661919197],
   ['light|surface-stage-border|surface-stage', 1.315580450768191],
   ['light|timeline-border|timeline-surface', 1.2097594857063192],
   ['light|timeline-text-muted|clip-gap-a', 2.2133039091944253],
@@ -135,6 +143,8 @@ const BASELINE_EXCEPTIONS = new Map([
   ['dark|accent-muted-border|accent-soft', 2.0709432023240306],
   ['dark|accent-soft-border|accent-soft', 2.5600715340498503],
   ['dark|accent-strong|accent', 1.3404854894308253],
+  ['dark|border-strong|surface-control-hover', 2.7711041571601007],
+  ['dark|border-strong|positive-surface', 2.6758942337022837],
   ['dark|border-subtle|surface-app', 1.3891658179548516],
   ['dark|border-subtle|surface-raised', 1.2657994443512934],
   ['dark|border-subtle|surface-sunken', 1.4712335591628987],
@@ -146,6 +156,8 @@ const BASELINE_EXCEPTIONS = new Map([
   ['dark|record-border|record-surface', 1.3860806766780116],
   ['dark|surface-control-hover|menu-surface', 1.542322647928917],
   ['dark|surface-raised|record-surface', 3.5165446476705915],
+  ['dark|surface-raised|timeline-surface-sunken', 1.056292494845051],
+  ['dark|surface-raised|timeline-track', 1.1622959432699764],
   ['dark|surface-stage-border|surface-stage', 1.315580450768191],
   ['dark|timeline-border|timeline-surface', 1.3009407431374673],
   ['dark|wave-border|wave-surface-top', 1.3460354786155893],
@@ -214,6 +226,15 @@ function selfTest() {
   }
   if (exceptionStatus(THRESHOLDS.normal, THRESHOLDS.normal, baseline) !== 'stale') {
     throw new Error('contrast self-test did not reject a stale exception');
+  }
+
+  const newBaseline = BASELINE_EXCEPTIONS.get('dark|border-strong|surface-control-hover');
+  if (newBaseline !== 2.7711041571601007) throw new Error('contrast self-test new baseline changed');
+  if (exceptionStatus(newBaseline - 0.01, THRESHOLDS.ui, newBaseline) !== 'regressed') {
+    throw new Error('contrast self-test did not reject a degraded new floor');
+  }
+  if (exceptionStatus(THRESHOLDS.ui, THRESHOLDS.ui, newBaseline) !== 'stale') {
+    throw new Error('contrast self-test did not reject a stale new floor');
   }
 }
 
