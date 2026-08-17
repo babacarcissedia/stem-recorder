@@ -5,6 +5,7 @@
     "preflight": "node scripts/preflight.js",
     "typecheck": "tsc --noEmit -p tsconfig.legacy.json",
     "typecheck:strict": "tsc --noEmit -p tsconfig.json",
+    "build": "echo build",
     "smoke:one": "node scripts/smoke-one.js"
   }
 }
