@@ -7,6 +7,31 @@ export interface BatchRecorderBridge {
 }
 
 import type { ThemePreference } from '../../lib/domain/theme.ts';
+import type { ProjectJson } from '../../lib/domain/project.ts';
+import type { ManifestSettings } from '../../lib/domain/manifest-v2.ts';
+
+export interface LoadedTakeProject {
+  takeId: string;
+  takeDir: string;
+  schemaVersion: number;
+  hasManifest: boolean;
+  migrated: boolean;
+  backup: string | null;
+  missingSources: string[];
+  settings: ManifestSettings;
+  project: ProjectJson;
+}
+
+export interface TakeSummary {
+  id: string;
+  dir: string;
+  hasScreen: boolean;
+  hasCam: boolean;
+  hasAudio: boolean;
+  hasManifest: boolean;
+  hasFinal: boolean;
+  mtimeMs: number;
+}
 
 export interface ThemeState {
   preference: ThemePreference;
@@ -24,8 +49,9 @@ export interface MenuBridge {
 }
 
 export interface StemStudioBridge {
-  listTakes(): Promise<any>;
+  listTakes(): Promise<TakeSummary[]>;
   getTake(takeId: string): Promise<any>;
+  loadProject(takeId: string): Promise<LoadedTakeProject>;
   saveManifest(takeId: string, doc: unknown): Promise<any>;
   apply(takeId: string): Promise<any>;
   openTakeFolder(takeId: string): Promise<void>;

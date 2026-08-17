@@ -57,6 +57,7 @@
     "smoke:model": "node scripts/smoke-model.ts",
     "smoke:timeline-interaction": "node scripts/smoke-timeline-interaction.ts",
     "smoke:manifest": "node scripts/smoke-manifest.ts",
+    "smoke:load-take": "node scripts/smoke-load-take.js",
     "smoke:shortcuts": "node scripts/smoke-shortcuts.js",
     "smoke:shortcuts": "node scripts/smoke-shortcuts.js",
     "smoke:theme": "node scripts/smoke-theme.js",
