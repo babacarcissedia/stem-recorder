@@ -129,11 +129,22 @@ function check(condition, message) {
     'main mounts AppShell once as the live React renderer root'
   );
   check(
+    /export\s+type\s+ShellView\s*=\s*\(typeof\s+SHELL_VIEWS\)\[number\]/.test(appShellSource)
+      && /const\s+SHELL_VIEWS\s*=\s*\[\s*['"]studio['"]\s*\]\s+as\s+const\s*;/.test(appShellSource)
+      && /useState\s*<\s*ShellView\s*>\s*\(\s*DEFAULT_SHELL_VIEW\s*\)/.test(appShellSource),
+    'AppShell owns typed shell view state with studio as the default route'
+  );
+  check(
     /function\s+LegacyStudioHost\s*\(/.test(appShellSource)
-      && /<LegacyStudioHost\s*\/>/.test(appShellSource)
+      && /function\s+renderShellView\s*\(\s*view\s*:\s*ShellView\s*\)/.test(appShellSource)
+      && /case\s+['"]studio['"]\s*:\s*\n\s*return\s+<LegacyStudioHost\s*\/>;/.test(appShellSource)
       && /\bmountLegacyStudio\s*\(/.test(appShellSource)
       && /\bmountRecorderPanel\s*\(/.test(appShellSource),
-    'AppShell owns the named LegacyStudioHost compatibility mount'
+    'AppShell routes the default studio view to the named LegacyStudioHost compatibility mount'
+  );
+  check(
+    (appShellSource.match(/<LegacyStudioHost\s*\/>/g) ?? []).length === 1,
+    'AppShell has one routed LegacyStudioHost render path'
   );
   check(
     indexHtmlSource.indexOf('id="app-shell-root"') >= 0
