@@ -20,6 +20,7 @@ const steps = [
   { name: 'smoke:model', cmd: ['npm', 'run', 'smoke:model'] },
   { name: 'smoke:timeline-interaction', cmd: ['npm', 'run', 'smoke:timeline-interaction'] },
   { name: 'smoke:manifest', cmd: ['npm', 'run', 'smoke:manifest'] },
+  { name: 'smoke:load-take', cmd: ['npm', 'run', 'smoke:load-take'] },
   { name: 'smoke:clips', cmd: ['npm', 'run', 'smoke:clips'] },
   { name: 'smoke:apply-args', cmd: ['node', 'scripts/smoke-apply-args.js'] },
   { name: 'smoke:pip', cmd: ['npm', 'run', 'smoke:pip'] },

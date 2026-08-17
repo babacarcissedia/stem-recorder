@@ -23,6 +23,7 @@ import {
   FINAL_NAME,
   PRE_BURN_FINAL_NAME,
 } from '../../lib/node/edit-manifest.js';
+import { loadTakeProject } from '../../lib/node/take-project.js';
 import { getFilmstrip, getWaveformPeaks } from '../../lib/node/media-cache.js';
 import {
   runLocal as runLocalAsr,
@@ -227,6 +228,8 @@ ipcMain.handle('studio:getTake', (_evt, takeId) => {
   const media = mediaUrls(takeId);
   return { takeId, takeDir, duration, manifest, urls: media.urls };
 });
+
+ipcMain.handle('studio:loadProject', (_evt, takeId) => loadTakeProject(takeDirFor(takeId), takeId));
 
 ipcMain.handle('studio:saveManifest', (_evt, takeId, doc) => writeManifest(takeId, doc));
 

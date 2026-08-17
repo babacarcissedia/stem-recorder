@@ -13,6 +13,7 @@ const recorder: BatchRecorderBridge = {
 const studio: StemStudioBridge = {
   listTakes: () => ipcRenderer.invoke('studio:listTakes'),
   getTake: (takeId) => ipcRenderer.invoke('studio:getTake', takeId),
+  loadProject: (takeId) => ipcRenderer.invoke('studio:loadProject', takeId),
   saveManifest: (takeId, doc) => ipcRenderer.invoke('studio:saveManifest', takeId, doc),
   apply: (takeId) => ipcRenderer.invoke('studio:apply', takeId),
   openTakeFolder: (takeId) => ipcRenderer.invoke('studio:openTakeFolder', takeId),
