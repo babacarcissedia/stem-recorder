@@ -67,7 +67,7 @@ function LegacyStudioHost() {
 
   useShellCommandLifecycle('studio', legacyHostReady ? legacyStudioLifecycle : null);
 
-  return <div ref={hostRef} className="legacy-studio-host" role="region" aria-label="Studio compatibility host" />;
+  return <div ref={hostRef} className="legacy-studio-host" role="region" aria-label="Studio editor" />;
 }
 
 function StudioEditorChrome() {
@@ -83,7 +83,7 @@ function StudioEditorChrome() {
           Ready
         </div>
       </header>
-      <fieldset className="studio-editor-react-shell" role="region" aria-label="Studio shell" disabled>
+      <fieldset className="studio-editor-react-shell" role="region" aria-label="Studio preview" disabled>
         <TopBar projectName="Current take" autoSavedAt={null} />
         <ShellLayout
           leftSidebar={<MediaSidebar />}
@@ -153,7 +153,7 @@ export function AppShell() {
   const [shellView, setShellView] = useState<ShellView>(DEFAULT_SHELL_VIEW);
 
   return (
-    <div className="shell-root" data-shell-view={shellView} aria-label="Stem Studio shell">
+    <div className="shell-root" data-shell-view={shellView} aria-label="Stem Studio">
       <nav className="shell-route-nav" aria-label="Workspaces">
         {SHELL_VIEWS.map((view) => (
           <button
