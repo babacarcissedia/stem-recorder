@@ -189,9 +189,6 @@
   --overlay-clip-freeze-border: color-mix(in srgb, var(--ramp-blue-250) 45%, transparent);
 
   --wave-panel-zoom-surface: color-mix(in srgb, var(--ramp-neutral-800) 85%, transparent);
-  --wave-mark-fill: rgba(240, 201, 74, 0.16);
-  --wave-mark-edge: rgba(240, 201, 74, 0.7);
-  --wave-center-line: rgba(255, 255, 255, 0.08);
   --pill-live: color-mix(in srgb, var(--ramp-green-700) 90%, transparent);
   --pill-warn: color-mix(in srgb, var(--ramp-amber-700) 90%, transparent);
   --pill-off: color-mix(in srgb, var(--ramp-neutral-700) 75%, transparent);
@@ -324,6 +321,9 @@
   --wave-surface-top: var(--ramp-neutral-150);
   --wave-surface-bottom: var(--ramp-neutral-100);
   --wave-border: var(--ramp-neutral-300);
+  --wave-mark-fill: color-mix(in srgb, var(--accent) 16%, transparent);
+  --wave-mark-edge: color-mix(in srgb, var(--accent-strong) 70%, transparent);
+  --wave-center-line: color-mix(in srgb, var(--text-primary) 8%, transparent);
 
   --focus-ring: var(--ramp-blue-500);
   --clip-wave: var(--ramp-blue-200);
@@ -414,6 +414,9 @@
   --wave-surface-top: var(--ramp-neutral-950);
   --wave-surface-bottom: var(--ramp-neutral-980);
   --wave-border: var(--ramp-neutral-840);
+  --wave-mark-fill: color-mix(in srgb, var(--accent) 16%, transparent);
+  --wave-mark-edge: color-mix(in srgb, var(--accent-strong) 70%, transparent);
+  --wave-center-line: color-mix(in srgb, var(--text-primary) 8%, transparent);
 
   --focus-ring: var(--ramp-blue-200);
   --clip-wave: var(--ramp-blue-200);
