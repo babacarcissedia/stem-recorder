@@ -10,6 +10,24 @@
  * pure edit-model group.
  */
 
+// Pixel-space rect (ffmpeg crop/overlay geometry) — distinct from the
+// normalized 0-1 crop Rect used elsewhere in this package.
+export type PixelRect = { x: number; y: number; w: number; h: number };
+export type PipPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'bottom-center';
+export type Dimensions = { width: number; height: number };
+export type PipOptions = {
+  cam?: Dimensions | null;
+  position?: string;
+  widthFraction?: number;
+  marginFraction?: number;
+};
+export type VerticalPresetSpec = {
+  source: Dimensions;
+  target?: Dimensions;
+  cam?: Dimensions | null;
+  pip?: Omit<PipOptions, 'cam'>;
+};
+
 const DEFAULT_TARGET = { width: 1080, height: 1920 };
 // Typical webcam portrait crop when the actual cam resolution isn't known yet.
 const DEFAULT_CAM_ASPECT = 3 / 4;
@@ -19,7 +37,7 @@ const DEFAULT_PIP_POSITION = 'bottom-right';
 const PIP_POSITIONS = new Set(['bottom-right', 'bottom-left', 'top-right', 'top-left', 'bottom-center']);
 
 /** Round to the nearest even integer, never above the input (H.264 requires even dims). */
-function ensureEven(value) {
+function ensureEven(value: unknown): number {
   const n = Math.max(0, Math.round(Number(value) || 0));
   return n % 2 === 0 ? n : n - 1;
 }
@@ -31,7 +49,12 @@ function ensureEven(value) {
  *
  * @returns {{x: number, y: number, w: number, h: number}} source-pixel space
  */
-function computeCropRect(sourceWidth, sourceHeight, targetWidth, targetHeight) {
+function computeCropRect(
+  sourceWidth: number,
+  sourceHeight: number,
+  targetWidth: number,
+  targetHeight: number,
+): PixelRect {
   const sw = Number(sourceWidth);
   const sh = Number(sourceHeight);
   const tw = Number(targetWidth);
@@ -63,8 +86,10 @@ function computeCropRect(sourceWidth, sourceHeight, targetWidth, targetHeight) {
   };
 }
 
-function normalizePipPosition(position) {
-  return PIP_POSITIONS.has(position) ? position : DEFAULT_PIP_POSITION;
+function normalizePipPosition(position: unknown): PipPosition {
+  return typeof position === 'string' && PIP_POSITIONS.has(position)
+    ? (position as PipPosition)
+    : DEFAULT_PIP_POSITION;
 }
 
 /**
@@ -75,7 +100,11 @@ function normalizePipPosition(position) {
  * @param {{cam?: {width: number, height: number}, position?: string, widthFraction?: number, marginFraction?: number}} [options]
  * @returns {{x: number, y: number, w: number, h: number, position: string}}
  */
-function computePipRect(targetWidth, targetHeight, options = {}) {
+function computePipRect(
+  targetWidth: number,
+  targetHeight: number,
+  options: PipOptions = {},
+): PixelRect & { position: PipPosition } {
   const tw = Number(targetWidth);
   const th = Number(targetHeight);
   if (!(tw > 0) || !(th > 0)) throw new Error('computePipRect: target dimensions must be positive numbers');
@@ -83,9 +112,11 @@ function computePipRect(targetWidth, targetHeight, options = {}) {
   const camAspect = options.cam && Number(options.cam.width) > 0 && Number(options.cam.height) > 0
     ? Number(options.cam.width) / Number(options.cam.height)
     : DEFAULT_CAM_ASPECT;
-  const widthFraction = Number.isFinite(options.widthFraction) ? options.widthFraction : DEFAULT_PIP_WIDTH_FRACTION;
-  const marginFraction = Number.isFinite(options.marginFraction)
-    ? options.marginFraction
+  const widthFraction: number = Number.isFinite(options.widthFraction)
+    ? options.widthFraction!
+    : DEFAULT_PIP_WIDTH_FRACTION;
+  const marginFraction: number = Number.isFinite(options.marginFraction)
+    ? options.marginFraction!
     : DEFAULT_PIP_MARGIN_FRACTION;
   const position = normalizePipPosition(options.position);
 
@@ -134,9 +165,11 @@ function computePipRect(targetWidth, targetHeight, options = {}) {
  * @param {{source: {width: number, height: number}, target?: {width: number, height: number}, cam?: {width: number, height: number}, pip?: object}} spec
  * @returns {{crop: object, scale: {width: number, height: number}, pip: object}}
  */
-function buildVerticalPreset({
-  source, target = DEFAULT_TARGET, cam = null, pip = {},
-} = {}) {
+function buildVerticalPreset(
+  {
+    source, target = DEFAULT_TARGET, cam = null, pip = {},
+  }: Partial<VerticalPresetSpec> = {},
+): { crop: PixelRect; scale: Dimensions; pip: PixelRect & { position: PipPosition } } {
   if (!source || !(Number(source.width) > 0) || !(Number(source.height) > 0)) {
     throw new Error('buildVerticalPreset: source {width, height} is required');
   }
