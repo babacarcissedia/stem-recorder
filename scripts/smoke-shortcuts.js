@@ -114,6 +114,20 @@ function check(condition, message) {
       === JSON.stringify(KEYBOARD_COMMAND_IDS),
     'registry contains only live Studio commands on the keyboard path'
   );
+
+  const rendererMainSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'main.tsx'), 'utf8');
+  const appShellSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'app-shell.tsx'), 'utf8');
+  const mountedRendererRoots = rendererMainSource.match(/\bcreateRoot\s*\(/g) ?? [];
+  const dormantShellSubscriptions = appShellSource.match(/\b(?:useKeyboardShortcuts|subscribeKeyboardShortcuts)\s*\(|\bstemMenu\s*\??\.\s*onCommand\s*\(/g) ?? [];
+
+  check(
+    mountedRendererRoots.length === 0 && !rendererMainSource.includes('AppShell'),
+    'the legacy Studio renderer is the only mounted UI while AppShell is disconnected'
+  );
+  check(
+    dormantShellSubscriptions.length === 0,
+    'a dormant AppShell cannot register a duplicate menu or keyboard subscription'
+  );
 }
 
 {
