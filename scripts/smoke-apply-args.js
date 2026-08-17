@@ -3,7 +3,7 @@
 
 const assert = require('assert');
 const {
-  clipArgs, freezeArgs, clipCacheKey,
+  buildMediaInputPlan, clipArgs, freezeArgs, clipCacheKey,
   cropFilter, freezeStillChain, subtitlesFilter, pipFilterGraph,
 } = require('../lib/node/ffmpeg-util.js');
 
@@ -15,6 +15,7 @@ const ENCODE_ARGS = [
   '-movflags', '+faststart',
 ];
 const SRC_PATH = '/fixtures/screen.mp4';
+const DIALOGUE_PATH = '/fixtures/audio.mp3';
 const CAM_PATH = '/fixtures/cam.mp4';
 
 function basePlan(overrides = {}) {
@@ -35,6 +36,21 @@ function basePlan(overrides = {}) {
     camStamp: null,
     ...overrides,
   };
+}
+
+function testDialogueInputPlanMapsAudioSeparatelyFromVideoOnlyScreen() {
+  const plan = buildMediaInputPlan({ srcPath: SRC_PATH, dialoguePath: DIALOGUE_PATH, camPath: CAM_PATH });
+  assert.deepStrictEqual(plan.inputArgs, ['-i', SRC_PATH, '-i', DIALOGUE_PATH, '-i', CAM_PATH]);
+  assert.strictEqual(plan.camInputIndex, 2);
+  assert.ok(
+    pipFilterGraph({ crop: null, cam: {}, pipWidth: 480, margin: 24, camInputIndex: plan.camInputIndex }).startsWith('[0:v]null[base];[2:v]'),
+  );
+  assert.deepStrictEqual(plan.audioMapArgs, ['-map', '1:a:0']);
+  assert.strictEqual(plan.audioMapArgs.includes('0:a?'), false);
+  assert.deepStrictEqual(
+    buildMediaInputPlan({ srcPath: SRC_PATH, camPath: CAM_PATH }).audioMapArgs,
+    ['-an'],
+  );
 }
 
 function testPlainTrimArgs() {
@@ -141,13 +157,16 @@ function testSubtitlesSkippedOnFreezeClips() {
 function camPipPlan(overrides = {}) {
   const cam = { path: CAM_PATH, mirror: true, rotate: 90 };
   const pip = { layout: null, pipWidth: 480, margin: 24 };
+  const media = buildMediaInputPlan({ srcPath: SRC_PATH, dialoguePath: DIALOGUE_PATH, camPath: CAM_PATH });
   return basePlan({
     cam,
     pip,
-    inputArgs: ['-i', SRC_PATH, '-i', CAM_PATH],
+    inputArgs: media.inputArgs,
     filterArgs: [
-      '-filter_complex', pipFilterGraph({ crop: null, cam, ...pip, subtitlesPath: null, rate: null }),
-      '-map', '[v]', '-map', '0:a?',
+      '-filter_complex', pipFilterGraph({
+        crop: null, cam, ...pip, subtitlesPath: null, rate: null, camInputIndex: media.camInputIndex,
+      }),
+      '-map', '[v]', ...media.audioMapArgs,
     ],
     ...overrides,
   });
@@ -157,9 +176,9 @@ function testCamPipPresentUsesFilterComplex() {
   const plan = camPipPlan();
   const args = clipArgs(plan, { in: 0, out: 4 });
   assert.deepStrictEqual(args, [
-    '-hide_banner', '-y', '-i', SRC_PATH, '-i', CAM_PATH, '-ss', '0', '-to', '4',
+    '-hide_banner', '-y', '-i', SRC_PATH, '-i', DIALOGUE_PATH, '-i', CAM_PATH, '-ss', '0', '-to', '4',
     '-filter_complex', plan.filterArgs[1],
-    '-map', '[v]', '-map', '0:a?',
+    '-map', '[v]', '-map', '1:a:0',
     ...ENCODE_ARGS,
   ]);
 }
@@ -233,6 +252,7 @@ function testCacheKeyIgnoresSubtitlesOnFreezeClips() {
 }
 
 const tests = [
+  testDialogueInputPlanMapsAudioSeparatelyFromVideoOnlyScreen,
   testPlainTrimArgs,
   testTrimWithoutOutArgs,
   testTrimWithCropArgs,

@@ -13,6 +13,7 @@ import {
   detectSchemaVersion,
   migrateV1ToV2,
   readManifestV2,
+  resolveDialogueSource,
   toV1Compat,
 } from '../lib/domain/manifest-v2.ts';
 
@@ -99,6 +100,13 @@ group('a null v1 out resolves to the source available duration', () => {
   };
   const clip = migrateV1ToV2(open, DURATIONS).project.timeline.tracks[0]!.clips[0]!;
   assert.strictEqual(clip.duration, 600_000);
+});
+
+group('three-stem v1 migration defaults dialogue to the separately captured microphone file', () => {
+  const doc = migrateV1ToV2(v1, DURATIONS);
+  assert.deepStrictEqual(doc.project.audioRoute, { activeSourceId: 'src-audio', resolvedBy: 'auto' });
+  assert.strictEqual(resolveDialogueSource(doc), 'audio.mp3');
+  assert.deepStrictEqual(toV1Compat(doc).audioRoute, doc.project.audioRoute);
 });
 
 group('migrated documents load through Project.fromJSON', () => {

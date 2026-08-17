@@ -7,8 +7,8 @@ import type { SourceId } from './clip.ts';
 import { Clip, MIN_CLIP_DURATION } from './clip.ts';
 import { Track } from './track.ts';
 import { Timeline } from './timeline.ts';
-import type { Source } from './source.ts';
-import { makeSource } from './source.ts';
+import type { AudioRoute, Source } from './source.ts';
+import { makeSource, resolveAudioRoute } from './source.ts';
 import type { ProjectJson } from './project.ts';
 import { PROJECT_SCHEMA_VERSION, Project } from './project.ts';
 import { invariant } from './invariant.ts';
@@ -16,7 +16,7 @@ import { invariant } from './invariant.ts';
 export const MANIFEST_SCHEMA_VERSION = PROJECT_SCHEMA_VERSION;
 
 export const V1_STEMS = [
-  { file: 'cam.mp4', sourceId: 'src-cam', kind: 'video', hasAudio: true },
+  { file: 'cam.mp4', sourceId: 'src-cam', kind: 'video', hasAudio: false },
   { file: 'screen.mp4', sourceId: 'src-screen', kind: 'video', hasAudio: false },
   { file: 'audio.mp3', sourceId: 'src-audio', kind: 'audio', hasAudio: true },
 ] as const;
@@ -42,6 +42,7 @@ export type V1Manifest = {
   exportRate?: unknown;
   music?: unknown;
   vertical?: boolean;
+  audioRoute?: AudioRoute;
   updatedAt: string;
 };
 
@@ -159,7 +160,7 @@ export function migrateV1ToV2(doc: V1Manifest, durationsSeconds: StemDurations):
   }
 
   timeline.addTrack(track);
-  const project = new Project({ timeline });
+  const project = new Project({ timeline, audioRoute: doc.audioRoute });
   project.normalize();
 
   return {
@@ -178,6 +179,16 @@ export function readManifestV2(doc: ManifestV2): { project: Project; settings: M
     String(detectSchemaVersion(doc)),
   );
   return { project: Project.fromJSON(doc.project), settings: doc.settings };
+}
+
+export function resolveDialogueSource(doc: ManifestV2): string | null {
+  const { project } = readManifestV2(doc);
+  const sourceId = project.audioRoute.resolvedBy === 'user'
+    ? project.audioRoute.activeSourceId
+    : resolveAudioRoute(project.timeline.sources.values());
+  if (sourceId == null || !project.timeline.sources.has(sourceId)) return null;
+  const source = project.timeline.source(sourceId);
+  return source.hasAudio && source.present ? source.path : null;
 }
 
 export function toManifestV2(
@@ -221,6 +232,7 @@ export function toV1Compat(doc: ManifestV2): V1Manifest {
     ...(settings.exportRate != null ? { exportRate: settings.exportRate } : {}),
     ...(settings.music != null ? { music: settings.music } : {}),
     ...(settings.vertical === true ? { vertical: true } : {}),
+    audioRoute: project.audioRoute,
     clips,
     updatedAt: doc.updatedAt,
   };

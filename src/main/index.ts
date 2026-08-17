@@ -28,7 +28,7 @@ import {
   readManifestDoc,
   writeManifestDoc,
 } from '../../lib/node/manifest-store.js';
-import { V1_STEMS, migrateV1ToV2, toV1Compat } from '../../lib/domain/manifest-v2.ts';
+import { V1_STEMS, migrateV1ToV2, resolveDialogueSource, toV1Compat } from '../../lib/domain/manifest-v2.ts';
 import { getFilmstrip, getWaveformPeaks } from '../../lib/node/media-cache.js';
 import {
   runLocal as runLocalAsr,
@@ -84,10 +84,14 @@ function readStudioManifest(takeId) {
   const duration = durations['screen.mp4'] ?? null;
   const autosaveNewer = autosaveIsNewer(takeDir);
   const result = readManifestDoc(takeDir, durations);
+  const dialogueSource = result.doc
+    ? resolveDialogueSource(result.doc)
+    : (fs.existsSync(path.join(takeDir, 'audio.mp3')) ? 'audio.mp3' : null);
   return {
     takeDir,
     duration,
     manifest: result.doc ? toV1Compat(result.doc) : defaultManifest(takeId, duration),
+    dialogueSource,
     autosaveNewer,
   };
 }
@@ -100,7 +104,8 @@ function saveStudioManifest(takeId, doc) {
     takeId,
     durations['screen.mp4'] ?? null,
   );
-  const v2 = migrateV1ToV2(manifest, durations);
+  const audioRoute = doc && typeof doc === 'object' ? doc.audioRoute : undefined;
+  const v2 = migrateV1ToV2({ ...manifest, ...(audioRoute ? { audioRoute } : {}) }, durations);
   const path = writeManifestDoc(takeDir, v2);
   return { path, manifest: toV1Compat(v2) };
 }
@@ -278,10 +283,14 @@ ipcMain.handle('studio:getTake', (_evt, takeId) => {
 ipcMain.handle('studio:saveManifest', (_evt, takeId, doc) => saveStudioManifest(takeId, doc));
 
 ipcMain.handle('studio:apply', async (_evt, takeId) => {
-  const { takeDir, manifest } = readStudioManifest(takeId);
+  const { takeDir, manifest, dialogueSource } = readStudioManifest(takeId);
   const sourceName = manifest.source || 'screen.mp4';
   const src = path.join(takeDir, sourceName);
   if (!fs.existsSync(src)) throw new Error(`missing source ${sourceName}`);
+  if (dialogueSource != null && dialogueSource !== 'audio.mp3') {
+    throw new Error(`unsupported dialogue source ${dialogueSource}`);
+  }
+  const dialoguePath = dialogueSource ? path.join(takeDir, dialogueSource) : null;
 
   const editDir = path.join(takeDir, 'edit');
   ensureDir(editDir);
@@ -338,6 +347,7 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
           layout: camSettings.pipLayout || null,
         },
       } : {}),
+      ...(dialoguePath ? { dialoguePath } : {}),
       ...(burn.burn ? { subtitles: subtitlesPath, preBurnOutPath: preBurnOut } : {}),
       ...(rate ? { rate } : {}),
       ...(music ? { music } : {}),
