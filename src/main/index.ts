@@ -12,17 +12,23 @@ import {
 
 import { outRoot } from '../../lib/node/paths.js';
 import {
-  findFfmpeg, runFfmpeg, applyClips, hasSubtitlesFilter, resolveCaptionsPath,
+  findFfmpeg, runFfmpeg, applyClips, hasSubtitlesFilter, probeDuration, resolveCaptionsPath,
 } from '../../lib/node/ffmpeg-util.js';
 import {
   listTakes,
-  readManifest,
-  writeManifest,
+  defaultManifest,
+  normalizeManifest,
   mediaUrls,
   takeDirFor,
   FINAL_NAME,
   PRE_BURN_FINAL_NAME,
 } from '../../lib/node/edit-manifest.js';
+import {
+  autosaveIsNewer,
+  readManifestDoc,
+  writeManifestDoc,
+} from '../../lib/node/manifest-store.js';
+import { V1_STEMS, migrateV1ToV2, toV1Compat } from '../../lib/domain/manifest-v2.ts';
 import { getFilmstrip, getWaveformPeaks } from '../../lib/node/media-cache.js';
 import {
   runLocal as runLocalAsr,
@@ -59,6 +65,40 @@ if (process.platform === 'win32') {
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
+}
+
+function stemDurations(takeDir) {
+  return Object.fromEntries(V1_STEMS.map(({ file }) => [
+    file,
+    fs.existsSync(path.join(takeDir, file)) ? probeDuration(path.join(takeDir, file)) : null,
+  ]));
+}
+
+function readStudioManifest(takeId) {
+  const takeDir = takeDirFor(takeId);
+  const durations = stemDurations(takeDir);
+  const duration = durations['screen.mp4'] ?? null;
+  const autosaveNewer = autosaveIsNewer(takeDir);
+  const result = readManifestDoc(takeDir, durations);
+  return {
+    takeDir,
+    duration,
+    manifest: result.doc ? toV1Compat(result.doc) : defaultManifest(takeId, duration),
+    autosaveNewer,
+  };
+}
+
+function saveStudioManifest(takeId, doc) {
+  const takeDir = takeDirFor(takeId);
+  const durations = stemDurations(takeDir);
+  const manifest = normalizeManifest(
+    { ...doc, updatedAt: new Date().toISOString() },
+    takeId,
+    durations['screen.mp4'] ?? null,
+  );
+  const v2 = migrateV1ToV2(manifest, durations);
+  const path = writeManifestDoc(takeDir, v2);
+  return { path, manifest: toV1Compat(v2) };
 }
 
 /**
@@ -209,15 +249,15 @@ ipcMain.handle('recorder:openTake', (_evt, takeDir) => {
 ipcMain.handle('studio:listTakes', () => listTakes());
 
 ipcMain.handle('studio:getTake', (_evt, takeId) => {
-  const { takeDir, duration, manifest } = readManifest(takeId);
+  const { takeDir, duration, manifest, autosaveNewer } = readStudioManifest(takeId);
   const media = mediaUrls(takeId);
-  return { takeId, takeDir, duration, manifest, urls: media.urls };
+  return { takeId, takeDir, duration, manifest, urls: media.urls, autosaveNewer };
 });
 
-ipcMain.handle('studio:saveManifest', (_evt, takeId, doc) => writeManifest(takeId, doc));
+ipcMain.handle('studio:saveManifest', (_evt, takeId, doc) => saveStudioManifest(takeId, doc));
 
 ipcMain.handle('studio:apply', async (_evt, takeId) => {
-  const { takeDir, manifest } = readManifest(takeId);
+  const { takeDir, manifest } = readStudioManifest(takeId);
   const sourceName = manifest.source || 'screen.mp4';
   const src = path.join(takeDir, sourceName);
   if (!fs.existsSync(src)) throw new Error(`missing source ${sourceName}`);
