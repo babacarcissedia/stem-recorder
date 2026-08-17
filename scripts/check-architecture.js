@@ -53,11 +53,14 @@ function listSourceFiles(root, relativeDir) {
   return found;
 }
 
-function specifiersIn(source) {
-  const stripped = source
+function specifiersIn(source, { includeTypeOnly = false } = {}) {
+  let stripped = source
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/(^|[^:])\/\/[^\n]*/g, '$1')
-    .replace(/\b(?:import|export)\s+type\s[^;]*?from\s*(['"])[^'"]*\1/g, ' ');
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+
+  if (!includeTypeOnly) {
+    stripped = stripped.replace(/\b(?:import|export)\s+type\s[^;]*?from\s*(['"])[^'"]*\1/g, ' ');
+  }
   const found = new Set();
   for (const pattern of SPECIFIER_PATTERNS) {
     pattern.lastIndex = 0;
@@ -234,7 +237,7 @@ function inspect(root) {
   }
 
   for (const relative of listSourceFiles(root, path.join('src', 'preload'))) {
-    for (const specifier of specifiersIn(read(relative))) {
+    for (const specifier of specifiersIn(read(relative), { includeTypeOnly: true })) {
       const dependency = classifySpecifier(relative, specifier);
       if (dependency.kind === 'builtin') {
         fail('preload-sandbox', `${relative}: imports node builtin '${dependency.specifier}' — a sandboxed preload has no Node runtime, only the electron bridge`);

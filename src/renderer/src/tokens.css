@@ -1,0 +1,414 @@
+/* The only file in the renderer allowed to hold raw literals.
+   Layer 1 is the ramp plus the theme-invariant scales, layer 2 is the semantic
+   color alias set, and a theme is a swap of layer 2 only. Components reference
+   layer 1 scales and layer 2 colors, never raw values.
+
+   Non-color scales live in layer 1 because none of them differ between light
+   and dark. A theme that needs a different radius or shadow overrides the one
+   token in its own block rather than restating the whole scale. */
+
+:root {
+  --ramp-neutral-000: #ffffff;
+  --ramp-neutral-025: #fafafa;
+  --ramp-neutral-050: #f6f4ef;
+  --ramp-neutral-075: #f2efe8;
+  --ramp-neutral-100: #efeae0;
+  --ramp-neutral-150: #ebe6dc;
+  --ramp-neutral-200: #e8e4da;
+  --ramp-neutral-250: #e6e9f0;
+  --ramp-neutral-300: #d9d2c3;
+  --ramp-neutral-350: #c8d4de;
+  --ramp-neutral-400: #c8c2b4;
+  --ramp-neutral-450: #9aa3b5;
+  --ramp-neutral-500: #8a8490;
+  --ramp-neutral-550: #6b7b88;
+  --ramp-neutral-600: #6b7387;
+  --ramp-neutral-650: #5a6578;
+  --ramp-neutral-700: #4a5468;
+  --ramp-neutral-750: #3a4254;
+  --ramp-neutral-780: #2c3340;
+  --ramp-neutral-800: #2a3140;
+  --ramp-neutral-820: #2a2a2a;
+  --ramp-neutral-840: #24313a;
+  --ramp-neutral-860: #1f2430;
+  --ramp-neutral-870: #1c222c;
+  --ramp-neutral-880: #1b1f27;
+  --ramp-neutral-890: #1a1f2a;
+  --ramp-neutral-900: #161a22;
+  --ramp-neutral-910: #141a26;
+  --ramp-neutral-920: #12161f;
+  --ramp-neutral-930: #111111;
+  --ramp-neutral-940: #10141c;
+  --ramp-neutral-950: #10181d;
+  --ramp-neutral-960: #0f1218;
+  --ramp-neutral-970: #0e1118;
+  --ramp-neutral-980: #0c1216;
+  --ramp-neutral-990: #0c0f16;
+  --ramp-neutral-1000: #000000;
+
+  --ramp-gold-100: #f0e4b8;
+  --ramp-gold-200: #e2d4a0;
+  --ramp-gold-300: #f5c34d;
+  --ramp-gold-400: #f0c94a;
+  --ramp-gold-500: #d7a94a;
+  --ramp-gold-600: #d4ad2e;
+  --ramp-gold-700: #b89520;
+  --ramp-gold-800: #9a7b1a;
+  --ramp-gold-850: #7a681f;
+  --ramp-gold-870: #6b5410;
+  --ramp-gold-880: #6a5a20;
+  --ramp-gold-900: #4a3d16;
+  --ramp-gold-950: #332b12;
+
+  --ramp-green-100: #b8f0c8;
+  --ramp-green-300: #7fd6a4;
+  --ramp-green-600: #3f6a50;
+  --ramp-green-700: #2f6b4f;
+  --ramp-green-800: #2f4a3a;
+
+  --ramp-red-100: #ffd4d4;
+  --ramp-red-150: #ffd0d0;
+  --ramp-red-200: #f8e8dc;
+  --ramp-red-300: #efd2bc;
+  --ramp-red-500: #cc4444;
+  --ramp-red-600: #aa3333;
+  --ramp-red-700: #7a3a3a;
+  --ramp-red-750: #6a3434;
+  --ramp-red-800: #5a2a2a;
+  --ramp-red-900: #4a2424;
+
+  --ramp-amber-300: #f0a075;
+  --ramp-amber-700: #a65a2a;
+
+  --ramp-blue-200: #6ea8ff;
+  --ramp-blue-500: #4a5a8f;
+  --ramp-blue-550: #4a5a78;
+  --ramp-blue-600: #3d5a78;
+  --ramp-blue-650: #3d4a62;
+  --ramp-blue-700: #334056;
+  --ramp-blue-720: #33406b;
+  --ramp-blue-750: #2c364c;
+  --ramp-blue-780: #2a3d55;
+  --ramp-blue-800: #2a3f6a;
+  --ramp-blue-900: #1c2a48;
+
+  --ramp-teal-600: #3a6a6a;
+  --ramp-teal-800: #2a4848;
+
+  --ramp-violet-400: #b48ce8;
+
+  --space-1: 0.15rem;
+  --space-2: 0.25rem;
+  --space-3: 0.35rem;
+  --space-4: 0.4rem;
+  --space-5: 0.45rem;
+  --space-6: 0.5rem;
+  --space-7: 0.55rem;
+  --space-8: 0.6rem;
+  --space-9: 0.65rem;
+  --space-10: 0.7rem;
+  --space-11: 0.75rem;
+  --space-12: 0.85rem;
+  --space-13: 0.9rem;
+  --space-14: 1rem;
+  --space-15: 1.1rem;
+  --space-16: 1.25rem;
+  --space-17: 2rem;
+  --space-18: 2.5rem;
+
+  --radius-none: 0;
+  --radius-hairline: 1px;
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 14px;
+  --radius-3xl: 16px;
+  --radius-pill: 999px;
+
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+
+  --text-1: 0.62rem;
+  --text-2: 0.65rem;
+  --text-3: 0.72rem;
+  --text-4: 0.78rem;
+  --text-5: 0.8rem;
+  --text-6: 0.82rem;
+  --text-7: 0.84rem;
+  --text-8: 0.85rem;
+  --text-9: 0.9rem;
+  --text-10: 1rem;
+  --text-11: 1.5rem;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 550;
+  --weight-bold: 600;
+  --weight-strong: 650;
+  --weight-heavy: 700;
+
+  --leading-none: 1;
+  --leading-tight: 1.3;
+  --leading-snug: 1.35;
+  --leading-normal: 1.45;
+
+  --tracking-tight: -0.03em;
+  --tracking-wide: 0.06em;
+  --tracking-wider: 0.08em;
+  --tracking-widest: 0.12em;
+
+  --border-hairline: 1px;
+  --border-thin: 1.5px;
+  --border-thick: 2px;
+
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  --elevation-xs: 0 1px 4px rgba(0, 0, 0, 0.45);
+  --elevation-panel: 0 8px 24px rgba(26, 31, 42, 0.04);
+  --elevation-panel-strong: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --elevation-overlay: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --elevation-menu: 0 12px 28px rgba(0, 0, 0, 0.45);
+  --ring-selected: 0 0 0 1px rgba(255, 255, 255, 0.35);
+  --ring-selected-accent: inset 0 0 0 1px rgba(240, 201, 74, 0.5);
+  --scrim-crop: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+
+  --duration-instant: 90ms;
+  --duration-fast: 140ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --duration-pulse: 1.2s;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-pulse: ease;
+
+  --z-base: 2;
+  --z-raised: 3;
+  --z-handle: 4;
+  --z-playhead: 5;
+  --z-crop-actions: 6;
+  --z-playhead-layer: 8;
+  --z-menu: 30;
+  --z-context-menu: 1000;
+
+  --size-hit-target: 40px;
+  --size-hit-target-compact: 32px;
+  --size-lane-gutter: 88px;
+  --size-lane-min: 56px;
+  --size-lane-audio-min: 48px;
+  --size-chip-height: 14px;
+  --size-chips-row: 18px;
+  --size-ruler-height: 22px;
+  --size-ruler-height-compact: 1.25rem;
+  --size-track-height: 72px;
+  --size-wave-panel: 104px;
+  --size-playhead-width: 2px;
+  --size-playhead-cap-width: 14px;
+  --size-playhead-cap-height: 18px;
+  --size-handle-width: 8px;
+  --size-clip-min: 6px;
+  --size-clip-min-wide: 8px;
+  --size-crop-handle: 12px;
+  --size-pip-handle: 14px;
+  --size-meter-height: 8px;
+  --size-zoom-range: 90px;
+  --size-sidebar-min: 180px;
+  --size-sidebar-max: 220px;
+  --size-inspector-min: 220px;
+  --size-inspector-max: 280px;
+  --size-preview-min: 200px;
+  --size-preview-max: 260px;
+  --size-panel-min: 300px;
+  --size-stage-portrait-max: 280px;
+  --size-measure-lead: 56rem;
+  --size-menu-min: 12rem;
+  --size-more-menu-min: 14rem;
+  --size-transcript-max: 14rem;
+  --size-transcript-max-wide: 16rem;
+  --size-log-max: 9rem;
+  --size-status-basis: 10rem;
+  --size-status-min: 8rem;
+  --size-time-min: 6.5rem;
+  --size-cue-time-col: 4.2rem;
+  --size-lane-label-col: 2.5rem;
+}
+
+:root,
+:root[data-theme="light"] {
+  --surface-app: var(--ramp-neutral-050);
+  --surface-raised: var(--ramp-neutral-000);
+  --surface-subtle: var(--ramp-neutral-025);
+  --surface-sunken: var(--ramp-neutral-150);
+  --surface-inset: var(--ramp-neutral-100);
+  --surface-control: var(--ramp-neutral-000);
+  --surface-control-hover: var(--ramp-neutral-150);
+  --surface-stage: var(--ramp-neutral-930);
+  --surface-stage-border: var(--ramp-neutral-820);
+  --surface-video: var(--ramp-neutral-1000);
+
+  --text-primary: var(--ramp-neutral-890);
+  --text-muted: var(--ramp-neutral-650);
+  --text-faint: var(--ramp-neutral-550);
+  --text-on-dark: var(--ramp-neutral-000);
+  --text-on-accent: var(--ramp-gold-870);
+
+  --border-subtle: var(--ramp-neutral-300);
+  --border-strong: var(--ramp-neutral-400);
+
+  --accent: var(--ramp-gold-800);
+  --accent-strong: var(--ramp-gold-700);
+  --accent-soft: var(--ramp-gold-100);
+  --accent-soft-border: var(--ramp-gold-200);
+  --accent-contrast: var(--ramp-neutral-890);
+  --accent-muted-surface: var(--ramp-gold-100);
+  --accent-muted-border: var(--ramp-gold-200);
+
+  --positive: var(--ramp-green-700);
+  --positive-surface: var(--ramp-green-100);
+  --positive-border: var(--ramp-green-600);
+  --positive-text: var(--ramp-green-700);
+
+  --negative: var(--ramp-red-500);
+  --negative-strong: var(--ramp-red-600);
+  --negative-surface: var(--ramp-red-200);
+  --negative-border: var(--ramp-red-300);
+  --negative-text: var(--ramp-red-600);
+  --negative-on-surface: var(--ramp-red-600);
+
+  --warn: var(--ramp-amber-700);
+  --meter-track: var(--ramp-neutral-100);
+  --record-surface: var(--ramp-red-500);
+  --record-border: var(--ramp-red-600);
+
+  --timeline-surface: var(--ramp-neutral-150);
+  --timeline-surface-raised: var(--ramp-neutral-000);
+  --timeline-surface-sunken: var(--ramp-neutral-100);
+  --timeline-track: var(--ramp-neutral-300);
+  --timeline-border: var(--ramp-neutral-300);
+  --timeline-text: var(--ramp-neutral-890);
+  --timeline-text-muted: var(--ramp-neutral-650);
+  --timeline-text-faint: var(--ramp-neutral-550);
+  --timeline-control: var(--ramp-neutral-000);
+  --timeline-control-hover: var(--ramp-neutral-150);
+
+  --menu-surface: var(--ramp-neutral-000);
+  --menu-border: var(--ramp-neutral-300);
+  --menu-text: var(--ramp-neutral-890);
+  --menu-text-disabled: var(--ramp-neutral-550);
+
+  --wave-surface-top: var(--ramp-neutral-150);
+  --wave-surface-bottom: var(--ramp-neutral-100);
+  --wave-border: var(--ramp-neutral-300);
+
+  --focus-ring: var(--ramp-blue-200);
+  --clip-outline: var(--ramp-neutral-000);
+  --clip-text: var(--ramp-neutral-000);
+  --clip-default-top: var(--ramp-blue-550);
+  --clip-default-bottom: var(--ramp-blue-750);
+  --clip-screen-top: var(--ramp-blue-600);
+  --clip-screen-bottom: var(--ramp-blue-780);
+  --clip-cam-top: var(--ramp-teal-600);
+  --clip-cam-bottom: var(--ramp-teal-800);
+  --clip-audio-top: var(--ramp-blue-800);
+  --clip-audio-bottom: var(--ramp-blue-900);
+  --clip-selected-top: var(--ramp-blue-500);
+  --clip-selected-bottom: var(--ramp-blue-720);
+  --clip-stripe-a: var(--ramp-blue-650);
+  --clip-stripe-b: var(--ramp-blue-700);
+  --clip-gap-a: var(--ramp-neutral-800);
+  --clip-gap-b: var(--ramp-neutral-870);
+  --chip-gap: var(--ramp-gold-500);
+  --chip-retake: var(--ramp-violet-400);
+  --chip-text: var(--ramp-neutral-960);
+}
+
+:root[data-theme="dark"] {
+  --surface-app: var(--ramp-neutral-920);
+  --surface-raised: var(--ramp-neutral-890);
+  --surface-subtle: var(--ramp-neutral-880);
+  --surface-sunken: var(--ramp-neutral-990);
+  --surface-inset: var(--ramp-neutral-910);
+  --surface-control: var(--ramp-neutral-800);
+  --surface-control-hover: var(--ramp-neutral-750);
+  --surface-stage: var(--ramp-neutral-930);
+  --surface-stage-border: var(--ramp-neutral-820);
+  --surface-video: var(--ramp-neutral-1000);
+
+  --text-primary: var(--ramp-neutral-075);
+  --text-muted: var(--ramp-neutral-450);
+  --text-faint: var(--ramp-neutral-550);
+  --text-on-dark: var(--ramp-neutral-000);
+  --text-on-accent: var(--ramp-neutral-890);
+
+  --border-subtle: var(--ramp-neutral-800);
+  --border-strong: var(--ramp-neutral-750);
+
+  --accent: var(--ramp-gold-400);
+  --accent-strong: var(--ramp-gold-600);
+  --accent-soft: var(--ramp-gold-950);
+  --accent-soft-border: var(--ramp-gold-850);
+  --accent-contrast: var(--ramp-neutral-890);
+  --accent-muted-surface: var(--ramp-gold-900);
+  --accent-muted-border: var(--ramp-gold-880);
+
+  --positive: var(--ramp-green-300);
+  --positive-surface: var(--ramp-green-800);
+  --positive-border: var(--ramp-green-600);
+  --positive-text: var(--ramp-green-100);
+
+  --negative: var(--ramp-red-500);
+  --negative-strong: var(--ramp-red-600);
+  --negative-surface: var(--ramp-red-900);
+  --negative-border: var(--ramp-red-750);
+  --negative-text: var(--ramp-red-100);
+  --negative-on-surface: var(--ramp-red-150);
+
+  --warn: var(--ramp-amber-300);
+  --meter-track: var(--ramp-neutral-870);
+  --record-surface: var(--ramp-red-500);
+  --record-border: var(--ramp-red-600);
+
+  --timeline-surface: var(--ramp-neutral-880);
+  --timeline-surface-raised: var(--ramp-neutral-890);
+  --timeline-surface-sunken: var(--ramp-neutral-910);
+  --timeline-track: var(--ramp-neutral-990);
+  --timeline-border: var(--ramp-neutral-780);
+  --timeline-text: var(--ramp-neutral-075);
+  --timeline-text-muted: var(--ramp-neutral-400);
+  --timeline-text-faint: var(--ramp-neutral-500);
+  --timeline-control: var(--ramp-neutral-800);
+  --timeline-control-hover: var(--ramp-neutral-750);
+
+  --menu-surface: var(--ramp-neutral-860);
+  --menu-border: var(--ramp-neutral-750);
+  --menu-text: var(--ramp-neutral-250);
+  --menu-text-disabled: var(--ramp-neutral-600);
+
+  --wave-surface-top: var(--ramp-neutral-950);
+  --wave-surface-bottom: var(--ramp-neutral-980);
+  --wave-border: var(--ramp-neutral-840);
+
+  --focus-ring: var(--ramp-blue-200);
+  --clip-outline: var(--ramp-neutral-000);
+  --clip-text: var(--ramp-neutral-000);
+  --clip-default-top: var(--ramp-blue-550);
+  --clip-default-bottom: var(--ramp-blue-750);
+  --clip-screen-top: var(--ramp-blue-600);
+  --clip-screen-bottom: var(--ramp-blue-780);
+  --clip-cam-top: var(--ramp-teal-600);
+  --clip-cam-bottom: var(--ramp-teal-800);
+  --clip-audio-top: var(--ramp-blue-800);
+  --clip-audio-bottom: var(--ramp-blue-900);
+  --clip-selected-top: var(--ramp-blue-500);
+  --clip-selected-bottom: var(--ramp-blue-720);
+  --clip-stripe-a: var(--ramp-blue-650);
+  --clip-stripe-b: var(--ramp-blue-700);
+  --clip-gap-a: var(--ramp-neutral-800);
+  --clip-gap-b: var(--ramp-neutral-870);
+  --chip-gap: var(--ramp-gold-500);
+  --chip-retake: var(--ramp-violet-400);
+  --chip-text: var(--ramp-neutral-960);
+}

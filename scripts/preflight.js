@@ -16,6 +16,7 @@ const steps = [
   { name: 'typecheck:strict', cmd: ['npm', 'run', 'typecheck:strict'] },
   { name: 'check-architecture', cmd: ['node', 'scripts/check-architecture.js'] },
   { name: 'check-hex-literals', cmd: ['node', 'scripts/check-hex-literals.js'] },
+  { name: 'check-style-literals', cmd: ['node', 'scripts/check-style-literals.js'] },
   { name: 'check:arch:self-test', cmd: ['npm', 'run', 'check:arch:self-test'] },
   { name: 'smoke:model', cmd: ['npm', 'run', 'smoke:model'] },
   { name: 'smoke:menu', cmd: ['npm', 'run', 'smoke:menu'] },
@@ -34,6 +35,7 @@ const steps = [
   { name: 'smoke:export-bundle', cmd: ['npm', 'run', 'smoke:export-bundle'] },
   { name: 'smoke:media-url', cmd: ['npm', 'run', 'smoke:media-url'] },
   { name: 'smoke:shortcuts', cmd: ['npm', 'run', 'smoke:shortcuts'] },
+  { name: 'smoke:theme', cmd: ['npm', 'run', 'smoke:theme'] },
   { name: 'smoke:caption-integration', cmd: ['node', 'scripts/smoke-caption-integration.js'] },
   {
     name: 'smoke:apply',

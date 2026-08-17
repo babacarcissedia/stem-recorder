@@ -43,6 +43,8 @@ import { toMediaUrl, MEDIA_SCHEME, BUNDLE_HOST } from '../../lib/node/media-url.
 import { registerAppScheme, handleAppScheme } from './protocol.ts';
 import { contentSecurityPolicy } from './csp.ts';
 import { installAppMenu } from './menu.ts';
+import { initTheme, setThemePreference, themeState } from './theme.ts';
+import { isThemePreference } from '../../lib/domain/theme.ts';
 
 const APP_NAME = 'Stem Studio';
 const DEV_RENDERER_URL = process.env.ELECTRON_RENDERER_URL;
@@ -254,6 +256,14 @@ ipcMain.handle('recorder:openTake', (_evt, takeDir) => {
 });
 
 /* —— Studio / Edit-T1 IPC —— */
+ipcMain.handle('theme:get', () => themeState());
+ipcMain.handle('theme:set', (_evt, preference) => {
+  if (!isThemePreference(preference)) return themeState();
+  const state = setThemePreference(preference);
+  installAppMenu(APP_NAME, editorCommandsEnabled);
+  return state;
+});
+
 ipcMain.handle('studio:listTakes', () => listTakes());
 
 ipcMain.handle('studio:getTake', (_evt, takeId) => {
@@ -431,6 +441,7 @@ ipcMain.handle('studio:exportBundle', async (evt, takeId) => {
 });
 
 app.whenReady().then(() => {
+  initTheme();
   installAppMenu(APP_NAME, editorCommandsEnabled);
 
   handleAppScheme({

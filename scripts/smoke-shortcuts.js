@@ -12,10 +12,11 @@ const {
   findBindingForChord,
   isTypingTarget,
 } = require('../lib/domain/shortcuts.ts');
+const { THEME_PREFERENCES, themeCommandId } = require('../lib/domain/theme.ts');
 const { MENU_COMMANDS } = require('../src/preload/api.ts');
 const { onCommand, dispatchCommand } = require('../src/renderer/src/shortcuts/command-bus.ts');
 
-const SUPPORTED_COMMAND_IDS = [
+const KEYBOARD_COMMAND_IDS = [
   'file:new-take',
   'file:open-take-folder',
   'file:export-bundle',
@@ -33,12 +34,13 @@ function check(condition, message) {
 }
 
 {
-  const chords = SHORTCUT_REGISTRY.map((binding) => parseAccelerator(binding.accelerator));
+  const bound = SHORTCUT_REGISTRY.filter((binding) => binding.accelerator !== undefined);
+  const chords = bound.map((binding) => parseAccelerator(binding.accelerator));
   for (let i = 0; i < chords.length; i += 1) {
     for (let j = i + 1; j < chords.length; j += 1) {
       check(
         !chordsEqual(chords[i], chords[j]),
-        `'${SHORTCUT_REGISTRY[i].id}' and '${SHORTCUT_REGISTRY[j].id}' share accelerator '${SHORTCUT_REGISTRY[i].accelerator}'`
+        `'${bound[i].id}' and '${bound[j].id}' share accelerator '${bound[i].accelerator}'`
       );
     }
   }
@@ -57,6 +59,9 @@ function check(condition, message) {
 
   const studioUiSource = studioSource.slice(studioUiStart, studioUiEnd + '\n}());'.length);
   const referencedIds = new Set([...menuSource.matchAll(/commandItem\('([^']+)'/g)].map((match) => match[1]));
+  if (/commandItem\(themeCommandId\(preference\)/.test(menuSource)) {
+    for (const preference of THEME_PREFERENCES) referencedIds.add(themeCommandId(preference));
+  }
   const liveHandlerStart = studioUiSource.indexOf('const liveCommandHandlers');
   const liveHandlerSource = studioUiSource.slice(liveHandlerStart);
   const liveHandlerIds = new Set([...liveHandlerSource.matchAll(/'([^']+)':\s*\(\)\s*=>/g)].map((match) => match[1]));
@@ -87,15 +92,16 @@ function check(condition, message) {
     studioUiSource.includes("command === 'file:new-take' || hasActiveEditableManifest()"),
     'studio keeps editor commands unavailable without an editable manifest'
   );
-  check(
-    JSON.stringify(SHORTCUT_REGISTRY.map((binding) => binding.id)) === JSON.stringify(SUPPORTED_COMMAND_IDS),
-    'registry contains only live Studio commands'
-  );
 
   for (const binding of SHORTCUT_REGISTRY) {
     check(referencedIds.has(binding.id), `registry entry '${binding.id}' is never referenced by a commandItem() call in menu.ts`);
-    check(MENU_COMMANDS.includes(binding.id), `registry entry '${binding.id}' is not accepted by the preload bridge`);
-    check(liveHandlerIds.has(binding.id), `registry entry '${binding.id}' has no live Studio handler`);
+  }
+  for (const id of MENU_COMMANDS) {
+    check(liveHandlerIds.has(id), `preload command '${id}' has no live Studio handler`);
+    check(
+      SHORTCUT_REGISTRY.some((binding) => binding.id === id),
+      `preload accepts '${id}' but no SHORTCUT_REGISTRY entry has that id`
+    );
   }
   for (const id of referencedIds) {
     check(
@@ -103,12 +109,25 @@ function check(condition, message) {
       `menu.ts calls commandItem('${id}') but no SHORTCUT_REGISTRY entry has that id`
     );
   }
-  for (const id of MENU_COMMANDS) {
-    check(
-      SHORTCUT_REGISTRY.some((binding) => binding.id === id),
-      `preload accepts '${id}' but no SHORTCUT_REGISTRY entry has that id`
-    );
-  }
+  check(
+    JSON.stringify(SHORTCUT_REGISTRY.filter((binding) => binding.accelerator !== undefined).map((binding) => binding.id))
+      === JSON.stringify(KEYBOARD_COMMAND_IDS),
+    'registry contains only live Studio commands on the keyboard path'
+  );
+
+  const rendererMainSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'main.tsx'), 'utf8');
+  const appShellSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'app-shell.tsx'), 'utf8');
+  const mountedRendererRoots = rendererMainSource.match(/\bcreateRoot\s*\(/g) ?? [];
+  const dormantShellSubscriptions = appShellSource.match(/\b(?:useKeyboardShortcuts|subscribeKeyboardShortcuts)\s*\(|\bstemMenu\s*\??\.\s*onCommand\s*\(/g) ?? [];
+
+  check(
+    mountedRendererRoots.length === 0 && !rendererMainSource.includes('AppShell'),
+    'the legacy Studio renderer is the only mounted UI while AppShell is disconnected'
+  );
+  check(
+    dormantShellSubscriptions.length === 0,
+    'a dormant AppShell cannot register a duplicate menu or keyboard subscription'
+  );
 }
 
 {
@@ -119,17 +138,17 @@ function check(condition, message) {
     (command) => command === 'file:new-take' || editorAvailable,
   );
 
-  for (const binding of SHORTCUT_REGISTRY) dispatchCommand(binding.id);
+  for (const command of KEYBOARD_COMMAND_IDS) dispatchCommand(command);
   check(
     JSON.stringify(invocations) === JSON.stringify(['file:new-take']),
     'unavailable editor commands do not dispatch'
   );
 
   editorAvailable = true;
-  for (const binding of SHORTCUT_REGISTRY) dispatchCommand(binding.id);
+  for (const command of KEYBOARD_COMMAND_IDS) dispatchCommand(command);
   check(
-    JSON.stringify(invocations.slice(1)) === JSON.stringify(SUPPORTED_COMMAND_IDS),
-    'every registry command reaches an available handler'
+    JSON.stringify(invocations.slice(1)) === JSON.stringify(KEYBOARD_COMMAND_IDS),
+    'every keyboard command reaches an available handler'
   );
   off();
 }
