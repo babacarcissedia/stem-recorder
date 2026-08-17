@@ -261,7 +261,7 @@
   --accent-strong: var(--ramp-gold-700);
   --accent-soft: var(--ramp-gold-100);
   --accent-soft-border: var(--ramp-gold-200);
-  --accent-foreground: var(--ramp-neutral-000);
+  --accent-foreground: var(--text-on-dark);
   --accent-muted-surface: var(--ramp-gold-100);
   --accent-muted-border: var(--ramp-gold-200);
 
