@@ -5,6 +5,7 @@
 import * as ops from '../../../lib/domain/clip-ops.ts';
 import * as gapChips from '../../../lib/domain/gap-chips.ts';
 import { createUndoStack } from '../../../lib/domain/undo-stack.ts';
+import type { MenuCommand } from '../../preload/api.ts';
 
 (function studioUi() {
   const studio = window.stemStudio;
@@ -91,6 +92,7 @@ import { createUndoStack } from '../../../lib/domain/undo-stack.ts';
   let currentTakeId = null;
   let manifest = null;
   let duration = null;
+  let editorCommandsEnabled = null;
   let urls = {};
   let transcriptHasWordTimings = false;
   let selectedIdx = 0;
@@ -141,6 +143,17 @@ import { createUndoStack } from '../../../lib/domain/undo-stack.ts';
     return `marks In ${inn} · Out ${out}`;
   }
 
+  function hasActiveEditableManifest() {
+    return views.edit?.hidden === false && Array.isArray(manifest?.clips) && manifest.clips.length > 0;
+  }
+
+  function syncEditorCommandsEnabled() {
+    const enabled = hasActiveEditableManifest();
+    if (enabled === editorCommandsEnabled) return;
+    editorCommandsEnabled = enabled;
+    window.stemMenu?.setEditorCommandsEnabled(enabled);
+  }
+
   function showView(name) {
     Object.entries(views).forEach(([key, el]) => {
       if (!el) return;
@@ -149,6 +162,7 @@ import { createUndoStack } from '../../../lib/domain/undo-stack.ts';
     navBtns.forEach((btn) => {
       btn.classList.toggle('active', btn.getAttribute('data-nav') === name);
     });
+    syncEditorCommandsEnabled();
     if (name === 'library') refreshLibrary();
   }
 
@@ -665,6 +679,7 @@ import { createUndoStack } from '../../../lib/domain/undo-stack.ts';
   }
 
   function refreshAll() {
+    syncEditorCommandsEnabled();
     renderSelectionPanel();
     renderTimeline();
     syncFieldsFromClip();
@@ -2079,6 +2094,21 @@ import { createUndoStack } from '../../../lib/domain/undo-stack.ts';
       seekOutput(outputTime + (e.shiftKey ? 1 : 0.1));
     }
   });
+
+  const menuActions: Record<MenuCommand, () => void> = {
+    'file:new-take': () => document.querySelector<HTMLButtonElement>('[data-nav="record"]')?.click(),
+    'file:open-take-folder': () => openFolderBtn?.click(),
+    'file:export-bundle': () => exportBundleBtn?.click(),
+    'timeline:split': () => splitBtn?.click(),
+    'timeline:mark-in': () => markInBtn?.click(),
+    'timeline:mark-out': () => markOutBtn?.click(),
+    'timeline:play-pause': () => tlPlayBtn?.click(),
+  };
+  const unsubscribeMenu = window.stemMenu?.onCommand((command) => {
+    if (command !== 'file:new-take' && !hasActiveEditableManifest()) return;
+    menuActions[command]();
+  });
+  window.addEventListener('beforeunload', () => unsubscribeMenu?.(), { once: true });
 
   showView('record');
   studio.ffmpegOk().then((ok) => {

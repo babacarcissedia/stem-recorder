@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-import type { BatchRecorderBridge, StemStudioBridge } from './api.ts';
+import { isMenuCommand, type BatchRecorderBridge, type MenuBridge, type StemStudioBridge } from './api.ts';
 
 const recorder: BatchRecorderBridge = {
   isDesktop: true,
@@ -28,5 +28,17 @@ const studio: StemStudioBridge = {
   exportBundle: (takeId) => ipcRenderer.invoke('studio:exportBundle', takeId),
 };
 
+const menu: MenuBridge = {
+  onCommand: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, command: string) => {
+      if (isMenuCommand(command)) listener(command);
+    };
+    ipcRenderer.on('menu:command', handler);
+    return () => ipcRenderer.removeListener('menu:command', handler);
+  },
+  setEditorCommandsEnabled: (enabled) => ipcRenderer.send('menu:set-editor-commands-enabled', enabled),
+};
+
 contextBridge.exposeInMainWorld('batchRecorder', recorder);
 contextBridge.exposeInMainWorld('stemStudio', studio);
+contextBridge.exposeInMainWorld('stemMenu', menu);

@@ -19,12 +19,16 @@
     "electron.vite.config.ts",
     "src/main/protocol.ts",
     "src/main/csp.ts",
+    "src/main/menu.ts",
     "src/preload/index.ts",
     "src/preload/api.ts",
     "src/renderer/src/app-shell.tsx",
     "src/renderer/src/global.d.ts",
     "lib/domain/*.ts",
-    "scripts/smoke-model.ts"
+    "scripts/smoke-model.ts",
+    "scripts/smoke-menu.ts",
+    "src/renderer/src/components/**/*.tsx",
+    "src/renderer/src/components/**/*.ts"
   ],
   "exclude": ["scripts/fixtures/**", "out/**", "release/**"]
 }

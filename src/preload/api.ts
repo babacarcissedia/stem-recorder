@@ -1,9 +1,47 @@
+export const MENU_COMMANDS = [
+  'file:new-take',
+  'file:open-take-folder',
+  'file:export-bundle',
+  'timeline:split',
+  'timeline:mark-in',
+  'timeline:mark-out',
+  'timeline:play-pause',
+] as const;
+
+export type MenuCommand = (typeof MENU_COMMANDS)[number];
+
+export const EDITOR_MENU_COMMANDS = [
+  'file:open-take-folder',
+  'file:export-bundle',
+  'timeline:split',
+  'timeline:mark-in',
+  'timeline:mark-out',
+  'timeline:play-pause',
+] as const satisfies readonly MenuCommand[];
+
+export function isMenuCommand(command: string): command is MenuCommand {
+  return (MENU_COMMANDS as readonly string[]).includes(command);
+}
+
+export function isEditorMenuCommand(command: MenuCommand): boolean {
+  return (EDITOR_MENU_COMMANDS as readonly MenuCommand[]).includes(command);
+}
+
+export function canDispatchMenuCommand(command: MenuCommand, editorCommandsEnabled: boolean): boolean {
+  return editorCommandsEnabled || !isEditorMenuCommand(command);
+}
+
 export interface BatchRecorderBridge {
   isDesktop: true;
   outRoot(): Promise<string>;
   beginTake(stamp: string): Promise<string>;
   saveTrack(payload: { takeDir: string; kind: string; ext: string; data: ArrayBuffer | Uint8Array }): Promise<string>;
   openTake(takeDir: string): Promise<void>;
+}
+
+export interface MenuBridge {
+  onCommand(listener: (command: MenuCommand) => void): () => void;
+  setEditorCommandsEnabled(enabled: boolean): void;
 }
 
 export interface StemStudioBridge {
