@@ -349,7 +349,7 @@ function inspect(root) {
       fail('preflight-wired', `${preflight}: missing`);
     } else {
       const stepNames = new Set([...read(preflight).matchAll(/name:\s*['"]([^'"]+)['"]/g)].map((match) => match[1]));
-      for (const name of ['typecheck', 'typecheck:strict', 'check-architecture', 'check-hex-literals', 'check:arch:self-test']) {
+      for (const name of ['typecheck', 'typecheck:strict', 'build', 'check-architecture', 'check-hex-literals', 'check:arch:self-test']) {
         if (!stepNames.has(name)) {
           fail('preflight-wired', `${preflight}: missing required ${name} step`);
         }
