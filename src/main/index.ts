@@ -50,6 +50,7 @@ const IS_DEVELOPMENT = Boolean(DEV_RENDERER_URL);
 const BUNDLE_DIR = path.join(__dirname, '../renderer');
 const APP_ROOT = app.getAppPath();
 const ICON = path.join(APP_ROOT, 'build', 'icon.png');
+let editorCommandsEnabled = false;
 
 process.env.STEM_APP_ROOT = APP_ROOT;
 
@@ -193,6 +194,12 @@ function createWindow() {
     return { action: 'deny' };
   });
 }
+
+ipcMain.on('menu:set-editor-commands-enabled', (_event, enabled: unknown) => {
+  if (typeof enabled !== 'boolean' || enabled === editorCommandsEnabled) return;
+  editorCommandsEnabled = enabled;
+  installAppMenu(APP_NAME, editorCommandsEnabled);
+});
 
 /* —— Record IPC (unchanged contract) —— */
 ipcMain.handle('recorder:outRoot', () => outRoot());
@@ -424,7 +431,7 @@ ipcMain.handle('studio:exportBundle', async (evt, takeId) => {
 });
 
 app.whenReady().then(() => {
-  installAppMenu(APP_NAME);
+  installAppMenu(APP_NAME, editorCommandsEnabled);
 
   handleAppScheme({
     bundleDir: path.resolve(BUNDLE_DIR),

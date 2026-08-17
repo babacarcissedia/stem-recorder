@@ -41,6 +41,7 @@
     "smoke:apply": "node scripts/smoke-apply.js",
     "smoke:clips": "node scripts/smoke-clip-ops.js",
     "smoke:model": "node scripts/smoke-model.ts",
+    "smoke:menu": "node scripts/smoke-menu.ts",
     "smoke:pip": "node scripts/smoke-pip-filter.js",
     "smoke:freeze": "node scripts/smoke-freeze.js",
     "smoke:thumbs": "node scripts/smoke-thumbs.js",

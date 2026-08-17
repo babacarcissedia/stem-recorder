@@ -92,6 +92,7 @@ import type { MenuCommand } from '../../preload/api.ts';
   let currentTakeId = null;
   let manifest = null;
   let duration = null;
+  let editorCommandsEnabled = null;
   let urls = {};
   let transcriptHasWordTimings = false;
   let selectedIdx = 0;
@@ -142,6 +143,17 @@ import type { MenuCommand } from '../../preload/api.ts';
     return `marks In ${inn} · Out ${out}`;
   }
 
+  function hasActiveEditableManifest() {
+    return views.edit?.hidden === false && Array.isArray(manifest?.clips) && manifest.clips.length > 0;
+  }
+
+  function syncEditorCommandsEnabled() {
+    const enabled = hasActiveEditableManifest();
+    if (enabled === editorCommandsEnabled) return;
+    editorCommandsEnabled = enabled;
+    window.stemMenu?.setEditorCommandsEnabled(enabled);
+  }
+
   function showView(name) {
     Object.entries(views).forEach(([key, el]) => {
       if (!el) return;
@@ -150,6 +162,7 @@ import type { MenuCommand } from '../../preload/api.ts';
     navBtns.forEach((btn) => {
       btn.classList.toggle('active', btn.getAttribute('data-nav') === name);
     });
+    syncEditorCommandsEnabled();
     if (name === 'library') refreshLibrary();
   }
 
@@ -666,6 +679,7 @@ import type { MenuCommand } from '../../preload/api.ts';
   }
 
   function refreshAll() {
+    syncEditorCommandsEnabled();
     renderSelectionPanel();
     renderTimeline();
     syncFieldsFromClip();
@@ -2090,7 +2104,10 @@ import type { MenuCommand } from '../../preload/api.ts';
     'timeline:mark-out': () => markOutBtn?.click(),
     'timeline:play-pause': () => tlPlayBtn?.click(),
   };
-  const unsubscribeMenu = window.stemMenu?.onCommand((command) => menuActions[command]());
+  const unsubscribeMenu = window.stemMenu?.onCommand((command) => {
+    if (command !== 'file:new-take' && !hasActiveEditableManifest()) return;
+    menuActions[command]();
+  });
   window.addEventListener('beforeunload', () => unsubscribeMenu?.(), { once: true });
 
   showView('record');

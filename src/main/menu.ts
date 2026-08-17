@@ -1,17 +1,27 @@
 import { app, shell, BrowserWindow, Menu, type MenuItemConstructorOptions } from 'electron';
 
-import type { MenuCommand } from '../preload/api.ts';
+import { canDispatchMenuCommand, type MenuCommand } from '../preload/api.ts';
 
 function sendCommand(command: MenuCommand): void {
   const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
   win?.webContents.send('menu:command', command);
 }
 
-function commandItem(label: string, command: MenuCommand, accelerator?: string): MenuItemConstructorOptions {
-  return { label, accelerator, click: () => sendCommand(command) };
+function commandItem(
+  label: string,
+  command: MenuCommand,
+  editorCommandsEnabled: boolean,
+  accelerator?: string,
+): MenuItemConstructorOptions {
+  return {
+    label,
+    accelerator,
+    enabled: canDispatchMenuCommand(command, editorCommandsEnabled),
+    click: () => sendCommand(command),
+  };
 }
 
-export function buildAppMenu(appName: string): Menu {
+export function buildAppMenu(appName: string, editorCommandsEnabled: boolean = false): Menu {
   const isMac = process.platform === 'darwin';
 
   const template: MenuItemConstructorOptions[] = [
@@ -24,10 +34,10 @@ export function buildAppMenu(appName: string): Menu {
     {
       label: 'File',
       submenu: [
-        commandItem('New Take', 'file:new-take', 'CmdOrCtrl+N'),
-        commandItem('Open Take Folder', 'file:open-take-folder', 'CmdOrCtrl+O'),
+        commandItem('New Take', 'file:new-take', editorCommandsEnabled, 'CmdOrCtrl+N'),
+        commandItem('Open Take Folder', 'file:open-take-folder', editorCommandsEnabled, 'CmdOrCtrl+O'),
         { type: 'separator' },
-        commandItem('Export Bundle…', 'file:export-bundle', 'CmdOrCtrl+E'),
+        commandItem('Export Bundle…', 'file:export-bundle', editorCommandsEnabled, 'CmdOrCtrl+E'),
         { type: 'separator' },
         isMac ? { role: 'close' } : { role: 'quit' },
       ],
@@ -60,12 +70,12 @@ export function buildAppMenu(appName: string): Menu {
     {
       label: 'Timeline',
       submenu: [
-        commandItem('Split', 'timeline:split', 'CmdOrCtrl+B'),
+        commandItem('Split', 'timeline:split', editorCommandsEnabled, 'CmdOrCtrl+B'),
         { type: 'separator' },
-        commandItem('Mark In', 'timeline:mark-in', 'I'),
-        commandItem('Mark Out', 'timeline:mark-out', 'O'),
+        commandItem('Mark In', 'timeline:mark-in', editorCommandsEnabled, 'I'),
+        commandItem('Mark Out', 'timeline:mark-out', editorCommandsEnabled, 'O'),
         { type: 'separator' },
-        commandItem('Play/Pause', 'timeline:play-pause', 'Space'),
+        commandItem('Play/Pause', 'timeline:play-pause', editorCommandsEnabled, 'Space'),
       ],
     },
     {
@@ -83,6 +93,6 @@ export function buildAppMenu(appName: string): Menu {
   return Menu.buildFromTemplate(template);
 }
 
-export function installAppMenu(appName: string = app.getName()): void {
-  Menu.setApplicationMenu(buildAppMenu(appName));
+export function installAppMenu(appName: string = app.getName(), editorCommandsEnabled: boolean = false): void {
+  Menu.setApplicationMenu(buildAppMenu(appName, editorCommandsEnabled));
 }

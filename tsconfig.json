@@ -26,6 +26,7 @@
     "src/renderer/src/global.d.ts",
     "lib/domain/*.ts",
     "scripts/smoke-model.ts",
+    "scripts/smoke-menu.ts",
     "src/renderer/src/components/**/*.tsx",
     "src/renderer/src/components/**/*.ts"
   ],

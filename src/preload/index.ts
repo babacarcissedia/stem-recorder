@@ -36,6 +36,7 @@ const menu: MenuBridge = {
     ipcRenderer.on('menu:command', handler);
     return () => ipcRenderer.removeListener('menu:command', handler);
   },
+  setEditorCommandsEnabled: (enabled) => ipcRenderer.send('menu:set-editor-commands-enabled', enabled),
 };
 
 contextBridge.exposeInMainWorld('batchRecorder', recorder);
