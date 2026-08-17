@@ -337,13 +337,16 @@ function inspect(root) {
     if (!scripts.typecheck) {
       fail('preflight-wired', 'package.json: scripts.typecheck is not defined');
     }
+    if (!scripts['typecheck:strict']) {
+      fail('preflight-wired', 'package.json: scripts.typecheck:strict is not defined');
+    }
 
     const preflight = path.join('scripts', 'preflight.js');
     if (!exists(preflight)) {
       fail('preflight-wired', `${preflight}: missing`);
     } else {
       const stepNames = new Set([...read(preflight).matchAll(/name:\s*['"]([^'"]+)['"]/g)].map((match) => match[1]));
-      for (const name of ['typecheck', 'check-architecture', 'check-hex-literals', 'check:arch:self-test']) {
+      for (const name of ['typecheck', 'typecheck:strict', 'check-architecture', 'check-hex-literals', 'check:arch:self-test']) {
         if (!stepNames.has(name)) {
           fail('preflight-wired', `${preflight}: missing required ${name} step`);
         }
