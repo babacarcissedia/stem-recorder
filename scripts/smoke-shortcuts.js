@@ -46,15 +46,45 @@ function check(condition, message) {
 
 {
   const menuSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'main', 'menu.ts'), 'utf8');
-  const studioSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'studio.ts'), 'utf8');
-  const referencedIds = new Set([...menuSource.matchAll(/commandItem\('([^']+)'/g)].map((match) => match[1]));
-  const liveHandlerStart = studioSource.indexOf('const liveCommandHandlers');
-  const liveHandlerSource = studioSource.slice(liveHandlerStart);
-  const liveHandlerIds = new Set([...liveHandlerSource.matchAll(/'([^']+)':\s*\(\)\s*=>/g)].map((match) => match[1]));
+  const studioSourcePath = process.env.STUDIO_SHORTCUTS_SOURCE_PATH
+    || path.join(__dirname, '..', 'src', 'renderer', 'src', 'studio.ts');
+  const studioSource = fs.readFileSync(studioSourcePath, 'utf8');
+  const studioUiStart = studioSource.indexOf('(function studioUi() {');
+  check(studioUiStart >= 0, 'studio defines the live studioUi lifecycle');
 
-  check(liveHandlerStart >= 0, 'studio mounts a liveCommandHandlers command-bus subscriber');
+  const studioUiEnd = studioSource.indexOf('\n}());', studioUiStart);
+  check(studioUiEnd >= 0, 'studioUi lifecycle has a closing boundary');
+
+  const studioUiSource = studioSource.slice(studioUiStart, studioUiEnd + '\n}());'.length);
+  const referencedIds = new Set([...menuSource.matchAll(/commandItem\('([^']+)'/g)].map((match) => match[1]));
+  const liveHandlerStart = studioUiSource.indexOf('const liveCommandHandlers');
+  const liveHandlerSource = studioUiSource.slice(liveHandlerStart);
+  const liveHandlerIds = new Set([...liveHandlerSource.matchAll(/'([^']+)':\s*\(\)\s*=>/g)].map((match) => match[1]));
+  const commandSubscriptionCalls = studioUiSource.match(/\bonCommand\s*\(/g) ?? [];
+  const keyboardSubscriptionCalls = studioUiSource.match(/\bsubscribeKeyboardShortcuts\s*\(/g) ?? [];
+  const unloadCleanup = studioUiSource.match(
+    /window\.addEventListener\(\s*['"]beforeunload['"]\s*,\s*\(\)\s*=>\s*\{([\s\S]*?)\}\s*,\s*\{\s*once\s*:\s*true\s*\}\s*\);/
+  );
+
+  check(liveHandlerStart >= 0, 'studioUi mounts live command handlers');
   check(
-    studioSource.includes("command === 'file:new-take' || hasActiveEditableManifest()"),
+    commandSubscriptionCalls.length === 1
+      && /\bconst\s+unsubscribeCommands\s*=\s*onCommand\s*\(\s*\(command\)\s*=>\s*liveCommandHandlers\[command\]\(\)\s*,/.test(studioUiSource),
+    'studioUi registers its live command-bus consumer'
+  );
+  check(
+    keyboardSubscriptionCalls.length === 1
+      && /\bconst\s+unsubscribeKeyboardShortcuts\s*=\s*subscribeKeyboardShortcuts\s*\(\s*\)\s*;/.test(studioUiSource),
+    'studioUi registers exactly one keyboard-shortcut subscription'
+  );
+  check(unloadCleanup !== null, 'studioUi registers beforeunload cleanup');
+  check(
+    /\bunsubscribeCommands\s*\(\s*\)\s*;/.test(unloadCleanup?.[1] ?? '')
+      && /\bunsubscribeKeyboardShortcuts\s*\(\s*\)\s*;/.test(unloadCleanup?.[1] ?? ''),
+    'studioUi unload cleanup removes command and keyboard subscriptions'
+  );
+  check(
+    studioUiSource.includes("command === 'file:new-take' || hasActiveEditableManifest()"),
     'studio keeps editor commands unavailable without an editable manifest'
   );
   check(
