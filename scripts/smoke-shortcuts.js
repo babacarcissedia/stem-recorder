@@ -132,9 +132,10 @@ function check(condition, message) {
   );
   check(
     /export\s+type\s+ShellView\s*=\s*\(typeof\s+SHELL_VIEWS\)\[number\]/.test(appShellSource)
-      && /const\s+SHELL_VIEWS\s*=\s*\[\s*['"]studio['"]\s*\]\s+as\s+const\s*;/.test(appShellSource)
+      && /const\s+SHELL_VIEWS\s*=\s*\[\s*['"]studio['"]\s*,\s*['"]record['"]\s*,\s*['"]library['"]\s*\]\s+as\s+const\s*;/.test(appShellSource)
+      && /const\s+DEFAULT_SHELL_VIEW\s*:\s*ShellView\s*=\s*['"]studio['"]/.test(appShellSource)
       && /useState\s*<\s*ShellView\s*>\s*\(\s*DEFAULT_SHELL_VIEW\s*\)/.test(appShellSource),
-    'AppShell owns typed shell view state with studio as the default route'
+    'AppShell owns typed studio, record, and library shell view state with studio as the default route'
   );
   check(
     /function\s+LegacyStudioHost\s*\(/.test(appShellSource)
@@ -147,13 +148,28 @@ function check(condition, message) {
   );
   check(
     /className=['"]shell-root['"][^>]*data-shell-view=\{shellView\}[^>]*aria-label=['"]Stem Studio shell['"]/.test(appShellSource)
-      && /<main\s+className=['"]shell-route['"]\s+data-shell-route=\{shellView\}\s+aria-label=['"]Studio workspace['"]>/.test(appShellSource)
+      && /<nav\s+className=['"]shell-route-nav['"]\s+aria-label=['"]Workspaces['"]>/.test(appShellSource)
+      && /<main\s+className=['"]shell-route['"]\s+data-shell-route=\{shellView\}\s+aria-label=\{routeLabel\(shellView\)\}>/.test(appShellSource)
       && /className=['"]legacy-studio-host['"]\s+role=['"]region['"]\s+aria-label=['"]Studio compatibility host['"]/.test(appShellSource),
-    'AppShell exposes labelled shell, route, and legacy compatibility landmarks'
+    'AppShell exposes labelled shell, route navigation, route, and legacy compatibility landmarks'
   );
   check(
-    (appShellSource.match(/<LegacyStudioHost\s*\/>/g) ?? []).length === 1,
-    'AppShell has one routed LegacyStudioHost render path'
+    /function\s+RecordShell\s*\([\s\S]*<section\s+className=['"]shell-surface shell-surface-record['"]\s+aria-labelledby=['"]record-shell-title['"][\s\S]*<h1\s+id=['"]record-shell-title['"]/.test(appShellSource)
+      && /role=['"]region['"]\s+aria-label=['"]Record setup['"]/.test(appShellSource)
+      && /function\s+LibraryShell\s*\([\s\S]*<section\s+className=['"]shell-surface shell-surface-library['"]\s+aria-labelledby=['"]library-shell-title['"][\s\S]*<h1\s+id=['"]library-shell-title['"]/.test(appShellSource)
+      && /role=['"]region['"]\s+aria-label=['"]Library contents['"]/.test(appShellSource),
+    'Record and Library routes render React-owned labelled shell surfaces'
+  );
+  check(
+    /<button[\s\S]*type=['"]button['"][\s\S]*className=\{`shell-route-tab\$\{shellView === view \? ' active' : ''\}`\}[\s\S]*aria-pressed=\{shellView === view\}[\s\S]*aria-label=\{`Show \$\{routeLabel\(view\)\}`\}[\s\S]*onClick=\{\(\) => setShellView\(view\)\}/.test(appShellSource),
+    'workspace route navigation is keyboard-accessible and labelled'
+  );
+  check(
+    (appShellSource.match(/<LegacyStudioHost\s*\/>/g) ?? []).length === 1
+      && /case\s+['"]studio['"]\s*:\s*\n\s*return\s+<LegacyStudioHost\s*\/>;/.test(appShellSource)
+      && /case\s+['"]record['"]\s*:\s*\n\s*return\s+<RecordShell\s*\/>;/.test(appShellSource)
+      && /case\s+['"]library['"]\s*:\s*\n\s*return\s+<LibraryShell\s*\/>;/.test(appShellSource),
+    'AppShell has one Studio-only routed LegacyStudioHost render path'
   );
   check(
     indexHtmlSource.indexOf('id="app-shell-root"') >= 0
@@ -173,11 +189,34 @@ function check(condition, message) {
       && !/\bmount(?:LegacyStudio|RecorderPanel)\s*\(/.test(rendererMainSource),
     'main registers legacy mount functions without independently initializing Studio'
   );
+  const recorderPanelGuardIndex = recorderPanelSource.indexOf('if (recorderPanelMounted) return;');
+  const firstRecorderPanelBindingIndex = Math.min(
+    ...['.addEventListener(', '.onclick =', '.onchange =']
+      .map((needle) => recorderPanelSource.indexOf(needle))
+      .filter((index) => index >= 0)
+  );
+  check(
+    /let\s+recorderPanelMounted\s*=\s*false\s*;/.test(recorderPanelSource)
+      && /if\s*\(recorderPanelMounted\)\s*return\s*;\s*\n\s*recorderPanelMounted\s*=\s*true\s*;/.test(recorderPanelSource)
+      && recorderPanelGuardIndex >= 0
+      && recorderPanelGuardIndex < firstRecorderPanelBindingIndex,
+    'recorder panel mount is idempotent before any event binding across Studio route remounts'
+  );
   check(
     /type\s+ShellCommandLifecycle\s*=\s*\{\s*\n\s*mountShortcutMenuLifecycle\s*:\s*\(\)\s*=>\s*\(\)\s*=>\s*void\s*;\s*\n\s*\}/.test(appShellSource)
       && /function\s+useShellCommandLifecycle\s*\(/.test(appShellSource)
       && /useEffect\s*\(\s*\(\)\s*=>\s*\{[\s\S]*return\s+lifecycle\.mountShortcutMenuLifecycle\s*\(\s*\)\s*;[\s\S]*\},\s*\[\s*view\s*,\s*lifecycle\s*\]\s*\)/.test(appShellSource),
     'AppShell owns a typed React shortcut/menu lifecycle boundary with cleanup'
+  );
+  const legacyGuardIndex = studioSource.indexOf('if (mountLegacyStudioShortcutLifecycle) return mountLegacyStudioShortcutLifecycle();');
+  const firstLegacyEventBindingIndex = studioSource.indexOf('.addEventListener(');
+  check(
+    /let\s+mountLegacyStudioShortcutLifecycle\s*:\s*null\s*\|\s*\(\(\)\s*=>\s*\(\)\s*=>\s*void\)\s*=\s*null\s*;/.test(studioSource)
+      && /if\s*\(mountLegacyStudioShortcutLifecycle\)\s*return\s+mountLegacyStudioShortcutLifecycle\(\);/.test(studioSource)
+      && legacyGuardIndex >= 0
+      && legacyGuardIndex < firstLegacyEventBindingIndex
+      && /mountLegacyStudioShortcutLifecycle\s*=\s*\(\)\s*=>\s*\{[\s\S]*const\s+unsubscribeCommands\s*=\s*onCommand\([\s\S]*const\s+unsubscribeKeyboardShortcuts\s*=\s*subscribeKeyboardShortcuts\(\);[\s\S]*return\s*\(\)\s*=>\s*\{[\s\S]*unsubscribeKeyboardShortcuts\(\);[\s\S]*unsubscribeCommands\(\);[\s\S]*\};[\s\S]*\};/.test(studioSource),
+    'legacy Studio initializes DOM event handlers once and re-enters only the shortcut/menu lifecycle across route switches'
   );
   check(
     appShellDirectSubscriptions.length === 0,

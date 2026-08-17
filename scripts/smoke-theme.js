@@ -90,6 +90,10 @@ function check(condition, message) {
   const appShellCss = fs.readFileSync(path.join(ROOT, 'src', 'renderer', 'src', 'app-shell.css'), 'utf8');
   check(/\.shell-root \{[\s\S]*color:\s*var\(--text-primary\);[\s\S]*background:\s*var\(--surface-app\);/.test(appShellCss), 'AppShell root uses semantic text and surface aliases');
   check(/\.legacy-studio-host \{[\s\S]*background:\s*var\(--surface-raised\);/.test(appShellCss), 'LegacyStudioHost participates in the raised surface theme alias');
+  check(/\.shell-route-tab \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-strong\);[\s\S]*background:\s*var\(--surface-raised\);[\s\S]*color:\s*var\(--text-primary\);/.test(appShellCss), 'route tabs use semantic surface, border, and text aliases');
+  check(/\.shell-route-tab\.active \{[\s\S]*border-color:\s*var\(--accent\);[\s\S]*background:\s*var\(--accent-soft\);[\s\S]*color:\s*var\(--text-on-accent\);/.test(appShellCss), 'active route tab uses semantic accent aliases');
+  check(/\.shell-surface \{[\s\S]*background:\s*var\(--surface-raised\);[\s\S]*color:\s*var\(--text-primary\);/.test(appShellCss), 'React route shells use semantic text and raised surface aliases');
+  check(/\.shell-surface-panel \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-strong\);[\s\S]*background:\s*var\(--surface-subtle\);/.test(appShellCss), 'Record and Library panels use semantic panel aliases');
 }
 
 {
