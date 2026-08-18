@@ -134,6 +134,11 @@ window.mountLegacyStudio = function mountLegacyStudio() {
   const undoStack = createUndoStack(100);
   /** I.6 in-memory clip clipboard — per take (cleared on openEdit: clips reference this take's media). */
   let clipClipboard = null;
+  let autosaveTimer = null;
+  let autosaveInFlight = null;
+  let pendingAutosave = false;
+  let lastAutosaveSignature = null;
+  let autosaveSuppressed = false;
 
   const CUT_PAUSE_HELP =
     'Cut a pause: Split @ A · Split @ B · Delete middle (ripple) — or Mark In / Mark Out → Cut range';
@@ -141,6 +146,56 @@ window.mountLegacyStudio = function mountLegacyStudio() {
   function setStatus(msg, kind) {
     editStatus.textContent = msg || '';
     editStatus.dataset.kind = kind || '';
+  }
+
+  function manifestSignature() {
+    return manifest ? JSON.stringify(manifest) : null;
+  }
+
+  function queueAutosave(reason) {
+    if (!currentTakeId || !manifest || autosaveSuppressed) return;
+    const signature = manifestSignature();
+    if (!signature || signature === lastAutosaveSignature) return;
+    pendingAutosave = true;
+    if (autosaveTimer) clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(() => runAutosave(reason), 750);
+  }
+
+  function runAutosave(reason) {
+    autosaveTimer = null;
+    if (!pendingAutosave || !currentTakeId || !manifest || autosaveSuppressed) return autosaveInFlight || Promise.resolve();
+    const takeId = currentTakeId;
+    const snapshot = JSON.parse(JSON.stringify(manifest));
+    const signature = JSON.stringify(snapshot);
+    if (signature === lastAutosaveSignature) {
+      pendingAutosave = false;
+      return autosaveInFlight || Promise.resolve();
+    }
+    pendingAutosave = false;
+    const run = studio.autosaveManifest(takeId, snapshot)
+      .then((res) => {
+        if (currentTakeId === takeId) {
+          lastAutosaveSignature = JSON.stringify(res?.manifest || snapshot);
+        }
+      })
+      .catch((error) => {
+        if (currentTakeId === takeId) setStatus(`Autosave failed: ${String(error.message || error)}`, 'warn');
+      })
+      .finally(() => {
+        if (autosaveInFlight === run) autosaveInFlight = null;
+        if (pendingAutosave && currentTakeId === takeId) runAutosave(reason);
+      });
+    autosaveInFlight = run;
+    return run;
+  }
+
+  async function flushAutosaveBeforeSave() {
+    if (autosaveTimer) {
+      clearTimeout(autosaveTimer);
+      autosaveTimer = null;
+    }
+    pendingAutosave = false;
+    if (autosaveInFlight) await autosaveInFlight.catch(() => {});
   }
 
   function marksHint() {
@@ -711,7 +766,15 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     stopPlay();
     const data = await studio.getTake(takeId);
     currentTakeId = takeId;
+    autosaveSuppressed = true;
     manifest = data.manifest;
+    lastAutosaveSignature = manifestSignature();
+    pendingAutosave = false;
+    if (autosaveTimer) {
+      clearTimeout(autosaveTimer);
+      autosaveTimer = null;
+    }
+    autosaveSuppressed = false;
     duration = data.duration;
     urls = data.urls || {};
     selectedIdx = 0;
@@ -745,9 +808,15 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     seekOutput(0);
     loadTimelineMedia(takeId);
     loadTranscript(takeId);
-    setStatus(urls['edit/final.mp4']
-      ? `Loaded · final exists · ${CUT_PAUSE_HELP}`
-      : CUT_PAUSE_HELP);
+    if (data.autosaveRecovered) {
+      setStatus('Recovered unsaved local edit · Save or Apply to keep it', 'warn');
+    } else if (data.autosaveError) {
+      setStatus(`Autosave could not be recovered: ${data.autosaveError}`, 'warn');
+    } else {
+      setStatus(urls['edit/final.mp4']
+        ? `Loaded · final exists · ${CUT_PAUSE_HELP}`
+        : CUT_PAUSE_HELP);
+    }
   }
 
   function setAsrProvider(provider) {
@@ -892,6 +961,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
         ? 'Captions on — Apply burns edit/captions.vtt into final.mp4'
         : 'Captions on — run Transcribe first, or Apply skips the burn')
       : 'Captions off — Apply renders without subtitles', next ? 'ok' : '');
+    queueAutosave('captions');
   }
 
   function doToggleCaptionStyle() {
@@ -902,6 +972,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     setStatus(next
       ? 'Caption style: karaoke — Apply burns word-level highlighted captions'
       : 'Caption style: segment — Apply burns whole-cue captions', 'ok');
+    queueAutosave('caption-style');
   }
 
   captionsBtn?.addEventListener('click', doToggleCaptions);
@@ -936,6 +1007,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     setStatus(next
       ? 'Vertical 9:16 on — Apply renders 1080×1920'
       : 'Vertical off — Apply renders the source aspect', next ? 'ok' : '');
+    queueAutosave('vertical');
   }
 
   verticalBtn?.addEventListener('click', doToggleVertical);
@@ -949,6 +1021,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     setStatus(rate === 1
       ? 'Export speed 1× — final.mp4 keeps real time'
       : `Export speed ${rate}× — Apply renders final.mp4 at ${rate}× (video + audio)`, rate === 1 ? '' : 'ok');
+    queueAutosave('export-rate');
   });
 
   musicBtn?.addEventListener('click', async () => {
@@ -957,6 +1030,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       delete manifest.music;
       updateExportUi();
       setStatus('Music removed — Apply renders without a bed');
+      queueAutosave('music-remove');
       return;
     }
     const picked = await studio.chooseMusic();
@@ -964,6 +1038,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     manifest.music = { path: picked, gainDb: -18 };
     updateExportUi();
     setStatus(`Music bed: ${picked.split(/[\\/]/).pop()} — mixed at −18 dB under the export on Apply`, 'ok');
+    queueAutosave('music-add');
   });
 
   async function loadTranscript(takeId) {
@@ -1159,6 +1234,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     setStatus(next
       ? `Crop set ${Math.round(next.w * 100)}%×${Math.round(next.h * 100)}% — Apply renders it into final.mp4`
       : 'Crop cleared — full frame on Apply', next ? 'ok' : '');
+    queueAutosave('crop');
   }
 
   function cancelCrop() {
@@ -1413,6 +1489,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     pushUndo(prev);
     layoutPipPreview();
     setStatus('Cam PiP layout saved on the take — Apply renders it at this spot and size', 'ok');
+    queueAutosave('pip-layout');
   }
 
   pipVideo?.addEventListener('pointerdown', (e) => startPipDrag(e, 'move'));
@@ -1458,6 +1535,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     setStatus(next
       ? 'Cam mirrored (selfie flip) — saved on the take · rendered on the cam PiP at Apply'
       : 'Cam mirror off', next ? 'ok' : '');
+    queueAutosave('cam-mirror');
   }
 
   function doRotateCam() {
@@ -1471,6 +1549,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     setStatus(deg
       ? `Cam rotated ${deg}° — saved on the take · rendered on the cam PiP at Apply`
       : 'Cam rotation off', deg ? 'ok' : '');
+    queueAutosave('cam-rotate');
   }
 
   function doToggleCamPip() {
@@ -1483,6 +1562,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     setStatus(next
       ? 'Cam PiP on — Apply overlays cam bottom-right in final.mp4'
       : 'Cam PiP off — Apply renders screen only', next ? 'ok' : '');
+    queueAutosave('cam-pip');
   }
 
   camMirrorBtn?.addEventListener('click', doToggleCamMirror);
@@ -1527,6 +1607,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     }
     restoreSnapshot(snap);
     setStatus(`Undo → ${manifest.clips.length} clip${manifest.clips.length === 1 ? '' : 's'}`, 'ok');
+    queueAutosave('undo');
   }
 
   function doRedo() {
@@ -1538,6 +1619,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     }
     restoreSnapshot(snap);
     setStatus(`Redo → ${manifest.clips.length} clip${manifest.clips.length === 1 ? '' : 's'}`, 'ok');
+    queueAutosave('redo');
   }
 
   function doSplit() {
@@ -1553,6 +1635,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
         `Split at ${formatSecondsTimecode(mapped.sourceTime)} → ${manifest.clips.length} clips · next: Split @ B or Delete middle`,
         'ok',
       );
+      queueAutosave('split');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     }
@@ -1572,6 +1655,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
           : 'Deleted selected clip',
         'ok',
       );
+      queueAutosave('delete-clip');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     }
@@ -1610,6 +1694,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       refreshAll();
       seekOutput(Math.min(outputTime, Math.max(0, outDur() - 0.01)));
       setStatus(`Cut range ${formatSecondsTimecode(a)} → ${formatSecondsTimecode(b)} · ripple join`, 'ok');
+      queueAutosave('cut-range');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     }
@@ -1640,6 +1725,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       refreshAll();
       seekOutput(Math.min(outputTime, Math.max(0, outDur() - 0.01)));
       setStatus(`Cut #${prev.selectedIdx + 1} to clipboard · ripple join · Paste to re-insert`, 'ok');
+      queueAutosave('cut-clipboard');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     }
@@ -1663,6 +1749,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       for (let i = 0; i < res.firstPastedIndex; i += 1) acc += ops.clipDuration(manifest.clips[i], duration);
       seekOutput(acc + 0.01);
       setStatus(`Pasted after #${at + 1} → ${manifest.clips.length} clips · ripple shift`, 'ok');
+      queueAutosave('paste');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     }
@@ -1751,6 +1838,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       for (let i = 0; i < res.freezeIndex; i += 1) acc += ops.clipDuration(manifest.clips[i], duration);
       seekOutput(acc + 0.01);
       setStatus(`Freeze ${FREEZE_DEFAULT_SEC}s after #${res.freezeIndex} — holds the clip's last frame · drag its edges to adjust · Apply renders the still`, 'ok');
+      queueAutosave('freeze');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     }
@@ -1813,7 +1901,10 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       resizing = null;
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
-      if (prev && JSON.stringify(prev.clips) !== JSON.stringify(manifest.clips)) pushUndo(prev);
+      if (prev && JSON.stringify(prev.clips) !== JSON.stringify(manifest.clips)) {
+        pushUndo(prev);
+        queueAutosave('timeline-trim');
+      }
       setStatus(`Trimmed #${index + 1}`, 'ok');
     };
     document.addEventListener('pointermove', onMove);
@@ -1952,6 +2043,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       refreshAll();
       seekOutput(ops.sourceToOutput(manifest.clips, selectedIdx, inn, duration));
       setStatus(`Trimmed #${selectedIdx + 1} → ${formatSecondsTimecode(inn)} → ${formatSecondsTimecode(out)}`, 'ok');
+      queueAutosave('field-trim');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
     }
@@ -1959,9 +2051,12 @@ window.mountLegacyStudio = function mountLegacyStudio() {
 
   saveManifestBtn?.addEventListener('click', async () => {
     try {
+      await flushAutosaveBeforeSave();
       const res = await studio.saveManifest(currentTakeId, manifest);
       manifest = res.manifest;
+      lastAutosaveSignature = manifestSignature();
       refreshAll();
+      if (res.autosaveCleared === false) await studio.clearAutosave(currentTakeId);
       setStatus('Saved edit/manifest.json', 'ok');
     } catch (e) {
       setStatus(String(e.message || e), 'warn');
@@ -1973,7 +2068,11 @@ window.mountLegacyStudio = function mountLegacyStudio() {
       stopPlay();
       setStatus('Applying locally (ffmpeg)…');
       applyBtn.disabled = true;
-      await studio.saveManifest(currentTakeId, manifest);
+      await flushAutosaveBeforeSave();
+      const saved = await studio.saveManifest(currentTakeId, manifest);
+      manifest = saved.manifest;
+      lastAutosaveSignature = manifestSignature();
+      if (saved.autosaveCleared === false) await studio.clearAutosave(currentTakeId);
       const res = await studio.apply(currentTakeId);
       const captionNote = res.captions
         ? ` · captions burned${res.captionStyle === 'karaoke' ? ' (karaoke)' : ''}`

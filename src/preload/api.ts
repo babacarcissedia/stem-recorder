@@ -63,6 +63,8 @@ export interface StemStudioBridge {
   listTakes(): Promise<any>;
   getTake(takeId: string): Promise<any>;
   saveManifest(takeId: string, doc: unknown): Promise<any>;
+  autosaveManifest(takeId: string, doc: unknown): Promise<any>;
+  clearAutosave(takeId: string): Promise<any>;
   apply(takeId: string): Promise<any>;
   openTakeFolder(takeId: string): Promise<void>;
   revealStem(takeId: string, stemFile: string): Promise<void>;
