@@ -208,6 +208,28 @@ function fileForSourceId(timeline: Timeline, sourceId: SourceId): string {
   return timeline.source(sourceId).path;
 }
 
+function v1OverlayCompatDetail(track: Track, clip: Clip, source: Source): string {
+  return `${clip.id}@${track.id} ${source.id}:${source.kind}`;
+}
+
+function assertV1OverlayCompatible(timeline: Timeline, selectedTrack: Track | undefined): void {
+  const v1Files: Set<string> = new Set(V1_STEMS.map((stem) => stem.file));
+  for (const track of timeline.tracks) {
+    if (track.kind !== 'video') continue;
+    for (const clip of track.clips) {
+      const source = timeline.source(clip.sourceId);
+      const isOverlayKind = source.kind === 'image' || source.kind === 'text';
+      const isSelectedTrack = track === selectedTrack;
+      invariant(!isOverlayKind, 'V2_OVERLAY_NOT_V1_COMPATIBLE', v1OverlayCompatDetail(track, clip, source));
+      invariant(
+        !isSelectedTrack || v1Files.has(source.path),
+        'V2_OVERLAY_NOT_V1_COMPATIBLE',
+        v1OverlayCompatDetail(track, clip, source),
+      );
+    }
+  }
+}
+
 export function migrateV1ToV2(doc: V1Manifest, durationsSeconds: StemDurations): ManifestV2 {
   invariant(detectSchemaVersion(doc) === 1, 'NOT_A_V1_MANIFEST', String(detectSchemaVersion(doc)));
   const sources = sourcesForTake(durationsSeconds, compatAudioSources(doc));
@@ -313,6 +335,7 @@ export function toV1Compat(doc: ManifestV2): V1Manifest {
   const compatibleAudioSources = [...project.timeline.sources.values()].filter((source) => source.hasAudio);
   const track = project.timeline.tracks.find((candidate) => candidate.id === V1_VIDEO_TRACK_ID)
     ?? project.timeline.tracks[0];
+  assertV1OverlayCompatible(project.timeline, track);
   const clips: V1Clip[] = [];
   for (const clip of track ? track.clips : []) {
     const crop = clip.effects.enabledEffects.find((effect) => effect.type === 'crop');

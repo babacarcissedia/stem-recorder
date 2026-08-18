@@ -6,9 +6,13 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 
 import { InvariantError } from '../lib/domain/invariant.ts';
+import { Clip } from '../lib/domain/clip.ts';
 import { Project } from '../lib/domain/project.ts';
+import { Timeline } from '../lib/domain/timeline.ts';
+import { Track } from '../lib/domain/track.ts';
 import type { V1Manifest } from '../lib/domain/manifest-v2.ts';
 import type { Source } from '../lib/domain/source.ts';
+import { makeSource } from '../lib/domain/source.ts';
 import {
   MANIFEST_SCHEMA_VERSION,
   detectSchemaVersion,
@@ -16,6 +20,7 @@ import {
   readManifestV2,
   resolveDialogueSource,
   resolveLegacyDialogueSource,
+  toManifestV2,
   toV1Compat,
 } from '../lib/domain/manifest-v2.ts';
 
@@ -80,6 +85,90 @@ function tmpTake(): string {
   fs.mkdirSync(path.join(dir, 'edit'), { recursive: true });
   return dir;
 }
+
+function overlayCompatError(project: Project): InvariantError {
+  let error: unknown;
+  try {
+    toV1Compat(toManifestV2('take-overlay', project, { source: 'screen.mp4' }, '2026-01-01T00:00:00.000Z'));
+  } catch (reason) {
+    error = reason;
+  }
+
+  assert.ok(error instanceof InvariantError, `expected InvariantError, got ${String(error)}`);
+  assert.strictEqual(error.code, 'V2_OVERLAY_NOT_V1_COMPATIBLE');
+  return error;
+}
+
+function projectWithOverlayTrack(): Project {
+  const timeline = new Timeline({
+    takeId: 'take-overlay',
+    sources: [
+      makeSource({ id: 'src-screen', path: 'screen.mp4', label: 'screen.mp4', kind: 'video', availableDuration: 600_000 }),
+      makeSource({ id: 'src-title', path: '', label: 'Title', kind: 'text', availableDuration: 0 }),
+    ],
+  });
+  timeline.addTrack(new Track({ id: 'track-video', kind: 'video', clips: [
+    new Clip({ id: 'clip-screen', sourceId: 'src-screen', timelineStart: 0, duration: 6_000, sourceIn: 0 }),
+  ] }));
+  timeline.addTrack(new Track({ id: 'trk-title', kind: 'video', clips: [
+    new Clip({ id: 'title-1', sourceId: 'src-title', timelineStart: 1_000, duration: 2_000, sourceIn: 0 }),
+  ] }));
+  return new Project({ timeline });
+}
+
+group('v2 to v1 compat refuses text overlay clips on unselected video tracks', () => {
+  const error = overlayCompatError(projectWithOverlayTrack());
+
+  assert.match(error.message, /title-1@trk-title/);
+  assert.match(error.message, /src-title:text/);
+});
+
+group('v2 to v1 compat refuses image overlay clips on unselected video tracks', () => {
+  const timeline = new Timeline({
+    takeId: 'take-overlay',
+    sources: [
+      makeSource({ id: 'src-screen', path: 'screen.mp4', label: 'screen.mp4', kind: 'video', availableDuration: 600_000 }),
+      makeSource({ id: 'src-logo', path: 'logo.png', label: 'Logo', kind: 'image', availableDuration: 0 }),
+    ],
+  });
+  timeline.addTrack(new Track({ id: 'track-video', kind: 'video', clips: [
+    new Clip({ id: 'clip-screen', sourceId: 'src-screen', timelineStart: 0, duration: 6_000, sourceIn: 0 }),
+  ] }));
+  timeline.addTrack(new Track({ id: 'trk-logo', kind: 'video', clips: [
+    new Clip({ id: 'logo-1', sourceId: 'src-logo', timelineStart: 1_000, duration: 2_000, sourceIn: 0 }),
+  ] }));
+
+  const error = overlayCompatError(new Project({ timeline }));
+
+  assert.match(error.message, /logo-1@trk-logo/);
+  assert.match(error.message, /src-logo:image/);
+});
+
+group('v2 to v1 compat refuses text overlay clips on the selected legacy video track', () => {
+  const project = projectWithOverlayTrack();
+  const selectedTrack = project.timeline.track('track-video');
+  selectedTrack.insert(new Clip({ id: 'selected-title', sourceId: 'src-title', timelineStart: 6_000, duration: 1_000, sourceIn: 0 }));
+
+  const error = overlayCompatError(project);
+
+  assert.match(error.message, /selected-title@track-video/);
+  assert.match(error.message, /src-title:text/);
+});
+
+group('v2 to v1 compat refuses selected-track clips with non-v1 source paths', () => {
+  const timeline = new Timeline({
+    takeId: 'take-overlay',
+    sources: [makeSource({ id: 'src-broll', path: 'broll.mov', label: 'B-roll', kind: 'video', availableDuration: 600_000 })],
+  });
+  timeline.addTrack(new Track({ id: 'track-video', kind: 'video', clips: [
+    new Clip({ id: 'broll-1', sourceId: 'src-broll', timelineStart: 0, duration: 2_000, sourceIn: 0 }),
+  ] }));
+
+  const error = overlayCompatError(new Project({ timeline }));
+
+  assert.match(error.message, /broll-1@track-video/);
+  assert.match(error.message, /src-broll:video/);
+});
 
 group('v1 seconds convert to integer milliseconds on every clip boundary', () => {
   const doc = migrateV1ToV2(v1, DURATIONS);
