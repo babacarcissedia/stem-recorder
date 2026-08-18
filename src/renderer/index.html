@@ -7,10 +7,18 @@
   <title>Stem Studio</title>
   <style>
     * { box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+    }
     body {
-      margin: 0; min-height: 100vh; background: var(--surface-app); color: var(--text-primary);
+      margin: 0; background: var(--surface-app); color: var(--text-primary);
       font-family: var(--font-sans);
-      padding: var(--space-16) clamp(var(--space-14), 3vw, var(--space-17)) var(--space-18);
+    }
+    #app-shell-root {
+      height: 100%; min-height: 0;
+    }
+    #legacy-studio-root {
+      min-height: 0; padding: var(--space-16) clamp(var(--space-14), 3vw, var(--space-17)) var(--space-18);
     }
     h1 { font-size: var(--text-11); letter-spacing: var(--tracking-tight); margin: 0 0 var(--space-3); }
     .kicker {

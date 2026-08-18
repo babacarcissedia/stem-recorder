@@ -6,6 +6,7 @@ import { PlayerPanel } from './components/player/player-panel.tsx';
 import { InspectorSidebar } from './components/sidebar/inspector-sidebar.tsx';
 import { MediaSidebar } from './components/sidebar/media-sidebar.tsx';
 import { TimelineFooter } from './components/timeline/timeline-footer.tsx';
+import { useTimelineProject } from './components/timeline/use-timeline-project.ts';
 import { TopBar } from './components/top-bar/top-bar.tsx';
 
 const SHELL_VIEWS = ['studio', 'record', 'library'] as const;
@@ -14,6 +15,11 @@ const DEFAULT_SHELL_VIEW: ShellView = 'studio';
 export type ShellView = (typeof SHELL_VIEWS)[number];
 
 function StudioEditorChrome() {
+  const timelineProject = useTimelineProject();
+  const projectName = timelineProject.status === 'ready' || timelineProject.status === 'missing-source'
+    ? timelineProject.project.timeline.takeId || timelineProject.takeId
+    : 'Studio';
+
   return (
     <section className="studio-editor-chrome" aria-labelledby="studio-editor-title">
       <header className="studio-editor-header">
@@ -27,12 +33,12 @@ function StudioEditorChrome() {
         </div>
       </header>
       <section className="studio-editor-react-shell" role="region" aria-label="Studio preview">
-        <TopBar projectName="Current take" autoSavedAt={null} />
+        <TopBar projectName={projectName} autoSavedAt={null} />
         <ShellLayout
           leftSidebar={<MediaSidebar />}
           main={<PlayerPanel />}
           rightSidebar={<InspectorSidebar />}
-          footer={<TimelineFooter />}
+          footer={<TimelineFooter timelineProject={timelineProject} />}
         />
       </section>
       <div className="studio-editor-compatibility-frame" role="region" aria-label="Studio editor">

@@ -4,6 +4,7 @@ import './tokens.css';
 import './affordance.css';
 import './timeline.css';
 import './app-shell.css';
+import './components/timeline/timeline-panel.css';
 import { AppShell } from './app-shell.tsx';
 import './recorder-panel.ts';
 import './studio.ts';
