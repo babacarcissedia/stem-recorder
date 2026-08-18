@@ -114,10 +114,16 @@ function testPipFilterGraphVerticalOrderingWithManualCrop() {
   const manualCrop = {
     x: 0.1, y: 0.1, w: 0.8, h: 0.8,
   };
-  const preset = buildVerticalPreset({
+  const absentPreset = buildVerticalPreset({
     source: { width: 1600, height: 1600 },
     cam: { width: 1280, height: 720 },
   });
+  const preset = buildVerticalPreset({
+    source: { width: 1600, height: 1600 },
+    cam: { width: 1280, height: 720 },
+    autozoom: { mode: 'center-cover' },
+  });
+  assert.deepStrictEqual(preset, absentPreset);
   const graph = pipFilterGraph({
     crop: manualCrop, cam: { mirror: false, rotate: 0 }, verticalPreset: preset,
   });
@@ -138,20 +144,30 @@ function testPipFilterGraphVerticalOrderingWithManualCrop() {
 }
 
 function testPipFilterGraphVerticalWithCaptionsAndSpeed() {
-  const preset = buildVerticalPreset({ source: { width: 1920, height: 1080 }, cam: { width: 640, height: 480 } });
+  const manualCrop = {
+    x: 0.1, y: 0.1, w: 0.8, h: 0.8,
+  };
+  const preset = buildVerticalPreset({
+    source: { width: 1920, height: 1080 },
+    cam: { width: 640, height: 480 },
+    autozoom: { mode: 'center-cover' },
+  });
   const graph = pipFilterGraph({
-    crop: null,
+    crop: manualCrop,
     cam: { mirror: false, rotate: 0 },
     verticalPreset: preset,
     subtitlesPath: '/tmp/fake-captions.ass',
     rate: 1.5,
   });
-  const overlayLine = graph.split(';').find((l) => l.includes('overlay='));
-  assert.ok(overlayLine.endsWith('[ov]'), 'stages present after overlay use an intermediate label');
-  const finalLine = graph.split(';').pop();
-  const subtitlesIdx = finalLine.indexOf('subtitles=');
-  const setptsIdx = finalLine.indexOf('setpts=');
-  assert.ok(subtitlesIdx >= 0 && setptsIdx >= 0 && subtitlesIdx < setptsIdx, 'captions burn before speed, both after overlay');
+  const baseLine = graph.split(';')[0];
+  const manualCropIdx = baseLine.indexOf(cropFilter(manualCrop));
+  const verticalIdx = baseLine.indexOf(verticalCropScaleFilter(preset));
+  const pipIdx = graph.indexOf('overlay=');
+  const subtitlesIdx = graph.indexOf('subtitles=');
+  const setptsIdx = graph.indexOf('setpts=');
+  assert.ok(manualCropIdx >= 0 && verticalIdx > manualCropIdx, 'manual crop precedes vertical crop/scale');
+  assert.ok(pipIdx > graph.indexOf(baseLine) && subtitlesIdx > pipIdx, 'PiP overlay precedes captions');
+  assert.ok(setptsIdx > subtitlesIdx, 'speed follows captions');
   cases += 1;
 }
 

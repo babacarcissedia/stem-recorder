@@ -14,6 +14,8 @@
 // normalized 0-1 crop Rect used elsewhere in this package.
 export type PixelRect = { x: number; y: number; w: number; h: number };
 export type PipPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'bottom-center';
+export type AutozoomMode = 'center-cover';
+export type AutozoomOptions = { mode?: AutozoomMode };
 export type Dimensions = { width: number; height: number };
 export type PipOptions = {
   cam?: Dimensions | null;
@@ -26,9 +28,11 @@ export type VerticalPresetSpec = {
   target?: Dimensions;
   cam?: Dimensions | null;
   pip?: Omit<PipOptions, 'cam'>;
+  autozoom?: AutozoomOptions | null;
 };
 
 const DEFAULT_TARGET = { width: 1080, height: 1920 };
+const DEFAULT_AUTOZOOM_MODE: AutozoomMode = 'center-cover';
 // Typical webcam portrait crop when the actual cam resolution isn't known yet.
 const DEFAULT_CAM_ASPECT = 3 / 4;
 const DEFAULT_PIP_WIDTH_FRACTION = 0.35;
@@ -90,6 +94,18 @@ function normalizePipPosition(position: unknown): PipPosition {
   return typeof position === 'string' && PIP_POSITIONS.has(position)
     ? (position as PipPosition)
     : DEFAULT_PIP_POSITION;
+}
+
+function normalizeAutozoom(autozoom: unknown): AutozoomOptions {
+  if (autozoom == null) return { mode: DEFAULT_AUTOZOOM_MODE };
+  if (typeof autozoom !== 'object' || Array.isArray(autozoom)) {
+    throw new Error('buildVerticalPreset: autozoom must be an object or null');
+  }
+  const mode = (autozoom as { mode?: unknown }).mode ?? DEFAULT_AUTOZOOM_MODE;
+  if (mode !== DEFAULT_AUTOZOOM_MODE) {
+    throw new Error(`buildVerticalPreset: unsupported autozoom mode: ${String(mode)}`);
+  }
+  return { mode: DEFAULT_AUTOZOOM_MODE };
 }
 
 /**
@@ -162,21 +178,24 @@ function computePipRect(
  * the target aspect, settle the target to even dims, and place the cam PiP
  * inside the resulting frame.
  *
- * @param {{source: {width: number, height: number}, target?: {width: number, height: number}, cam?: {width: number, height: number}, pip?: object}} spec
- * @returns {{crop: object, scale: {width: number, height: number}, pip: object}}
+ * @param {{source: {width: number, height: number}, target?: {width: number, height: number}, cam?: {width: number, height: number}, pip?: object, autozoom?: object | null}} spec
+ * @returns {{crop: object, scale: {width: number, height: number}, pip: object, autozoom: {mode: 'center-cover'}}}
  */
 function buildVerticalPreset(
   {
-    source, target = DEFAULT_TARGET, cam = null, pip = {},
+    source, target = DEFAULT_TARGET, cam = null, pip = {}, autozoom = null,
   }: Partial<VerticalPresetSpec> = {},
-): { crop: PixelRect; scale: Dimensions; pip: PixelRect & { position: PipPosition } } {
+): { crop: PixelRect; scale: Dimensions; pip: PixelRect & { position: PipPosition }; autozoom: AutozoomOptions } {
+  const normalizedAutozoom = normalizeAutozoom(autozoom);
   if (!source || !(Number(source.width) > 0) || !(Number(source.height) > 0)) {
     throw new Error('buildVerticalPreset: source {width, height} is required');
   }
   const scale = { width: ensureEven(target.width), height: ensureEven(target.height) };
   const crop = computeCropRect(source.width, source.height, scale.width, scale.height);
   const pipRect = computePipRect(scale.width, scale.height, { ...pip, cam });
-  return { crop, scale, pip: pipRect };
+  return {
+    crop, scale, pip: pipRect, autozoom: normalizedAutozoom,
+  };
 }
 
 export {
@@ -184,8 +203,10 @@ export {
   DEFAULT_CAM_ASPECT,
   DEFAULT_PIP_WIDTH_FRACTION,
   DEFAULT_PIP_MARGIN_FRACTION,
+  DEFAULT_AUTOZOOM_MODE,
   ensureEven,
   computeCropRect,
   computePipRect,
+  normalizeAutozoom,
   buildVerticalPreset,
 };

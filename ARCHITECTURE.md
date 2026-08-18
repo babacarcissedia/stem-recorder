@@ -132,14 +132,17 @@ Record (renderer MediaRecorder)
                           only the explicit boolean true is stored. Apply
                           passes { vertical: {} } to applyClips, which
                           builds a 1080x1920 preset via
-                          export-presets.buildVerticalPreset (crop the
-                          source to the target aspect, scale to the target
-                          dims, place the cam PiP inside the resulting
-                          frame) and renders that instead of the source
-                          aspect. Composes with crop, PiP, captions and
-                          exportRate — the vertical crop/scale stage runs
-                          right after the manual crop, before PiP overlay,
-                          caption burn and speed.
+                          export-presets.buildVerticalPreset. The renderer-only
+                          autozoom contract defaults to
+                          { mode: 'center-cover' }, its only valid mode today:
+                          crop the source to the target aspect, scale to the
+                          target dims, place the cam PiP inside the resulting
+                          frame, and reject unknown modes before ffmpeg starts.
+                          This does not change the persisted manifest shape.
+                          Composes with crop, PiP, captions and exportRate:
+                          the vertical crop/scale stage runs right after the
+                          manual crop, before PiP overlay, caption burn and
+                          speed.
   → preview (renderer reads media via file URLs from main; edits are
       model-only: clip-ops + undo-stack mutate clips[] in memory)
   → Apply (separate path: main → ffmpeg-util.applyClips → edit/final.mp4)
