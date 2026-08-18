@@ -517,6 +517,71 @@ group('a successful atomic write replaces the target and clears the tmp file', (
   fs.rmSync(takeDir, { recursive: true, force: true });
 });
 
+
+group('autosave writes a v2 document atomically and reads it back by path', () => {
+  const takeDir = tmpTake();
+  const doc = migrateV1ToV2(v1, DURATIONS);
+  const autosavePath = store.writeAutosaveDoc(takeDir, doc);
+
+  assert.strictEqual(autosavePath, path.join(takeDir, store.AUTOSAVE_NAME));
+  assert.strictEqual(fs.existsSync(autosavePath), true);
+  assert.deepStrictEqual(JSON.parse(fs.readFileSync(autosavePath, 'utf8')), doc);
+  assert.strictEqual(fs.readFileSync(autosavePath, 'utf8').endsWith('\n'), true);
+  assert.strictEqual(fs.existsSync(`${autosavePath}.tmp`), false);
+
+  const result = store.readAutosaveDoc(takeDir, DURATIONS);
+  assert.strictEqual(result.path, autosavePath);
+  assert.deepStrictEqual(result.doc, doc);
+  fs.rmSync(takeDir, { recursive: true, force: true });
+});
+
+group('clearing autosave removes only the shadow manifest', () => {
+  const takeDir = tmpTake();
+  const primary = store.writeManifestDoc(takeDir, migrateV1ToV2(v1, DURATIONS));
+  const autosave = store.writeAutosaveDoc(takeDir, migrateV1ToV2({ ...v1, takeId: 'take-autosave' }, DURATIONS));
+
+  assert.strictEqual(store.clearAutosaveDoc(takeDir), autosave);
+  assert.strictEqual(fs.existsSync(autosave), false);
+  assert.strictEqual(fs.existsSync(primary), true);
+  fs.rmSync(takeDir, { recursive: true, force: true });
+});
+
+group('newer autosave shadows primary recovery data without changing primary', () => {
+  const takeDir = tmpTake();
+  const primaryDoc = migrateV1ToV2(v1, DURATIONS);
+  const autosaveDoc = migrateV1ToV2({
+    ...v1,
+    vertical: false,
+    clips: [{ id: 'autosave-clip', source: 'screen.mp4', in: 20, out: 22 }],
+  }, DURATIONS);
+  const primary = store.writeManifestDoc(takeDir, primaryDoc);
+  const autosave = store.writeAutosaveDoc(takeDir, autosaveDoc);
+  const later = new Date(Date.now() + 60_000);
+  fs.utimesSync(autosave, later, later);
+
+  assert.strictEqual(store.autosaveIsNewer(takeDir), true);
+  assert.deepStrictEqual(store.readAutosaveDoc(takeDir, DURATIONS).doc, autosaveDoc);
+  assert.deepStrictEqual(JSON.parse(fs.readFileSync(primary, 'utf8')), primaryDoc);
+  fs.rmSync(takeDir, { recursive: true, force: true });
+});
+
+group('older autosave remains on disk and is ignored by the timestamp predicate', () => {
+  const takeDir = tmpTake();
+  store.writeManifestDoc(takeDir, migrateV1ToV2(v1, DURATIONS));
+  const autosave = store.writeAutosaveDoc(takeDir, migrateV1ToV2({
+    ...v1,
+    clips: [{ id: 'old-autosave', source: 'screen.mp4', in: 30, out: 31 }],
+  }, DURATIONS));
+  const earlier = new Date(Date.now() - 60_000);
+  fs.utimesSync(autosave, earlier, earlier);
+
+  assert.strictEqual(store.autosaveIsNewer(takeDir), false);
+  assert.strictEqual(fs.existsSync(autosave), true);
+  assert.strictEqual(store.readAutosaveDoc(takeDir, DURATIONS).doc.project.timeline.tracks[0].clips[0].id, 'old-autosave');
+  assert.strictEqual(fs.existsSync(autosave), true);
+  fs.rmSync(takeDir, { recursive: true, force: true });
+});
+
 group('the recovery seam compares autosave against manifest on every open', () => {
   const takeDir = tmpTake();
   const doc = migrateV1ToV2(v1, DURATIONS);

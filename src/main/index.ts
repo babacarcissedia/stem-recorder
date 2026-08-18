@@ -31,7 +31,10 @@ import {
 } from '../../lib/node/edit-manifest.js';
 import {
   autosaveIsNewer,
+  clearAutosaveDoc,
+  readAutosaveDoc,
   readManifestDoc,
+  writeAutosaveDoc,
   writeManifestDoc,
 } from '../../lib/node/manifest-store.js';
 import {
@@ -90,11 +93,45 @@ function stemDurations(takeDir) {
   ]));
 }
 
+function normalizedV2Manifest(takeId, doc, durations) {
+  const manifest = normalizeManifest(
+    { ...doc, updatedAt: new Date().toISOString() },
+    takeId,
+    durations['screen.mp4'] ?? null,
+  );
+  const audioRoute = doc && typeof doc === 'object' ? doc.audioRoute : undefined;
+  const compatAudioSources = doc && typeof doc === 'object' ? doc.compatAudioSources : undefined;
+  return migrateV1ToV2({
+    ...manifest,
+    ...(audioRoute ? { audioRoute } : {}),
+    ...(compatAudioSources ? { compatAudioSources } : {}),
+  }, durations);
+}
+
 function readStudioManifest(takeId) {
   const takeDir = takeDirFor(takeId);
   const durations = stemDurations(takeDir);
   const duration = durations['screen.mp4'] ?? null;
   const autosaveNewer = autosaveIsNewer(takeDir);
+  let autosaveError = null;
+  if (autosaveNewer) {
+    try {
+      const autosave = readAutosaveDoc(takeDir, durations);
+      if (autosave.doc) {
+        return {
+          takeDir,
+          duration,
+          manifest: toV1Compat(autosave.doc),
+          dialogueSource: resolveDialogueSource(autosave.doc),
+          autosaveNewer: true,
+          autosaveRecovered: true,
+          autosaveError: null,
+        };
+      }
+    } catch (error) {
+      autosaveError = String(error.message || error);
+    }
+  }
   const result = readManifestDoc(takeDir, durations);
   const dialogueSource = result.doc
     ? resolveDialogueSource(result.doc)
@@ -105,26 +142,31 @@ function readStudioManifest(takeId) {
     manifest: result.doc ? toV1Compat(result.doc) : defaultManifest(takeId, duration),
     dialogueSource,
     autosaveNewer,
+    autosaveRecovered: false,
+    autosaveError,
   };
 }
 
 function saveStudioManifest(takeId, doc) {
   const takeDir = takeDirFor(takeId);
   const durations = stemDurations(takeDir);
-  const manifest = normalizeManifest(
-    { ...doc, updatedAt: new Date().toISOString() },
-    takeId,
-    durations['screen.mp4'] ?? null,
-  );
-  const audioRoute = doc && typeof doc === 'object' ? doc.audioRoute : undefined;
-  const compatAudioSources = doc && typeof doc === 'object' ? doc.compatAudioSources : undefined;
-  const v2 = migrateV1ToV2({
-    ...manifest,
-    ...(audioRoute ? { audioRoute } : {}),
-    ...(compatAudioSources ? { compatAudioSources } : {}),
-  }, durations);
+  const v2 = normalizedV2Manifest(takeId, doc, durations);
   const path = writeManifestDoc(takeDir, v2);
+  clearAutosaveDoc(takeDir);
+  return { path, manifest: toV1Compat(v2), autosaveCleared: true };
+}
+
+function autosaveStudioManifest(takeId, doc) {
+  const takeDir = takeDirFor(takeId);
+  const durations = stemDurations(takeDir);
+  const v2 = normalizedV2Manifest(takeId, doc, durations);
+  const path = writeAutosaveDoc(takeDir, v2);
   return { path, manifest: toV1Compat(v2) };
+}
+
+function clearStudioAutosave(takeId) {
+  const takeDir = takeDirFor(takeId);
+  return { path: clearAutosaveDoc(takeDir) };
 }
 
 /**
@@ -292,12 +334,14 @@ ipcMain.handle('theme:set', (_evt, preference) => {
 ipcMain.handle('studio:listTakes', () => listTakes());
 
 ipcMain.handle('studio:getTake', (_evt, takeId) => {
-  const { takeDir, duration, manifest, autosaveNewer } = readStudioManifest(takeId);
+  const { takeDir, duration, manifest, autosaveNewer, autosaveRecovered, autosaveError } = readStudioManifest(takeId);
   const media = mediaUrls(takeId);
-  return { takeId, takeDir, duration, manifest, urls: media.urls, autosaveNewer };
+  return { takeId, takeDir, duration, manifest, urls: media.urls, autosaveNewer, autosaveRecovered, autosaveError };
 });
 
 ipcMain.handle('studio:saveManifest', (_evt, takeId, doc) => saveStudioManifest(takeId, doc));
+ipcMain.handle('studio:autosaveManifest', (_evt, takeId, doc) => autosaveStudioManifest(takeId, doc));
+ipcMain.handle('studio:clearAutosave', (_evt, takeId) => clearStudioAutosave(takeId));
 
 ipcMain.handle('studio:apply', async (_evt, takeId) => {
   const { takeDir, manifest, dialogueSource } = readStudioManifest(takeId);
