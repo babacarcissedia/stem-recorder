@@ -26,6 +26,7 @@ const steps = [
   { name: 'smoke:menu', cmd: ['npm', 'run', 'smoke:menu'] },
   { name: 'smoke:manifest', cmd: ['npm', 'run', 'smoke:manifest'] },
   { name: 'smoke:migrate-v1v2', cmd: ['npm', 'run', 'smoke:migrate-v1v2'] },
+  { name: 'smoke:load-take', cmd: ['npm', 'run', 'smoke:load-take'] },
   { name: 'smoke:clips', cmd: ['npm', 'run', 'smoke:clips'] },
   { name: 'smoke:apply-args', cmd: ['node', 'scripts/smoke-apply-args.js'] },
   { name: 'smoke:pip', cmd: ['npm', 'run', 'smoke:pip'] },

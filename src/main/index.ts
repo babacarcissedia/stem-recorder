@@ -36,6 +36,7 @@ import {
   writeAutosaveDoc,
   writeManifestDoc,
 } from '../../lib/node/manifest-store.js';
+import { loadListedTakeProject } from '../../lib/node/take-project.js';
 import {
   V1_STEMS,
   migrateV1ToV2,
@@ -337,6 +338,8 @@ ipcMain.handle('studio:getTake', (_evt, takeId) => {
   const media = mediaUrls(takeId);
   return { takeId, takeDir, duration, manifest, urls: media.urls, autosaveNewer, autosaveRecovered, autosaveError };
 });
+
+ipcMain.handle('studio:loadProject', (_evt, takeId) => loadListedTakeProject(outRoot(), takeId));
 
 ipcMain.handle('studio:saveManifest', (_evt, takeId, doc) => saveStudioManifest(takeId, doc));
 ipcMain.handle('studio:autosaveManifest', (_evt, takeId, doc) => autosaveStudioManifest(takeId, doc));
