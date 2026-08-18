@@ -1,0 +1,208 @@
+.react-timeline-panel {
+  min-height: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  overflow: hidden;
+}
+
+.react-timeline-state {
+  min-height: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8);
+  border: var(--border-hairline) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+}
+
+.react-timeline-state strong {
+  color: var(--text-primary);
+  font-size: var(--text-6);
+}
+
+.react-timeline-state-error {
+  border-color: var(--negative-border);
+  background: var(--negative-surface);
+  color: var(--negative-on-surface);
+}
+
+.react-timeline-state-error strong {
+  color: var(--negative-on-surface);
+}
+
+.react-timeline-banner {
+  flex: 0 0 auto;
+  padding: var(--space-3) var(--space-6);
+  border: var(--border-hairline) solid var(--negative-border);
+  border-radius: var(--radius-md);
+  background: var(--negative-surface);
+  color: var(--negative-on-surface);
+  font-size: var(--text-4);
+  font-weight: var(--weight-heavy);
+}
+
+.react-timeline-viewport {
+  position: relative;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  border: var(--border-hairline) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--timeline-surface-sunken);
+}
+
+.react-timeline-content {
+  position: relative;
+  min-height: 100%;
+  padding: var(--space-5) var(--space-6) var(--space-6);
+  --react-timeline-track-start: calc(var(--size-lane-gutter) + var(--space-4));
+}
+
+.react-timeline-ruler {
+  position: relative;
+  height: var(--size-ruler-height);
+  margin-inline-start: var(--react-timeline-track-start);
+  color: var(--timeline-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-2);
+}
+
+.react-timeline-ruler span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.react-timeline-ruler span::before {
+  content: "";
+  position: absolute;
+  inset-block-start: var(--space-11);
+  inset-inline-start: 50%;
+  width: var(--border-hairline);
+  height: var(--space-6);
+  background: var(--border-strong);
+}
+
+.react-timeline-tracks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.react-timeline-track-row {
+  display: grid;
+  grid-template-columns: var(--size-lane-gutter) minmax(0, 1fr);
+  gap: var(--space-4);
+  min-height: var(--size-lane-min);
+}
+
+.react-timeline-track-row[data-kind="audio"] {
+  min-height: var(--size-lane-audio-min);
+}
+
+.react-timeline-track-label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: 0;
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--timeline-surface);
+  color: var(--timeline-text-muted);
+}
+
+.react-timeline-track-label strong,
+.react-timeline-track-label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.react-timeline-track-label strong {
+  color: var(--timeline-text);
+  font-size: var(--text-4);
+}
+
+.react-timeline-track-label span {
+  font-size: var(--text-2);
+  font-weight: var(--weight-heavy);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.react-timeline-track {
+  position: relative;
+  min-width: 0;
+  min-height: var(--size-lane-min);
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--timeline-track);
+}
+
+.react-timeline-track-row[data-kind="audio"] .react-timeline-track {
+  min-height: var(--size-lane-audio-min);
+}
+
+.react-timeline-clip {
+  position: absolute;
+  inset-block: var(--space-3);
+  min-width: var(--size-clip-min-wide);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-thick) solid var(--clip-outline);
+  border-radius: var(--radius-sm);
+  background:
+    repeating-linear-gradient(90deg, var(--clip-stripe-a) 0 var(--size-handle-width), var(--clip-stripe-b) var(--size-handle-width) var(--size-crop-handle)),
+    linear-gradient(180deg, var(--clip-default-top), var(--clip-default-bottom));
+  color: var(--clip-text);
+  font-size: var(--text-3);
+  font-weight: var(--weight-heavy);
+}
+
+.react-timeline-clip[data-kind="video"] {
+  background:
+    repeating-linear-gradient(90deg, var(--clip-stripe-a) 0 var(--size-handle-width), var(--clip-stripe-b) var(--size-handle-width) var(--size-crop-handle)),
+    linear-gradient(180deg, var(--clip-screen-top), var(--clip-screen-bottom));
+}
+
+.react-timeline-clip[data-kind="audio"] {
+  background:
+    repeating-linear-gradient(90deg, var(--clip-stripe-a) 0 var(--size-handle-width), var(--clip-stripe-b) var(--size-handle-width) var(--size-crop-handle)),
+    linear-gradient(180deg, var(--clip-audio-top), var(--clip-audio-bottom));
+}
+
+.react-timeline-clip[data-kind="image"],
+.react-timeline-clip[data-kind="text"] {
+  background: linear-gradient(180deg, var(--clip-cam-top), var(--clip-cam-bottom));
+}
+
+.react-timeline-clip[data-present="false"] {
+  border-color: var(--negative-border);
+  background: var(--negative-surface);
+  color: var(--negative-on-surface);
+}
+
+.react-timeline-clip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.react-timeline-playhead {
+  position: absolute;
+  inset-block: var(--space-5) var(--space-6);
+  width: var(--size-playhead-width);
+  margin-inline-start: var(--react-timeline-track-start);
+  background: var(--accent);
+  pointer-events: none;
+  z-index: var(--z-playhead);
+}

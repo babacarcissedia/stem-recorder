@@ -39,6 +39,13 @@ function check(condition, message) {
   assert.ok(condition, message);
 }
 
+function stripSourceComments(source) {
+  return source
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '');
+}
+
 {
   const bound = SHORTCUT_REGISTRY.filter((binding) => binding.accelerator !== undefined);
   const chords = bound.map((binding) => parseAccelerator(binding.accelerator));
@@ -164,8 +171,9 @@ function check(condition, message) {
       && /<h1\s+id=['"]studio-editor-title['"]\s+className=['"]studio-editor-title['"]>Studio<\/h1>/.test(appShellSource)
       && /className=['"]studio-editor-status['"]\s+role=['"]status['"]\s+aria-label=['"]Studio status['"]/.test(appShellSource)
       && /<section\s+className=['"]studio-editor-react-shell['"]\s+role=['"]region['"]\s+aria-label=['"]Studio preview['"]>/.test(appShellSource)
-      && /<TopBar\s+projectName=['"]Current take['"]\s+autoSavedAt=\{null\}\s*\/>/.test(appShellSource)
-      && /<ShellLayout[\s\S]*leftSidebar=\{<MediaSidebar \/>\}[\s\S]*main=\{<PlayerPanel \/>\}[\s\S]*rightSidebar=\{<InspectorSidebar \/>\}[\s\S]*footer=\{<TimelineFooter \/>\}[\s\S]*\/>/.test(appShellSource)
+      && /const\s+timelineProject\s*=\s*useTimelineProject\(\);/.test(appShellSource)
+      && /<TopBar\s+projectName=\{projectName\}\s+autoSavedAt=\{null\}\s*\/>/.test(appShellSource)
+      && /<ShellLayout[\s\S]*leftSidebar=\{<MediaSidebar \/>\}[\s\S]*main=\{<PlayerPanel \/>\}[\s\S]*rightSidebar=\{<InspectorSidebar \/>\}[\s\S]*footer=\{<TimelineFooter timelineProject=\{timelineProject\} \/>\}[\s\S]*\/>/.test(appShellSource)
       && /className=['"]studio-editor-compatibility-frame['"]\s+role=['"]region['"]\s+aria-label=['"]Studio editor['"]/.test(appShellSource)
       && /<LegacyEditorIsland\s*\/>/.test(appShellSource),
     'AppShell exposes labelled shell, route navigation, enabled React editor chrome, route, and LegacyEditorIsland compatibility landmark'
@@ -190,22 +198,24 @@ function check(condition, message) {
     'AppShell has one Studio-only routed React chrome path wrapping LegacyEditorIsland'
   );
   const timelineFooterSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'components', 'timeline', 'timeline-footer.tsx'), 'utf8');
+  const liveTimelineFooterSource = stripSourceComments(timelineFooterSource);
   const topBarSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'components', 'top-bar', 'top-bar.tsx'), 'utf8');
   const playerTransportSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'components', 'player', 'player-transport.tsx'), 'utf8');
   const commandBusSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'src', 'shortcuts', 'command-bus.ts'), 'utf8');
   check(
-    /<footer\s+className=['"]shell-footer['"]\s+aria-label=['"]Timeline['"]>/.test(timelineFooterSource)
-      && /Split and delete run on the open Studio edit\. Save remains in the Studio editor below\./.test(timelineFooterSource)
+    /<footer\s+className=['"]shell-footer['"]\s+aria-label=['"]Timeline['"]\s+style=\{\{ height: `\$\{dockHeight\}px` \}\}>/.test(timelineFooterSource)
+      && /<TimelinePanel\s+state=\{timelineProject\}\s*\/>/.test(timelineFooterSource)
+      && /className=['"]shell-footer-resize['"]/.test(timelineFooterSource)
       && /className=['"]shell-footer-actions['"]\s+role=['"]group['"]\s+aria-label=['"]Timeline actions['"]/.test(timelineFooterSource)
       && /canDispatchCommand\(['"]timeline:split['"]\)/.test(timelineFooterSource)
       && /canDispatchCommand\(['"]timeline:delete-ripple['"]\)/.test(timelineFooterSource)
       && /onCommandAvailabilityChange\(refreshAvailability\)/.test(timelineFooterSource)
       && /onClick=\{\(\) => dispatchCommand\(['"]timeline:split['"]\)\}/.test(timelineFooterSource)
       && /onClick=\{\(\) => dispatchCommand\(['"]timeline:delete-ripple['"]\)\}/.test(timelineFooterSource)
-      && /<button\s+className=['"]shell-timeline-button['"]\s+type=['"]button['"]\s+disabled>Save<\/button>/.test(timelineFooterSource)
-      && /className=['"]shell-timeline-lane-label['"]>Video 1<\/span>/.test(timelineFooterSource)
+      && /<button\s+className=['"]shell-timeline-button['"]\s+type=['"]button['"]\s+disabled>\s*Save in Studio editor\s*<\/button>/.test(liveTimelineFooterSource)
+      && !/>Save<\/button>/.test(liveTimelineFooterSource)
       && !/getElementById|querySelector/.test(timelineFooterSource),
-    'TimelineFooter wires Split and Delete through the command bus while Save stays disabled'
+    'TimelineFooter wires Split and Delete through the command bus while Save stays disabled and the React dock remains local'
   );
   check(
     !/className=['"]studio-editor-react-shell['"][^>]*disabled/.test(appShellSource)

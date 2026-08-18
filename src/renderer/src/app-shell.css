@@ -7,13 +7,23 @@
   background: var(--surface-app);
 }
 
-.shell-route,
+.shell-route {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface-raised);
+}
+
 .legacy-studio-host {
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow: auto;
   background: var(--surface-raised);
 }
 
@@ -25,6 +35,7 @@
   flex-direction: column;
   gap: var(--space-6);
   padding: var(--space-6);
+  overflow: hidden;
   background: var(--surface-app);
   color: var(--text-primary);
 }
@@ -97,7 +108,12 @@
 }
 
 .studio-editor-react-shell {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+}
+
+.studio-editor-compatibility-frame {
+  flex: 0 1 var(--size-preview-max);
+  min-height: var(--size-preview-min);
 }
 
 .shell-route-nav {
@@ -208,7 +224,7 @@
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(var(--size-sidebar-min), var(--size-sidebar-max)) minmax(0, 1fr) minmax(var(--size-inspector-min), var(--size-inspector-max));
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) minmax(var(--size-preview-min), auto);
   grid-template-areas:
     "left main right"
     "footer footer footer";
@@ -296,13 +312,40 @@
 .shell-footer {
   grid-area: footer;
   flex: 0 0 auto;
+  position: relative;
+  min-height: var(--size-preview-min);
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--space-5);
   padding: var(--space-11);
   border: var(--border-hairline) solid var(--border-subtle);
   border-radius: var(--radius-xl);
   background: var(--surface-raised);
+  overflow: hidden;
+}
+
+.shell-footer-resize {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: var(--space-11);
+  height: var(--space-4);
+  cursor: row-resize;
+  border-radius: var(--radius-pill);
+}
+
+.shell-footer-resize::before {
+  content: "";
+  position: absolute;
+  inset-block-start: var(--space-1);
+  inset-inline: 45%;
+  height: var(--border-thick);
+  border-radius: var(--radius-pill);
+  background: var(--border-strong);
+}
+
+.shell-footer-resize:focus-visible {
+  outline: var(--border-thick) solid var(--accent);
+  outline-offset: var(--space-1);
 }
 
 .shell-footer-header,
@@ -360,58 +403,6 @@
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--text-on-accent);
-}
-
-.shell-timeline-preview {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-5);
-  border: var(--border-hairline) solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--surface-subtle);
-}
-
-.shell-timeline-ruler {
-  justify-content: space-between;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: var(--text-3);
-}
-
-.shell-timeline-lane {
-  position: relative;
-  gap: var(--space-4);
-  min-height: var(--size-lane-min);
-  padding: var(--space-3) var(--space-5);
-  border-radius: var(--radius-md);
-  background: var(--surface-raised);
-}
-
-.shell-timeline-lane-label {
-  color: var(--text-muted);
-  font-size: var(--text-3);
-  font-weight: var(--weight-heavy);
-  letter-spacing: var(--tracking-wide);
-}
-
-.shell-timeline-clip {
-  flex: 1 1 auto;
-  padding: var(--space-3) var(--space-6);
-  border: var(--border-hairline) solid var(--accent);
-  border-radius: var(--radius-md);
-  background: var(--accent-soft);
-  color: var(--text-on-accent);
-  font-size: var(--text-4);
-}
-
-.shell-timeline-playhead {
-  position: absolute;
-  inset-block: var(--space-2);
-  inset-inline-start: var(--size-lane-gutter);
-  width: var(--size-playhead-width);
-  background: var(--accent);
 }
 
 .shell-icon-button {

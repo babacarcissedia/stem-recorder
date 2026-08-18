@@ -81,7 +81,12 @@ function check(condition, message) {
   const tokens = fs.readFileSync(path.join(ROOT, 'src', 'renderer', 'src', 'tokens.css'), 'utf8');
   check(!/^\s*--(?!ramp-)[a-z0-9-]+:\s*#/m.test(tokens), 'no semantic alias points at a raw hex literal');
 
-  for (const relative of ['src/renderer/src/timeline.css', 'src/renderer/index.html', 'src/renderer/src/app-shell.css']) {
+  for (const relative of [
+    'src/renderer/src/timeline.css',
+    'src/renderer/index.html',
+    'src/renderer/src/app-shell.css',
+    'src/renderer/src/components/timeline/timeline-panel.css',
+  ]) {
     const source = fs.readFileSync(path.join(ROOT, relative), 'utf8');
     check(!/var\(--ramp-/.test(source), `${relative} references semantic aliases, never raw ramp steps`);
     check(!/#[0-9a-fA-F]{3,8}\b/.test(source), `${relative} holds no raw hex literal`);
@@ -100,8 +105,11 @@ function check(condition, message) {
   check(/\.shell-surface-panel \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-strong\);[\s\S]*background:\s*var\(--surface-subtle\);/.test(appShellCss), 'Record and Library panels use semantic panel aliases');
   check(/\.shell-footer \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-subtle\);[\s\S]*background:\s*var\(--surface-raised\);/.test(appShellCss), 'Timeline footer uses semantic border and raised surface aliases');
   check(/\.shell-timeline-button \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-strong\);[\s\S]*background:\s*var\(--surface-subtle\);[\s\S]*color:\s*var\(--text-muted\);/.test(appShellCss), 'Timeline disabled buttons use semantic control aliases');
-  check(/\.shell-timeline-preview \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-strong\);[\s\S]*background:\s*var\(--surface-subtle\);/.test(appShellCss), 'Timeline preview uses semantic panel aliases');
-  check(/\.shell-timeline-clip \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--accent\);[\s\S]*background:\s*var\(--accent-soft\);[\s\S]*color:\s*var\(--text-on-accent\);/.test(appShellCss), 'Timeline preview clip uses semantic accent aliases');
+
+  const timelinePanelCss = fs.readFileSync(path.join(ROOT, 'src', 'renderer', 'src', 'components', 'timeline', 'timeline-panel.css'), 'utf8');
+  check(/\.react-timeline-viewport \{[\s\S]*border:\s*var\(--border-hairline\) solid var\(--border-strong\);[\s\S]*background:\s*var\(--timeline-surface-sunken\);/.test(timelinePanelCss), 'React timeline viewport uses semantic timeline panel aliases');
+  check(/\.react-timeline-clip \{[\s\S]*border:\s*var\(--border-thick\) solid var\(--clip-outline\);[\s\S]*color:\s*var\(--clip-text\);/.test(timelinePanelCss), 'React timeline clips use semantic clip aliases');
+  check(/\.react-timeline-clip\[data-present="false"\] \{[\s\S]*border-color:\s*var\(--negative-border\);[\s\S]*background:\s*var\(--negative-surface\);[\s\S]*color:\s*var\(--negative-on-surface\);/.test(timelinePanelCss), 'React timeline missing-source clips use semantic negative aliases');
 }
 
 {
