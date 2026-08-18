@@ -17,7 +17,6 @@ import {
   applyClips,
   hasSubtitlesFilter,
   probeDuration,
-  resolveCaptionsPath,
   resolveTakeLocalDialoguePath,
 } from '../../lib/node/ffmpeg-util.js';
 import {
@@ -381,10 +380,6 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
     }
   }
   const captionStyle = manifest.captions && manifest.captions.style === 'karaoke' ? 'karaoke' : 'segment';
-  const karaokeRequested = burn.burn && captionStyle === 'karaoke';
-  const subtitlesPath = burn.burn
-    ? (karaokeRequested ? resolveCaptionsPath(editDir, {}) : burn.vtt)
-    : null;
 
   const rate = manifest.exportRate || null;
   let music = manifest.music || null;
@@ -408,7 +403,12 @@ ipcMain.handle('studio:apply', async (_evt, takeId) => {
         },
       } : {}),
       ...(dialoguePath ? { dialoguePath } : {}),
-      ...(burn.burn ? { subtitles: subtitlesPath, preBurnOutPath: preBurnOut } : {}),
+      ...(burn.burn ? {
+        captions: captionStyle === 'karaoke'
+          ? { style: 'karaoke', editDir }
+          : { style: 'segment', vttPath: burn.vtt },
+        preBurnOutPath: preBurnOut,
+      } : {}),
       ...(rate ? { rate } : {}),
       ...(music ? { music } : {}),
       ...(vertical ? { vertical } : {}),

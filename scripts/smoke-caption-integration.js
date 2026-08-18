@@ -6,7 +6,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const {
-  resolveCaptionsPath, verticalCropScaleFilter, pipFilterGraph, cropFilter,
+  resolveCaptionsPath, verticalCropScaleFilter, pipFilterGraph, cropFilter, renderCanvasDimensions,
 } = require('../lib/node/ffmpeg-util.js');
 const { buildVerticalPreset } = require('../lib/domain/export-presets.ts');
 
@@ -47,11 +47,15 @@ function testResolveCaptionsPathStyleOptions() {
   fs.writeFileSync(path.join(editDir, 'asr.json'), JSON.stringify({
     words: [{ word: 'hi', start: 0, end: 0.5 }],
   }), 'utf8');
-  const result = resolveCaptionsPath(editDir, { fontSize: 88, verticalPosition: 0.667, resolutionY: 1920 });
+  const result = resolveCaptionsPath(editDir, {
+    fontSize: 88, verticalPosition: 0.667, resolutionX: 1440, resolutionY: 1080,
+  });
   const doc = fs.readFileSync(result, 'utf8');
   assert.ok(doc.includes(',88,'), 'fontSize option must reach the Style line');
+  assert.ok(doc.includes('PlayResX: 1440'));
+  assert.ok(doc.includes('PlayResY: 1080'));
   const marginV = doc.match(/Style: Karaoke,[^\n]*?,(\d+),1$/m)[1];
-  assert.strictEqual(marginV, String(Math.round((1 - 0.667) * 1920)));
+  assert.strictEqual(marginV, String(Math.round((1 - 0.667) * 1080)));
   cases += 1;
 
   fs.rmSync(editDir, { recursive: true, force: true });
@@ -97,6 +101,38 @@ function testResolveCaptionsPathEmptyWords() {
   cases += 1;
 
   fs.rmSync(editDir, { recursive: true, force: true });
+}
+
+function testRenderCanvasDimensionsSourceAspectNoCrop() {
+  assert.deepStrictEqual(
+    renderCanvasDimensions({ sourceDimensions: { width: 1440, height: 900 } }),
+    { width: 1440, height: 900 },
+  );
+  cases += 1;
+}
+
+function testRenderCanvasDimensionsSourceAspectManualCrop() {
+  assert.deepStrictEqual(
+    renderCanvasDimensions({
+      sourceDimensions: { width: 1441, height: 901 },
+      crop: { x: 0.1, y: 0.2, w: 0.5, h: 0.5 },
+    }),
+    { width: 720, height: 450 },
+  );
+  cases += 1;
+}
+
+function testRenderCanvasDimensionsVerticalPreset() {
+  const preset = buildVerticalPreset({ source: { width: 1440, height: 900 } });
+  assert.deepStrictEqual(
+    renderCanvasDimensions({
+      sourceDimensions: { width: 1440, height: 900 },
+      crop: { x: 0.1, y: 0.2, w: 0.5, h: 0.5 },
+      verticalPreset: preset,
+    }),
+    { width: 1080, height: 1920 },
+  );
+  cases += 1;
 }
 
 function testVerticalCropScaleFilterGeometry() {
@@ -186,6 +222,9 @@ testResolveCaptionsPathNoWords();
 testResolveCaptionsPathMalformedAsr();
 testResolveCaptionsPathNoArtifacts();
 testResolveCaptionsPathEmptyWords();
+testRenderCanvasDimensionsSourceAspectNoCrop();
+testRenderCanvasDimensionsSourceAspectManualCrop();
+testRenderCanvasDimensionsVerticalPreset();
 testVerticalCropScaleFilterGeometry();
 testPipFilterGraphVerticalOrderingWithManualCrop();
 testPipFilterGraphVerticalWithCaptionsAndSpeed();

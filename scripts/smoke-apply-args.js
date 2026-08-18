@@ -313,6 +313,51 @@ function testCacheKeyIgnoresSubtitlesOnFreezeClips() {
   assert.strictEqual(withSubs, withoutSubs);
 }
 
+function testCacheKeyIncludesKaraokeCaptionOptions() {
+  const clip = { in: 2, out: 6 };
+  const baseline = clipCacheKey(
+    basePlan({
+      subtitles: '/fixtures/captions.ass',
+      subtitlesStamp: 'stamp-ass-1',
+      captions: { style: 'karaoke', options: { resolutionX: 1440, resolutionY: 900, fontSize: 64 } },
+    }),
+    clip,
+  );
+  const resized = clipCacheKey(
+    basePlan({
+      subtitles: '/fixtures/captions.ass',
+      subtitlesStamp: 'stamp-ass-1',
+      captions: { style: 'karaoke', options: { resolutionX: 1080, resolutionY: 1920, fontSize: 64 } },
+    }),
+    clip,
+  );
+  const restyled = clipCacheKey(
+    basePlan({
+      subtitles: '/fixtures/captions.ass',
+      subtitlesStamp: 'stamp-ass-1',
+      captions: { style: 'karaoke', options: { resolutionX: 1440, resolutionY: 900, fontSize: 88 } },
+    }),
+    clip,
+  );
+
+  assert.notStrictEqual(resized, baseline);
+  assert.notStrictEqual(restyled, baseline);
+}
+
+function testCacheKeyIgnoresKaraokeCaptionOptionsOnFreezeClips() {
+  const clip = { in: 6, out: 7.5, freeze: true };
+  const withCaptions = clipCacheKey(
+    basePlan({
+      subtitles: '/fixtures/captions.ass',
+      subtitlesStamp: 'stamp-ass-1',
+      captions: { style: 'karaoke', options: { resolutionX: 1440, resolutionY: 900 } },
+    }),
+    clip,
+  );
+  const withoutCaptions = clipCacheKey(basePlan(), clip);
+  assert.strictEqual(withCaptions, withoutCaptions);
+}
+
 function testVerticalPresetAutozoomDoesNotChangeFilterArgs() {
   const absentPreset = { ...VERTICAL_PRESET, autozoom: { mode: 'center-cover' } };
   const explicitPreset = { ...VERTICAL_PRESET, autozoom: { mode: 'center-cover' } };
@@ -392,6 +437,8 @@ const tests = [
   testCacheKeySameInputsSameKey,
   testCacheKeyDimensions,
   testCacheKeyIgnoresSubtitlesOnFreezeClips,
+  testCacheKeyIncludesKaraokeCaptionOptions,
+  testCacheKeyIgnoresKaraokeCaptionOptionsOnFreezeClips,
   testVerticalPresetAutozoomDoesNotChangeFilterArgs,
   testVerticalPresetAutozoomDoesNotChangePipGraph,
 ];
