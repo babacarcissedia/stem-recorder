@@ -106,7 +106,34 @@ assert.throws(() => computePipRect(0, 1920), /positive/);
   assert.strictEqual(preset.pip.h % 2, 0);
   assert.ok(preset.pip.x + preset.pip.w <= preset.scale.width);
   assert.ok(preset.pip.y + preset.pip.h <= preset.scale.height);
+  assert.deepStrictEqual(preset.autozoom, { mode: 'center-cover' });
 }
+
+// buildVerticalPreset: explicit center-cover keeps the absent-autozoom geometry contract
+{
+  const absent = buildVerticalPreset({
+    source: { width: 3024, height: 1964 },
+    cam: { width: 1280, height: 720 },
+    pip: { position: 'top-left', widthFraction: 0.4, marginFraction: 0.02 },
+  });
+  const explicit = buildVerticalPreset({
+    source: { width: 3024, height: 1964 },
+    cam: { width: 1280, height: 720 },
+    pip: { position: 'top-left', widthFraction: 0.4, marginFraction: 0.02 },
+    autozoom: { mode: 'center-cover' },
+  });
+  assert.deepStrictEqual(explicit, absent);
+}
+
+// buildVerticalPreset: future autozoom modes are rejected before ffmpeg can start
+assert.throws(
+  () => buildVerticalPreset({ source: { width: 3024, height: 1964 }, autozoom: { mode: 'future-face-track' } }),
+  /unsupported autozoom mode: future-face-track/,
+);
+assert.throws(
+  () => buildVerticalPreset({ source: { width: 3024, height: 1964 }, autozoom: 'center-cover' }),
+  /autozoom must be an object or null/,
+);
 
 // —— buildVerticalPreset: custom target + cam + pip options thread through ——
 {
@@ -126,4 +153,4 @@ assert.throws(() => computePipRect(0, 1920), /positive/);
 assert.throws(() => buildVerticalPreset({}), /source/);
 assert.throws(() => buildVerticalPreset({ source: { width: 0, height: 100 } }), /source/);
 
-console.log(JSON.stringify({ ok: true, cases: 17 }, null, 2));
+console.log(JSON.stringify({ ok: true, cases: 20 }, null, 2));

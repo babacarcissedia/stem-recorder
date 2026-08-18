@@ -15,6 +15,7 @@ const {
   applyClips, probeDuration, probeDimensions, probeHasAudio, findFfmpeg, runFfmpeg, hasSubtitlesFilter,
   verifyOutputDuration,
 } = require('../lib/node/ffmpeg-util.js');
+const { DEFAULT_TARGET } = require('../lib/domain/export-presets.ts');
 const { expectedOutputDuration, durationTolerance } = require('../lib/domain/apply-duration.ts');
 const { writeManifest, readManifest, FINAL_NAME } = require('../lib/node/edit-manifest.js');
 
@@ -167,6 +168,15 @@ async function main() {
     && musicRateDur != null && Math.abs(musicRateDur - 2) < 0.35
     && probeHasAudio(musicRateOut);
 
+  const verticalAutozoomOut = path.join(takeDir, 'edit', 'final-vertical-autozoom.mp4');
+  await applyClips(src, doc.clips, verticalAutozoomOut, work, { vertical: { autozoom: { mode: 'center-cover' } } });
+  const verticalAutozoomDim = probeDimensions(verticalAutozoomOut);
+  const verticalAutozoomDur = probeDuration(verticalAutozoomOut);
+  const verticalAutozoomOk = Boolean(verticalAutozoomDim)
+    && verticalAutozoomDim.width === DEFAULT_TARGET.width
+    && verticalAutozoomDim.height === DEFAULT_TARGET.height
+    && verticalAutozoomDur != null && Math.abs(verticalAutozoomDur - 4) < 0.35;
+
   // A1: expectedOutputDuration pure math — freeze (Edit-T2c) holds are
   // wall-clock and export rate (Edit-T2e) scales the whole thing by 1/rate,
   // so a [2,6] trim + a 1.5s freeze at 2x must land at (4 + 1.5) / 2 = 2.75s.
@@ -241,7 +251,7 @@ async function main() {
   fs.rmSync(work, { recursive: true, force: true });
 
   const ok = trimOk && cropKept && cropOk && pipOk && freezeOk && captionsOk && preBurnOk && rateOk && musicOk
-    && durationGuardOk && cacheOk;
+    && verticalAutozoomOk && durationGuardOk && cacheOk;
   console.log(JSON.stringify({
     takeId, out, expected: 4, duration: dur, trimOk,
     crop, cropKept, srcDim, outDim, cropOk,
@@ -250,6 +260,7 @@ async function main() {
     captionsOk, captionsSkipped, preBurnOk, preBurnSkipped,
     rateDur, rateFrzDur, rateOk,
     musicDur, musicRateDur, musicOk,
+    verticalAutozoomDim, verticalAutozoomDur, verticalAutozoomOk,
     durationMathOk, mismatchThrew, mismatchMessageOk, mismatchDeletedFile, matchOk, outStillThere, durationGuardOk,
     cacheCountAfterFirst, cacheCountAfterSecond, cacheHitOk,
     cacheCountAfterRate, cache3Dur, staleKeyRateOk,

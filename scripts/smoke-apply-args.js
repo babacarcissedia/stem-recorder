@@ -7,7 +7,7 @@ const os = require('os');
 const path = require('path');
 const {
   buildClipRenderPlan, resolveTakeLocalDialoguePath, clipArgs, freezeArgs, clipCacheKey,
-  cropFilter, freezeStillChain, subtitlesFilter, pipFilterGraph,
+  cropFilter, freezeStillChain, subtitlesFilter, pipFilterGraph, verticalCropScaleFilter,
 } = require('../lib/node/ffmpeg-util.js');
 
 const FREEZE_SEEK_BACKOFF = 0.05;
@@ -20,6 +20,12 @@ const ENCODE_ARGS = [
 const SRC_PATH = '/fixtures/screen.mp4';
 const DIALOGUE_PATH = '/fixtures/audio.mp3';
 const CAM_PATH = '/fixtures/cam.mp4';
+const VERTICAL_PRESET = {
+  crop: { x: 656, y: 0, w: 606, h: 1080 },
+  scale: { width: 1080, height: 1920 },
+  pip: { x: 660, y: 1138, w: 378, h: 504, position: 'bottom-right' },
+  autozoom: { mode: 'center-cover' },
+};
 
 function basePlan(overrides = {}) {
   return {
@@ -307,6 +313,64 @@ function testCacheKeyIgnoresSubtitlesOnFreezeClips() {
   assert.strictEqual(withSubs, withoutSubs);
 }
 
+function testVerticalPresetAutozoomDoesNotChangeFilterArgs() {
+  const absentPreset = { ...VERTICAL_PRESET, autozoom: { mode: 'center-cover' } };
+  const explicitPreset = { ...VERTICAL_PRESET, autozoom: { mode: 'center-cover' } };
+  const absentPlan = buildClipRenderPlan({
+    srcPath: SRC_PATH,
+    dialoguePath: null,
+    cam: null,
+    crop: null,
+    subtitles: null,
+    rate: null,
+    verticalPreset: absentPreset,
+    pip: null,
+  });
+  const explicitPlan = buildClipRenderPlan({
+    srcPath: SRC_PATH,
+    dialoguePath: null,
+    cam: null,
+    crop: null,
+    subtitles: null,
+    rate: null,
+    verticalPreset: explicitPreset,
+    pip: null,
+  });
+  assert.deepStrictEqual(explicitPlan.filterArgs, absentPlan.filterArgs);
+  assert.ok(explicitPlan.filterArgs.includes('-vf'));
+  assert.ok(explicitPlan.filterArgs.includes(verticalCropScaleFilter(VERTICAL_PRESET)));
+}
+
+function testVerticalPresetAutozoomDoesNotChangePipGraph() {
+  const cam = { path: CAM_PATH, mirror: true, rotate: 90, layout: null };
+  const pip = { layout: null, pipWidth: 480, margin: 24 };
+  const absentPreset = { ...VERTICAL_PRESET, autozoom: { mode: 'center-cover' } };
+  const explicitPreset = { ...VERTICAL_PRESET, autozoom: { mode: 'center-cover' } };
+  const absentPlan = buildClipRenderPlan({
+    srcPath: SRC_PATH,
+    dialoguePath: DIALOGUE_PATH,
+    cam,
+    crop: null,
+    subtitles: null,
+    rate: null,
+    verticalPreset: absentPreset,
+    pip,
+  });
+  const explicitPlan = buildClipRenderPlan({
+    srcPath: SRC_PATH,
+    dialoguePath: DIALOGUE_PATH,
+    cam,
+    crop: null,
+    subtitles: null,
+    rate: null,
+    verticalPreset: explicitPreset,
+    pip,
+  });
+  assert.deepStrictEqual(explicitPlan.filterArgs, absentPlan.filterArgs);
+  assert.ok(explicitPlan.filterArgs[1].includes(`scale=w=${VERTICAL_PRESET.pip.w}:h=-2`));
+  assert.ok(explicitPlan.filterArgs[1].includes(`overlay=x=${VERTICAL_PRESET.pip.x}:y=${VERTICAL_PRESET.pip.y}`));
+}
+
 const tests = [
   testProductionPlainPlanMapsTakeLocalDialogueAudio,
   testProductionPipPlanMapsTakeLocalDialogueAudio,
@@ -328,6 +392,8 @@ const tests = [
   testCacheKeySameInputsSameKey,
   testCacheKeyDimensions,
   testCacheKeyIgnoresSubtitlesOnFreezeClips,
+  testVerticalPresetAutozoomDoesNotChangeFilterArgs,
+  testVerticalPresetAutozoomDoesNotChangePipGraph,
 ];
 
 for (const test of tests) test();
