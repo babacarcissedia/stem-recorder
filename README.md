@@ -10,8 +10,9 @@ Movies/stem-recorder/
     audio.mp3
     manifest.txt
     edit/
-      manifest.json   # clips[] — idempotent edit truth
-      final.mp4       # local apply output
+      manifest.json          # schemaVersion 2 project + settings edit truth
+      manifest.autosave.json # recovery shadow when autosave is newer
+      final.mp4              # local apply output
 ```
 
 Phone PWA is parked; this desktop path is the product edit surface for now.
@@ -24,7 +25,6 @@ Merge gate: `npm run preflight` (architecture check + all headless smokes).
 ```bash
 git clone https://github.com/babacarcissedia/stem-recorder.git
 cd stem-recorder
-git checkout feature/electron-edit-t1-11d7   # until merged
 npm install
 npm start
 ```
@@ -46,18 +46,26 @@ CapCut / TikTok-style timeline (charter C2): preview on top, **V1 horizontal tra
 4. Optional: trim selected via In/Out fields  
 5. **Save** → `edit/manifest.json` · **Apply** → `edit/final.mp4`  
 
+Shell TimelineFooter **Split** / **Delete** dispatch to the currently open Studio edit, while **Save** remains in the Studio editor.
+
 Manifest shape:
 
 ```json
 {
-  "version": 1,
+  "schemaVersion": 2,
   "takeId": "take-…",
-  "source": "screen.mp4",
-  "clips": [{ "id": "clip-1", "source": "screen.mp4", "in": 2.0, "out": 6.0 }]
+  "project": {
+    "schemaVersion": 2,
+    "timeline": {},
+    "outputs": [],
+    "audioRoute": { "activeSourceId": null, "resolvedBy": "auto" }
+  },
+  "settings": { "source": "screen.mp4" },
+  "updatedAt": "2026-08-14T20:03:09.000Z"
 }
 ```
 
-Legacy spike `keepFrom` / `keepTo` is accepted and normalized to one clip.
+V1 manifests are migrated on read and backed up to `edit/manifest.v1.bak.json`; future schemas are refused instead of overwritten. Autosave recovery uses `edit/manifest.autosave.json` when that shadow file is newer than `edit/manifest.json`.
 
 ### Transcribe
 
