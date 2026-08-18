@@ -62,6 +62,7 @@ export interface MenuBridge {
 export interface StemStudioBridge {
   listTakes(): Promise<any>;
   getTake(takeId: string): Promise<any>;
+  loadProject(takeId: string): Promise<any>;
   saveManifest(takeId: string, doc: unknown): Promise<any>;
   autosaveManifest(takeId: string, doc: unknown): Promise<any>;
   clearAutosave(takeId: string): Promise<any>;
