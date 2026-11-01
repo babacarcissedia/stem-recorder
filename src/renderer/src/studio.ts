@@ -66,6 +66,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
   const zoomInBtn = document.getElementById('zoomInBtn');
   const zoomOutBtn = document.getElementById('zoomOutBtn');
   const transcribeBtn = document.getElementById('transcribeBtn');
+  const asrWhisperCppBtn = document.getElementById('asrWhisperCppBtn');
   const asrLocalBtn = document.getElementById('asrLocalBtn');
   const asrCloudBtn = document.getElementById('asrCloudBtn');
   const transcriptPanel = document.getElementById('transcriptPanel');
@@ -112,7 +113,11 @@ window.mountLegacyStudio = function mountLegacyStudio() {
   let pxPerSec = 100;
   let previewStem = 'screen';
   let playbackRate = 1;
-  let asrProvider = sessionStorage.getItem('asrProvider') === 'cloud' ? 'cloud' : 'local';
+  type AsrProvider = 'local' | 'whispercpp' | 'cloud';
+  const savedAsrProvider = sessionStorage.getItem('asrProvider') as AsrProvider | null;
+  let asrProvider: AsrProvider = ['local', 'whispercpp', 'cloud'].includes(savedAsrProvider || '')
+    ? savedAsrProvider as AsrProvider
+    : 'local';
   /** Source-time marks for Cut range (null until set). */
   let markIn = null;
   let markOut = null;
@@ -819,9 +824,10 @@ window.mountLegacyStudio = function mountLegacyStudio() {
     }
   }
 
-  function setAsrProvider(provider) {
-    asrProvider = provider === 'cloud' ? 'cloud' : 'local';
+  function setAsrProvider(provider: AsrProvider) {
+    asrProvider = provider;
     sessionStorage.setItem('asrProvider', asrProvider);
+    asrWhisperCppBtn?.classList.toggle('active', asrProvider === 'whispercpp');
     asrLocalBtn?.classList.toggle('active', asrProvider === 'local');
     asrCloudBtn?.classList.toggle('active', asrProvider === 'cloud');
   }
@@ -1052,7 +1058,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
   async function doTranscribe() {
     if (!currentTakeId) return;
     transcribeBtn.disabled = true;
-    setStatus(`Transcribing (${asrProvider})… first local run downloads the model`);
+    setStatus(`Transcribing (${asrProvider})…`);
     try {
       const res = await studio.transcribe({ takeId: currentTakeId, provider: asrProvider });
       await loadTranscript(currentTakeId);
@@ -2003,6 +2009,7 @@ window.mountLegacyStudio = function mountLegacyStudio() {
   markOutBtn?.addEventListener('click', doMarkOut);
   cutRangeBtn?.addEventListener('click', doCutRange);
   transcribeBtn?.addEventListener('click', doTranscribe);
+  asrWhisperCppBtn?.addEventListener('click', () => setAsrProvider('whispercpp'));
   asrLocalBtn?.addEventListener('click', () => setAsrProvider('local'));
   asrCloudBtn?.addEventListener('click', () => setAsrProvider('cloud'));
   setAsrProvider(asrProvider);

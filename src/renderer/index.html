@@ -419,9 +419,10 @@
                 <option value="2">2×</option>
               </select>
             </div>
-            <div class="tl-more-row asr-provider" role="group" aria-label="Transcribe provider" title="Local Whisper (default) or Traxelio cloud">
+            <div class="tl-more-row asr-provider" role="group" aria-label="Transcribe provider" title="Choose one provider; failures never switch providers automatically">
               <span class="tl-more-label">Transcribe via</span>
-              <button type="button" class="active" id="asrLocalBtn">Local</button>
+              <button type="button" id="asrWhisperCppBtn">whisper.cpp</button>
+              <button type="button" class="active" id="asrLocalBtn">Transformers</button>
               <button type="button" id="asrCloudBtn">Cloud</button>
             </div>
           </div>

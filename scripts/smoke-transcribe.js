@@ -18,13 +18,82 @@ const {
   readTranscript,
   resolveAudio,
   runLocal,
+  runWhisperCpp,
   runCloud,
 } = require('../lib/node/transcribe.js');
 const { verifyTranscript, LOOP_RUN_THRESHOLD } = require('../lib/domain/asr/verify.ts');
 const registry = require('../lib/node/asr/registry.js');
+const {
+  buildArgs,
+  findWhisperCli,
+  normalizeWhisperCppJson,
+} = require('../lib/node/asr/providers/whispercpp.js');
 const { buildSrt } = require('../lib/domain/captions.ts');
 
 async function main() {
+  {
+    const raw = {
+      model: { type: 'medium' },
+      params: { model: '/models/ggml-medium.bin', language: 'fr' },
+      result: { language: 'fr' },
+      transcription: [{
+        offsets: { from: 0, to: 2500 },
+        text: ' Super-sécurité, c\'est prêt.',
+        tokens: [
+          { text: '[_BEG_]', offsets: { from: 0, to: 0 } },
+          { text: ' Super', offsets: { from: 10, to: 400 } },
+          { text: '-', offsets: { from: 400, to: 400 } },
+          { text: 'sé', offsets: { from: 410, to: 520 } },
+          { text: 'curité', offsets: { from: 520, to: 800 } },
+          { text: ',', offsets: { from: 800, to: 830 } },
+          { text: ' c', offsets: { from: 900, to: 950 } },
+          { text: "'", offsets: { from: 950, to: 950 } },
+          { text: 'est', offsets: { from: 950, to: 1100 } },
+          { text: ' prêt', offsets: { from: 1200, to: 1500 } },
+          { text: '.', offsets: { from: 1500, to: 1530 } },
+          { text: '[_TT_250]', offsets: { from: 2500, to: 2500 } },
+        ],
+      }],
+    };
+    const normalized = normalizeWhisperCppJson(raw);
+    assert.strictEqual(normalized.model, 'medium');
+    assert.strictEqual(normalized.language, 'fr');
+    assert.deepStrictEqual(normalized.cues, [
+      { start: 0, end: 2.5, text: "Super-sécurité, c'est prêt." },
+    ]);
+    assert.deepStrictEqual(normalized.words, [
+      { word: 'Super-sécurité,', start: 0.01, end: 0.83 },
+      { word: "c'est", start: 0.9, end: 1.1 },
+      { word: 'prêt.', start: 1.2, end: 1.53 },
+    ]);
+
+    const missingTiming = structuredClone(raw);
+    delete missingTiming.transcription[0].tokens[1].offsets;
+    assert.throws(
+      () => normalizeWhisperCppJson(missingTiming),
+      /missing start timing/,
+    );
+
+    const args = buildArgs({
+      model: '/models/medium.bin',
+      audioPath: '/takes/audio.mp3',
+      language: 'fr',
+      outputPrefix: '/takes/edit/run',
+    });
+    assert.deepStrictEqual(args.slice(args.indexOf('--max-context'), args.indexOf('--max-context') + 2), [
+      '--max-context', '0',
+    ]);
+
+    const originalBinary = process.env.STEM_ASR_WHISPERCPP_BIN;
+    process.env.STEM_ASR_WHISPERCPP_BIN = '/definitely/missing/whisper-cli';
+    try {
+      assert.strictEqual(findWhisperCli(), null);
+    } finally {
+      if (originalBinary == null) delete process.env.STEM_ASR_WHISPERCPP_BIN;
+      else process.env.STEM_ASR_WHISPERCPP_BIN = originalBinary;
+    }
+  }
+
   {
     const vtt = [
       'WEBVTT',
@@ -242,11 +311,42 @@ async function main() {
     assert.strictEqual(localResult.captionsSrt, path.join(localTakeDir, 'edit', 'captions.srt'));
     assert.strictEqual(fs.existsSync(localResult.captionsSrt), true);
     assert.strictEqual(fs.readFileSync(localResult.captionsSrt, 'utf8'), buildSrt(cleanCues));
+
+    const cppTakeDir = path.join(tmp2, 'take-whispercpp');
+    fs.mkdirSync(cppTakeDir, { recursive: true });
+    fs.writeFileSync(path.join(cppTakeDir, 'audio.mp3'), 'fake');
+    const words = [
+      { word: 'Bonjour', start: 0, end: 0.5 },
+      { word: 'Stem.', start: 0.6, end: 1 },
+    ];
+    const unstubCpp = registry.stub('whispercpp', {
+      async invoke() {
+        return {
+          model: 'medium',
+          language: 'fr',
+          text: 'Bonjour Stem.',
+          cues: [{ start: 0, end: 1, text: 'Bonjour Stem.' }],
+          words,
+          provenance: { binary: '/opt/homebrew/bin/whisper-cli', version: '1.9.2', modelFile: '/models/medium.bin' },
+        };
+      },
+    });
+    let cppResult;
+    try {
+      cppResult = await runWhisperCpp({ takeDir: cppTakeDir, language: 'fr' });
+    } finally {
+      unstubCpp();
+    }
+    assert.strictEqual(cppResult.provider, 'whispercpp');
+    assert.strictEqual(cppResult.verification.ok, true);
+    const cppAsr = JSON.parse(fs.readFileSync(cppResult.asr, 'utf8'));
+    assert.deepStrictEqual(cppAsr.words, words);
+    assert.strictEqual(cppAsr.provenance.modelFile, '/models/medium.bin');
   } finally {
     fs.rmSync(tmp2, { recursive: true, force: true });
   }
 
-  console.log(JSON.stringify({ ok: true, cases: 13 }));
+  console.log(JSON.stringify({ ok: true, cases: 18 }));
 }
 
 main().catch((err) => {

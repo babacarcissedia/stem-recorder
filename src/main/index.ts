@@ -47,6 +47,7 @@ import {
 import { getFilmstrip, getWaveformPeaks } from '../../lib/node/media-cache.js';
 import {
   runLocal as runLocalAsr,
+  runWhisperCpp as runWhisperCppAsr,
   runCloud as runCloudAsr,
   readTranscript,
   asrStatus,
@@ -472,7 +473,11 @@ ipcMain.handle('studio:getWaveform', (_evt, takeId) => getWaveformPeaks(takeDirF
 ipcMain.handle('studio:transcribe', async (_evt, { takeId, provider } = {}) => {
   const takeDir = takeDirFor(takeId);
   // Explicit provider choice only — no silent local→cloud fallback.
+  if (provider != null && !['local', 'whispercpp', 'cloud'].includes(provider)) {
+    throw new Error(`unknown ASR provider: ${provider}`);
+  }
   if (provider === 'cloud') return runCloudAsr({ takeDir });
+  if (provider === 'whispercpp') return runWhisperCppAsr({ takeDir });
   return runLocalAsr({ takeDir });
 });
 

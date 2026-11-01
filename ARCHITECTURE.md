@@ -171,10 +171,13 @@ All caches are per-take, regenerable, and keyed on source mtime.
 
 ## ASR (transcribe)
 
-- **Local** (default): Hugging Face Whisper via Python
+- **whisper.cpp**: explicit accelerated local provider. It preflights the
+  configured CLI/model, normalizes full JSON tokens into Stem word timings,
+  and records binary/model provenance.
+- **Transformers** (default): Hugging Face Whisper via Python
   (`scripts/hf-whisper-transcribe.py`, venv at `.venv-asr/`).
 - **Cloud**: `https://asr.traxelio.com/transcribe`.
-- Never falls back silently between the two. Outputs in `<take>/edit/`:
+- Never falls back silently between providers. Outputs in `<take>/edit/`:
   `transcript.txt`, `captions.vtt`, `captions.srt` (same cues as the VTT, for
   editors like Premiere/Resolve), `asr.json` (segments plus a `words[]`
   array of word-level `{ word, start, end }` timings when the provider

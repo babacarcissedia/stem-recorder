@@ -69,20 +69,24 @@ V1 manifests are migrated on read and backed up to `edit/manifest.v1.bak.json`; 
 
 ### Transcribe
 
-Toolbar **Transcribe** with **Local** (default) | **Cloud** provider toggle. Writes
-`edit/transcript.txt` · `edit/captions.vtt` · `edit/asr.json` (provider, model,
-language, createdAt, sourceFile). Cues show in the Selection panel — click one to
-seek the playhead. No burn-in, no translation.
+Toolbar **Transcribe** with explicit **whisper.cpp** | **Transformers** (default) |
+**Cloud** provider choices. Writes `edit/transcript.txt` · `edit/captions.vtt` ·
+`edit/captions.srt` · `edit/asr.json`. Cues show in the Selection panel — click
+one to seek the playhead. No provider silently retries through another provider.
 
-- **Local** — Hugging Face Whisper via Python (`scripts/hf-whisper-transcribe.py`).
+- **whisper.cpp** — accelerated local provider. Install `whisper-cli`, set
+  `STEM_ASR_WHISPERCPP_MODEL` to a local ggml model file, and optionally set
+  `STEM_ASR_WHISPERCPP_BIN`. Stem preflights the CLI/model before starting and
+  records their provenance in `asr.json`.
+- **Transformers** — Hugging Face Whisper via Python (`scripts/hf-whisper-transcribe.py`).
   Prefer project venv: `python3 -m venv .venv-asr && .venv-asr/bin/pip install transformers torch` (app looks for `.venv-asr/bin/python`). Model via `STEM_ASR_WHISPER_MODEL`
   (default `openai/whisper-large-v3`; aliases `base`/`small`/`turbo`/… work). The
   pipeline picks MPS or CUDA when available and falls back to CPU — on a CPU-only
   box set `STEM_ASR_WHISPER_MODEL=turbo` or `small`, since large-v3 there runs
   slower than realtime.
 - **Cloud** — `POST $STEM_ASR_URL` (default `https://asr.traxelio.com/transcribe`)
-  with `Bearer $STEM_ASR_TOKEN`. Never used as a silent fallback — if local deps
-  are missing you get a clear error and can switch to Cloud explicitly.
+  with `Bearer $STEM_ASR_TOKEN`. If a provider's dependencies are missing, the
+  run fails clearly and you can select another provider explicitly.
 
 Audio source: prefers `audio.mp3`; else extracts `edit/.asr-audio.mp3` from
 `screen.mp4` with ffmpeg. Plumbing smoke: `npm run smoke:transcribe`.
