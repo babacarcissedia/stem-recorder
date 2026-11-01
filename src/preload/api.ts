@@ -72,7 +72,7 @@ export interface StemStudioBridge {
   ffmpegOk(): Promise<boolean>;
   getFilmstrip(takeId: string, stemFile: string): Promise<any>;
   getWaveform(takeId: string): Promise<any>;
-  transcribe(payload: { takeId: string; provider?: string }): Promise<any>;
+  transcribe(payload: { takeId: string; provider?: 'local' | 'whispercpp' | 'cloud' }): Promise<any>;
   getTranscript(takeId: string): Promise<any>;
   setCueText(takeId: string, index: number, text: string): Promise<any>;
   chooseMusic(): Promise<string | null>;
